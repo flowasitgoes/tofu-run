@@ -40,10 +40,10 @@ export const siteConfig = {
     "豆花慢跑（Tofu Run）是高雄中央公園的城市團體加油慢跑遊戲。掃描 QR 加入、選擇豆花配料、到公園各區掃描 Token，收集你的豆花護照——跑、跑、跑，享用你們拾取的豆花。",
   shortDescription:
     "高雄中央公園的城市慢跑遊戲。掃 QR 加入、選豆花、收集 Token 與豆花護照。",
-  /** Open Graph / Twitter / LINE 橫式分享圖（1200×630） */
-  ogImage: "/1200x630.jpg",
+  /** Open Graph / Twitter / LINE 橫式分享圖（1200×630 PNG） */
+  ogImage: "/og.png",
   ogImageAlt:
-    "豆花慢跑 Tofu Run 宣傳圖：芋圓、粉圓、花生、綠豆、紅豆配料圖示與「慢跑 RUN」字樣，高雄中央公園團體慢跑活動",
+    "豆花慢跑 Tofu Run 宣傳圖：慢跑豆花、綠豆紅豆豆花與芋圓粉圓花生配料，高雄中央公園團體慢跑活動",
   /** 網站圖示 / PWA / 加入主畫面（1080×1080 等僅放 public/，不寫入 og:image） */
   icons: {
     favicon32: "/32x32.jpg",

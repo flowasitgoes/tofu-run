@@ -106,7 +106,7 @@ export function createMetadata({
           width: 1200,
           height: 630,
           alt: siteConfig.ogImageAlt,
-          type: "image/jpeg",
+          type: "image/png",
         },
       ],
     },
