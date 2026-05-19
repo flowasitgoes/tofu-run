@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { absoluteUrl, getShareOgImageUrl, siteConfig } from "@/lib/site";
+import {
+  absoluteUrl,
+  getShareOgImageSquareUrl,
+  getShareOgImageUrl,
+  siteConfig,
+} from "@/lib/site";
 
 type PageMetaOptions = {
   title?: string;
@@ -8,6 +13,45 @@ type PageMetaOptions = {
   noIndex?: boolean;
   ogType?: "website" | "article";
 };
+
+const siteIcons = {
+  icon: [
+    {
+      url: siteConfig.appIcons["32"],
+      sizes: "32x32",
+      type: "image/jpeg",
+    },
+    {
+      url: siteConfig.appIcons["64"],
+      sizes: "64x64",
+      type: "image/jpeg",
+    },
+    {
+      url: siteConfig.appIcons["192"],
+      sizes: "192x192",
+      type: "image/jpeg",
+    },
+    {
+      url: siteConfig.appIcons["512"],
+      sizes: "512x512",
+      type: "image/jpeg",
+    },
+    { url: "/icon.svg", type: "image/svg+xml" },
+  ],
+  apple: [
+    {
+      url: siteConfig.appIcons["192"],
+      sizes: "192x192",
+      type: "image/jpeg",
+    },
+    {
+      url: siteConfig.appIcons["512"],
+      sizes: "512x512",
+      type: "image/jpeg",
+    },
+  ],
+  shortcut: siteConfig.appIcons["32"],
+} satisfies Metadata["icons"];
 
 export function createMetadata({
   title,
@@ -20,7 +64,8 @@ export function createMetadata({
     ? `${title} | ${siteConfig.name}`
     : `${siteConfig.name} | ${siteConfig.nameEn}`;
   const canonical = absoluteUrl(path);
-  const ogImage = getShareOgImageUrl();
+  const ogImageSquare = getShareOgImageSquareUrl();
+  const ogImageLandscape = getShareOgImageUrl();
 
   return {
     metadataBase: new URL(siteConfig.url),
@@ -40,15 +85,7 @@ export function createMetadata({
     alternates: {
       canonical,
     },
-    icons: {
-      icon: [
-        { url: siteConfig.appIcon, sizes: "512x512", type: "image/jpeg" },
-        { url: "/icon.svg", type: "image/svg+xml" },
-      ],
-      apple: [
-        { url: siteConfig.appIcon, sizes: "512x512", type: "image/jpeg" },
-      ],
-    },
+    icons: siteIcons,
     robots: noIndex
       ? { index: false, follow: false }
       : {
@@ -70,8 +107,18 @@ export function createMetadata({
       description,
       images: [
         {
-          url: ogImage,
-          secureUrl: ogImage.startsWith("https") ? ogImage : undefined,
+          url: ogImageSquare,
+          secureUrl: ogImageSquare.startsWith("https") ? ogImageSquare : undefined,
+          width: 1080,
+          height: 1080,
+          alt: siteConfig.ogImageSquareAlt,
+          type: "image/jpeg",
+        },
+        {
+          url: ogImageLandscape,
+          secureUrl: ogImageLandscape.startsWith("https")
+            ? ogImageLandscape
+            : undefined,
           width: 1200,
           height: 630,
           alt: siteConfig.ogImageAlt,
@@ -84,7 +131,7 @@ export function createMetadata({
       title: pageTitle,
       description,
       images: {
-        url: ogImage,
+        url: ogImageLandscape,
         alt: siteConfig.ogImageAlt,
       },
     },

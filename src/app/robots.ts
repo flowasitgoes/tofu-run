@@ -4,6 +4,7 @@ import { absoluteUrl } from "@/lib/site";
 const SOCIAL_CRAWLERS = [
   "facebookexternalhit",
   "Facebot",
+  "meta-externalagent",
   "Twitterbot",
   "LinkedInBot",
   "Slackbot",

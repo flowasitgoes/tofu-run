@@ -13,21 +13,22 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "zh-Hant",
     icons: [
       {
-        src: siteConfig.appIcon,
+        src: siteConfig.appIcons["192"],
+        sizes: "192x192",
+        type: "image/jpeg",
+        purpose: "any",
+      },
+      {
+        src: siteConfig.appIcons["512"],
         sizes: "512x512",
         type: "image/jpeg",
         purpose: "any",
       },
       {
-        src: siteConfig.appIcon,
+        src: siteConfig.appIcons["512"],
         sizes: "512x512",
         type: "image/jpeg",
         purpose: "maskable",
-      },
-      {
-        src: siteConfig.appIcon,
-        sizes: "192x192",
-        type: "image/jpeg",
       },
       {
         src: "/icon.svg",
