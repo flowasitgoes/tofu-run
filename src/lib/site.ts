@@ -1,13 +1,13 @@
-/** 網站根網址（SEO、OG、sitemap）。Vercel 未設 NEXT_PUBLIC_APP_URL 時用部署網域，避免 og:image 變 localhost */
+/** 正式站自訂網域（OG / canonical 須與分享圖同網域，勿用 *.vercel.app） */
+export const PRODUCTION_SITE_URL = "https://tofu-run.ifunlove.com";
+
+/** 網站根網址（SEO、OG、sitemap） */
 function getSiteUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
   if (fromEnv) return fromEnv;
 
-  const vercelHost =
-    process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
-  if (vercelHost) {
-    const host = vercelHost.replace(/\/$/, "");
-    return host.startsWith("http") ? host : `https://${host}`;
+  if (process.env.VERCEL) {
+    return PRODUCTION_SITE_URL;
   }
 
   return "http://localhost:3000";
@@ -58,12 +58,7 @@ export function absoluteUrl(path = ""): string {
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-/**
- * 分享用大圖網址。若自訂網域 CDN 擋爬蟲，可在 Vercel 設：
- * NEXT_PUBLIC_OG_IMAGE_ORIGIN=https://tofu-run.vercel.app
- */
+/** 分享用大圖（與 og:url 同網域） */
 export function getShareOgImageUrl(): string {
-  const origin = process.env.NEXT_PUBLIC_OG_IMAGE_ORIGIN?.replace(/\/$/, "");
-  if (origin) return `${origin}${siteConfig.ogImage}`;
   return absoluteUrl(siteConfig.ogImage);
 }
