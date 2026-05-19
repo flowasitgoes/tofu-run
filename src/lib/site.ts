@@ -40,23 +40,24 @@ export const siteConfig = {
     "豆花慢跑（Tofu Run）是高雄中央公園的城市團體加油慢跑遊戲。掃描 QR 加入、選擇豆花配料、到公園各區掃描 Token，收集你的豆花護照——跑、跑、跑，享用你們拾取的豆花。",
   shortDescription:
     "高雄中央公園的城市慢跑遊戲。掃 QR 加入、選豆花、收集 Token 與豆花護照。",
-  /** Open Graph 橫式分享圖（1200×630，FB / LINE 等） */
+  /** Open Graph / Twitter / LINE 橫式分享圖（1200×630） */
   ogImage: "/1200x630.jpg",
   ogImageAlt:
     "豆花慢跑 Tofu Run 宣傳圖：芋圓、粉圓、花生、綠豆、紅豆配料圖示與「慢跑 RUN」字樣，高雄中央公園團體慢跑活動",
-  /** Open Graph 方圖（1080×1080，備援；Threads 等若選非首張圖時使用） */
-  ogImageSquare: "/thread-1080x1080.jpg",
+  /** 方形分享圖（1080×1080，Threads / IG 等偏好 1:1 時的備援） */
+  ogImageSquare: "/1080x1080.jpg",
   ogImageSquareAlt:
-    "豆花慢跑 Tofu Run 角色設定圖：豆花星球居民開跑、衝線、補充能量與表情包，高雄中央公園團體慢跑活動",
-  /** 網站圖示（favicon / PWA / 加入主畫面） */
-  appIcon: "/512x512.jpg",
-  appIconAlt: "豆花慢跑 Tofu Run 圖示：花生、綠豆、紅豆豆花與慢跑 RUN",
-  appIcons: {
-    "32": "/32x32.jpg",
-    "64": "/64x64.jpg",
-    "192": "/192x192.jpg",
-    "512": "/512x512.jpg",
+    "豆花慢跑 Tofu Run 吉祥物：豆花星球居民角色設定、跑步與衝線姿勢",
+  /** 網站圖示 / PWA / 加入主畫面 */
+  icons: {
+    favicon32: "/32x32.jpg",
+    favicon64: "/64x64.jpg",
+    android192: "/192x192.jpg",
+    pwa512: "/512x512.jpg",
   },
+  appIcon: "/512x512.jpg",
+  appIconAlt:
+    "豆花慢跑 Tofu Run 吉祥物：豆花星球居民跑步圖示",
   /** 活動日前先隱藏 LIVE 入口（Nav、護照、首頁） */
   showLiveEntry: false,
 } as const;
@@ -72,6 +73,6 @@ export function getShareOgImageUrl(): string {
   return absoluteUrl(siteConfig.ogImage);
 }
 
-export function getShareOgImageSquareUrl(): string {
+export function getShareOgSquareImageUrl(): string {
   return absoluteUrl(siteConfig.ogImageSquare);
 }

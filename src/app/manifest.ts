@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 import { siteConfig } from "@/lib/site";
 
+const { icons } = siteConfig;
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: siteConfig.name,
@@ -13,19 +15,25 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "zh-Hant",
     icons: [
       {
-        src: siteConfig.appIcons["192"],
+        src: icons.favicon64,
+        sizes: "64x64",
+        type: "image/jpeg",
+        purpose: "any",
+      },
+      {
+        src: icons.android192,
         sizes: "192x192",
         type: "image/jpeg",
         purpose: "any",
       },
       {
-        src: siteConfig.appIcons["512"],
+        src: icons.pwa512,
         sizes: "512x512",
         type: "image/jpeg",
         purpose: "any",
       },
       {
-        src: siteConfig.appIcons["512"],
+        src: icons.pwa512,
         sizes: "512x512",
         type: "image/jpeg",
         purpose: "maskable",
