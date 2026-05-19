@@ -44,11 +44,7 @@ export const siteConfig = {
   ogImage: "/1200x630.jpg",
   ogImageAlt:
     "豆花慢跑 Tofu Run 宣傳圖：芋圓、粉圓、花生、綠豆、紅豆配料圖示與「慢跑 RUN」字樣，高雄中央公園團體慢跑活動",
-  /** 方形分享圖（1080×1080，Threads / IG 等偏好 1:1 時的備援） */
-  ogImageSquare: "/1080x1080.jpg",
-  ogImageSquareAlt:
-    "豆花慢跑 Tofu Run 吉祥物：豆花星球居民角色設定、跑步與衝線姿勢",
-  /** 網站圖示 / PWA / 加入主畫面 */
+  /** 網站圖示 / PWA / 加入主畫面（1080×1080 等僅放 public/，不寫入 og:image） */
   icons: {
     favicon32: "/32x32.jpg",
     favicon64: "/64x64.jpg",
@@ -71,8 +67,4 @@ export function absoluteUrl(path = ""): string {
 /** 分享用大圖（與 og:url 同網域） */
 export function getShareOgImageUrl(): string {
   return absoluteUrl(siteConfig.ogImage);
-}
-
-export function getShareOgSquareImageUrl(): string {
-  return absoluteUrl(siteConfig.ogImageSquare);
 }

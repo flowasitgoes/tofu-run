@@ -21,10 +21,7 @@ export function JsonLd() {
         url: absoluteUrl("/"),
         description: siteConfig.shortDescription,
         logo: absoluteUrl(siteConfig.icons.pwa512),
-        image: [
-          absoluteUrl(siteConfig.ogImage),
-          absoluteUrl(siteConfig.ogImageSquare),
-        ],
+        image: absoluteUrl(siteConfig.ogImage),
       },
       {
         "@type": "SportsEvent",

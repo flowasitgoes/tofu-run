@@ -1,10 +1,5 @@
 import type { Metadata } from "next";
-import {
-  absoluteUrl,
-  getShareOgImageUrl,
-  getShareOgSquareImageUrl,
-  siteConfig,
-} from "@/lib/site";
+import { absoluteUrl, getShareOgImageUrl, siteConfig } from "@/lib/site";
 
 type PageMetaOptions = {
   title?: string;
@@ -28,7 +23,6 @@ export function createMetadata({
     : `${siteConfig.name} | ${siteConfig.nameEn}`;
   const canonical = absoluteUrl(path);
   const ogImage = getShareOgImageUrl();
-  const ogImageSquare = getShareOgSquareImageUrl();
 
   return {
     metadataBase: new URL(siteConfig.url),
@@ -114,30 +108,16 @@ export function createMetadata({
           alt: siteConfig.ogImageAlt,
           type: "image/jpeg",
         },
-        {
-          url: ogImageSquare,
-          secureUrl: ogImageSquare.startsWith("https") ? ogImageSquare : undefined,
-          width: 1080,
-          height: 1080,
-          alt: siteConfig.ogImageSquareAlt,
-          type: "image/jpeg",
-        },
       ],
     },
     twitter: {
       card: "summary_large_image",
       title: pageTitle,
       description,
-      images: [
-        {
-          url: ogImage,
-          alt: siteConfig.ogImageAlt,
-        },
-        {
-          url: ogImageSquare,
-          alt: siteConfig.ogImageSquareAlt,
-        },
-      ],
+      images: {
+        url: ogImage,
+        alt: siteConfig.ogImageAlt,
+      },
     },
     other: {
       "geo.region": siteConfig.country,
