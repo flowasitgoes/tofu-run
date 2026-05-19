@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { absoluteUrl, siteConfig } from "@/lib/site";
+import { absoluteUrl, getShareOgImageUrl, siteConfig } from "@/lib/site";
 
 type PageMetaOptions = {
   title?: string;
@@ -20,7 +20,7 @@ export function createMetadata({
     ? `${title} | ${siteConfig.name}`
     : `${siteConfig.name} | ${siteConfig.nameEn}`;
   const canonical = absoluteUrl(path);
-  const ogImage = absoluteUrl(siteConfig.ogImage);
+  const ogImage = getShareOgImageUrl();
 
   return {
     metadataBase: new URL(siteConfig.url),

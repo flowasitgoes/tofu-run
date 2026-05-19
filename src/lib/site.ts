@@ -57,3 +57,13 @@ export function absoluteUrl(path = ""): string {
   if (!path) return base;
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 }
+
+/**
+ * 分享用大圖網址。若自訂網域 CDN 擋爬蟲，可在 Vercel 設：
+ * NEXT_PUBLIC_OG_IMAGE_ORIGIN=https://tofu-run.vercel.app
+ */
+export function getShareOgImageUrl(): string {
+  const origin = process.env.NEXT_PUBLIC_OG_IMAGE_ORIGIN?.replace(/\/$/, "");
+  if (origin) return `${origin}${siteConfig.ogImage}`;
+  return absoluteUrl(siteConfig.ogImage);
+}
