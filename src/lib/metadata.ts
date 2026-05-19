@@ -25,7 +25,7 @@ export function createMetadata({
   const ogImage = getShareOgImageUrl();
 
   return {
-    metadataBase: new URL(siteConfig.url),
+    metadataBase: new URL(absoluteUrl("/")),
     title: title
       ? title
       : {
@@ -94,7 +94,7 @@ export function createMetadata({
         },
     openGraph: {
       type: ogType,
-      locale: siteConfig.locale.replace("_", "-"),
+      locale: siteConfig.locale,
       url: canonical,
       siteName: siteConfig.name,
       title: pageTitle,

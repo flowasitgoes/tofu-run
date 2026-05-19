@@ -59,9 +59,10 @@ export const siteConfig = {
 } as const;
 
 export function absoluteUrl(path = ""): string {
-  const base = siteConfig.url;
-  if (!path) return base;
-  return `${base}${path.startsWith("/") ? path : `/${path}`}`;
+  const base = siteConfig.url.replace(/\/$/, "");
+  if (!path) return `${base}/`;
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${normalized}`;
 }
 
 /** 分享用大圖（與 og:url 同網域） */
