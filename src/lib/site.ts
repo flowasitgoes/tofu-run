@@ -44,7 +44,7 @@ export const siteConfig = {
   ogImage: "/1200x630.jpg",
   ogImageAlt:
     "豆花慢跑 Tofu Run 宣傳圖：芋圓、粉圓、花生、綠豆、紅豆配料圖示與「慢跑 RUN」字樣，高雄中央公園團體慢跑活動",
-  /** Open Graph 方圖（1080×1080，Threads / IG 連結預覽較易採用） */
+  /** Open Graph 方圖（1080×1080，備援；Threads 等若選非首張圖時使用） */
   ogImageSquare: "/thread-1080x1080.jpg",
   ogImageSquareAlt:
     "豆花慢跑 Tofu Run 角色設定圖：豆花星球居民開跑、衝線、補充能量與表情包，高雄中央公園團體慢跑活動",

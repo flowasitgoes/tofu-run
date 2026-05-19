@@ -107,14 +107,6 @@ export function createMetadata({
       description,
       images: [
         {
-          url: ogImageSquare,
-          secureUrl: ogImageSquare.startsWith("https") ? ogImageSquare : undefined,
-          width: 1080,
-          height: 1080,
-          alt: siteConfig.ogImageSquareAlt,
-          type: "image/jpeg",
-        },
-        {
           url: ogImageLandscape,
           secureUrl: ogImageLandscape.startsWith("https")
             ? ogImageLandscape
@@ -122,6 +114,14 @@ export function createMetadata({
           width: 1200,
           height: 630,
           alt: siteConfig.ogImageAlt,
+          type: "image/jpeg",
+        },
+        {
+          url: ogImageSquare,
+          secureUrl: ogImageSquare.startsWith("https") ? ogImageSquare : undefined,
+          width: 1080,
+          height: 1080,
+          alt: siteConfig.ogImageSquareAlt,
           type: "image/jpeg",
         },
       ],
