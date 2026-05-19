@@ -1,8 +1,8 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { PageFooterNav } from "@/components/PageFooterNav";
 import { PageShell } from "@/components/PageShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -182,7 +182,7 @@ function LivePageContent() {
       <p className="mt-4 text-center text-[11px] text-brown-sugar/50">綠色 ✓ 代表此刻也在 LIVE 頁面</p>
       <div className="mt-5 space-y-3">
         <Button href="/passport" variant="secondary" className="w-full">我的豆花護照</Button>
-        <Link href="/" className="block text-center text-xs text-brown-sugar/50 underline">返回首頁</Link>
+        <PageFooterNav />
       </div>
     </PageShell>
   );

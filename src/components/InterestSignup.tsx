@@ -11,6 +11,12 @@ import {
 } from "@/lib/constants";
 import { resolveDisplayName } from "@/lib/displayName";
 import { setStoredGoingAccount } from "@/lib/goingAccount";
+import {
+  CUSTOM_NAME_MAX_GRAPHEMES,
+  countGraphemes,
+  sanitizeCustomNameInput,
+  validateCustomName,
+} from "@/lib/validateCustomName";
 
 type Intent = "join" | "interested";
 
@@ -35,6 +41,7 @@ export function InterestSignup() {
   const [error, setError] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const prevIntentRef = useRef<Intent | null>(null);
+  const customNameComposingRef = useRef(false);
 
   function scrollSignupIntoView() {
     const el = rootRef.current;
@@ -121,6 +128,13 @@ export function InterestSignup() {
     setStatus("submitting");
     setError(null);
 
+    const customNameCheck = validateCustomName(customName);
+    if (!customNameCheck.ok) {
+      setStatus("error");
+      setError(customNameCheck.error);
+      return;
+    }
+
     try {
       const res = await fetch("/api/going", {
         method: "POST",
@@ -129,7 +143,7 @@ export function InterestSignup() {
           intent,
           runnerId:
             intent === "join" ? runnerId.trim().toUpperCase() : undefined,
-          customName: customName.trim() || undefined,
+          customName: customNameCheck.value || undefined,
           email: email.trim(),
           lineId: lineId.trim() || undefined,
           preferredToppings:
@@ -335,9 +349,22 @@ export function InterestSignup() {
             </span>
             <input
               type="text"
-              maxLength={24}
               value={customName}
-              onChange={(e) => setCustomName(e.target.value)}
+              onCompositionStart={() => {
+                customNameComposingRef.current = true;
+              }}
+              onCompositionEnd={(e) => {
+                customNameComposingRef.current = false;
+                setCustomName(sanitizeCustomNameInput(e.currentTarget.value));
+              }}
+              onChange={(e) => {
+                const next = e.target.value;
+                if (customNameComposingRef.current) {
+                  setCustomName(next);
+                  return;
+                }
+                setCustomName(sanitizeCustomNameInput(next));
+              }}
               placeholder={
                 intent === "join" && runnerName
                   ? `例如：小綠豆、粉圓旅人…未填則顯示「${runnerName}」`
@@ -345,6 +372,10 @@ export function InterestSignup() {
               }
               className="w-full rounded-xl border border-brown-sugar/15 bg-cream px-4 py-3 text-sm text-brown-sugar outline-none transition-colors placeholder:text-brown-sugar/35 focus:border-sunset/60 focus:ring-2 focus:ring-sunset/20"
             />
+            <p className="mt-1 text-[11px] text-brown-sugar/45">
+              最多 {CUSTOM_NAME_MAX_GRAPHEMES} 字，僅中文與英文（
+              {countGraphemes(customName)}/{CUSTOM_NAME_MAX_GRAPHEMES}）
+            </p>
           </label>
 
           <label className="block">

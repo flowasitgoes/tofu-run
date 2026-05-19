@@ -12,6 +12,7 @@ import {
   insertGoingSignup,
 } from "@/lib/db";
 import { normalizeRunnerId, RUNNER_ID_PATTERN } from "@/lib/runner";
+import { validateCustomName } from "@/lib/validateCustomName";
 import {
   isSupabaseConfigured,
   isSupabaseServiceConfigured,
@@ -62,11 +63,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "請填寫 Email" }, { status: 400 });
     }
 
-    if (trimmedCustomName.length > 24) {
-      return NextResponse.json(
-        { error: "自訂暱稱最多 24 字" },
-        { status: 400 }
-      );
+    const customNameCheck = validateCustomName(trimmedCustomName);
+    if (!customNameCheck.ok) {
+      return NextResponse.json({ error: customNameCheck.error }, { status: 400 });
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
@@ -146,8 +145,10 @@ export async function POST(request: Request) {
           : douhuaGoal?.trim() || formatDouhuaGoal(toppings)
         : null;
 
+    const validatedCustomName = customNameCheck.value;
+
     const displayName = resolveDisplayName(
-      trimmedCustomName,
+      validatedCustomName,
       intent === "join" ? poolRunnerName : null
     );
 
@@ -157,7 +158,7 @@ export async function POST(request: Request) {
       email: trimmedEmail,
       runner_id: intent === "join" ? trimmedRunnerId : null,
       runner_name: intent === "join" ? poolRunnerName : null,
-      custom_name: trimmedCustomName || null,
+      custom_name: validatedCustomName || null,
       nickname: displayName,
       line_id: trimmedLineId,
       intent,

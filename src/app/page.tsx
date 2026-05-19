@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import { MadeByCredit } from "@/components/MadeByCredit";
 import { InterestSignup } from "@/components/InterestSignup";
 import { PageShell } from "@/components/PageShell";
 import { ParkMap } from "@/components/ParkMap";
@@ -107,6 +108,7 @@ export default function HomePage() {
         <Button href="/lobby" variant="secondary" className="w-full">
           查看想參加名單
         </Button>
+        <MadeByCredit className="mt-2 text-center" />
         {siteConfig.showLiveEntry && (
           <Button href="/live" className="w-full">
             進入 LIVE（活動當日）

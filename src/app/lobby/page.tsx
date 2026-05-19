@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { MadeByCredit } from "@/components/MadeByCredit";
+import { PageFooterNav } from "@/components/PageFooterNav";
 import { PageShell } from "@/components/PageShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -20,10 +21,12 @@ export default function LobbyPage() {
       <header className="mb-6">
         <p className="text-xs text-brown-sugar/60">Lobby即將開始的活動</p>
         <h1 className="text-2xl font-bold text-brown-sugar">想參加名單…</h1>
-        <p className="mt-2 text-sm leading-relaxed text-brown-sugar/65">
-          敬請期待一齊到現場的遊樂
-          <br />
-        </p>
+        <div className="mt-2 flex items-baseline justify-between gap-3">
+          <p className="min-w-0 text-sm leading-relaxed text-brown-sugar/65">
+            敬請期待一齊到現場的遊樂
+          </p>
+          <MadeByCredit className="shrink-0 text-right" />
+        </div>
         {me && (
           <p className="mt-2 text-sm text-twilight">
             你已登入：<span className="font-mono">{me.runnerId}</span>
@@ -161,12 +164,7 @@ export default function LobbyPage() {
         <Button href="/passport" variant="secondary" className="w-full">
           我的豆花護照
         </Button>
-        <Link
-          href="/"
-          className="block text-center text-xs text-brown-sugar/50 underline"
-        >
-          返回首頁
-        </Link>
+        <PageFooterNav />
       </div>
     </PageShell>
   );

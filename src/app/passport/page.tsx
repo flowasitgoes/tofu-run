@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { MadeByCredit } from "@/components/MadeByCredit";
 import { PageShell } from "@/components/PageShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -129,9 +130,12 @@ export default function PassportPage() {
 
         <form onSubmit={handleLogin} className="mt-5 space-y-3">
           <label className="block text-left">
-            <span className="mb-1.5 block text-xs font-medium text-brown-sugar/70">
-              Runner ID
-            </span>
+            <div className="mb-2.5 flex items-baseline justify-between gap-2">
+              <span className="text-xs font-medium text-brown-sugar/70">
+                Runner ID
+              </span>
+              <MadeByCredit className="shrink-0 text-right" />
+            </div>
             <input
               type="text"
               value={runnerIdInput}
@@ -188,9 +192,10 @@ export default function PassportPage() {
       <header className="mb-6 text-center">
         <p className="text-4xl mb-2">📔</p>
         <h1 className="text-2xl font-bold text-brown-sugar">豆花護照</h1>
-        <p className="mt-1 font-mono text-sm text-twilight">
-          {sessionRunnerId}
-        </p>
+        <div className="mt-1 flex items-baseline justify-between gap-2">
+          <p className="font-mono text-sm text-twilight">{sessionRunnerId}</p>
+          <MadeByCredit className="shrink-0 text-right" />
+        </div>
         <p className="mt-1 text-base font-medium text-brown-sugar">
           {displayNickname}
         </p>
