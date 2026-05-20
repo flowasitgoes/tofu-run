@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocale } from "@/components/LocaleProvider";
 import type { LiveParticipant } from "@/types/database";
 
 const POLL_MS = 30_000;
@@ -33,6 +34,7 @@ async function fetchLive(
 }
 
 export function useLiveRoom(runnerId: string | null) {
+  const { localizeError, t } = useLocale();
   const [participants, setParticipants] = useState<LiveParticipant[]>([]);
   const [sessionDateLabel, setSessionDateLabel] = useState("");
   const [count, setCount] = useState(0);
@@ -76,7 +78,10 @@ export function useLiveRoom(runnerId: string | null) {
         if (controller.signal.aborted) return;
         if (requestId !== requestIdRef.current) return;
 
-        const message = e instanceof Error ? e.message : "載入失敗";
+        const message =
+          e instanceof Error
+            ? localizeError(e.message)
+            : t("common.loadFailed");
         if (!hasDataRef.current) {
           setError(message);
         }
@@ -86,7 +91,7 @@ export function useLiveRoom(runnerId: string | null) {
         setRefreshing(false);
       }
     },
-    [runnerId]
+    [runnerId, localizeError, t]
   );
 
   useEffect(() => {

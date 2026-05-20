@@ -6,9 +6,14 @@ export const CUSTOM_NAME_MAX_GRAPHEMES = 10;
 const ALLOWED_PATTERN = /^[\p{Script=Han}a-zA-Z ]+$/u;
 const ALLOWED_CHAR_PATTERN = /[\p{Script=Han}a-zA-Z ]/gu;
 
+export type CustomNameValidationErrorKey =
+  | "invalidChars"
+  | "tooLong"
+  | "profanity";
+
 export type CustomNameValidationResult =
   | { ok: true; value: string }
-  | { ok: false; error: string };
+  | { ok: false; errorKey: CustomNameValidationErrorKey; max?: number };
 
 function getSegmenter(): Intl.Segmenter {
   return new Intl.Segmenter("zh-Hant", { granularity: "grapheme" });
@@ -47,6 +52,19 @@ function containsProfanity(text: string): boolean {
   );
 }
 
+/** @deprecated API 用：回傳繁中錯誤字串 */
+export function customNameErrorMessage(
+  result: Extract<CustomNameValidationResult, { ok: false }>
+): string {
+  if (result.errorKey === "invalidChars") {
+    return "暱稱僅能使用中文字、英文字母與空格，不可含數字或標點";
+  }
+  if (result.errorKey === "tooLong") {
+    return `自訂暱稱最多 ${result.max ?? CUSTOM_NAME_MAX_GRAPHEMES} 個字`;
+  }
+  return "暱稱含有不適當用字，請修改";
+}
+
 export function validateCustomName(
   input: string | null | undefined
 ): CustomNameValidationResult {
@@ -57,21 +75,19 @@ export function validateCustomName(
   }
 
   if (!ALLOWED_PATTERN.test(trimmed)) {
-    return {
-      ok: false,
-      error: "暱稱僅能使用中文字、英文字母與空格，不可含數字或標點",
-    };
+    return { ok: false, errorKey: "invalidChars" };
   }
 
   if (countGraphemes(trimmed) > CUSTOM_NAME_MAX_GRAPHEMES) {
     return {
       ok: false,
-      error: `自訂暱稱最多 ${CUSTOM_NAME_MAX_GRAPHEMES} 個字`,
+      errorKey: "tooLong",
+      max: CUSTOM_NAME_MAX_GRAPHEMES,
     };
   }
 
   if (containsProfanity(trimmed)) {
-    return { ok: false, error: "暱稱含有不適當用字，請修改" };
+    return { ok: false, errorKey: "profanity" };
   }
 
   return { ok: true, value: trimmed };

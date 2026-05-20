@@ -1,10 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useLocale } from "@/components/LocaleProvider";
 import { PageShell } from "@/components/PageShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { TOFU_TYPES, getTofuLabel } from "@/lib/constants";
+import { TOFU_TYPES } from "@/lib/constants";
+import { getTofuLabelLocalized, getTofuShortLocalized } from "@/lib/i18n-labels";
+import type { TofuTypeId } from "@/lib/constants";
 import { formatDisplayDate } from "@/lib/session";
 
 type AdminPlayer = {
@@ -20,6 +23,7 @@ type AdminPlayer = {
 const ADMIN_KEY = "tofu-run-admin-secret";
 
 export default function AdminPage() {
+  const { locale, t, localizeError } = useLocale();
   const [secret, setSecret] = useState("");
   const [authed, setAuthed] = useState(false);
   const [players, setPlayers] = useState<AdminPlayer[]>([]);
@@ -56,7 +60,9 @@ export default function AdminPage() {
       setSessionDate(data.sessionDate);
       setMessage(null);
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "載入失敗");
+      setMessage(
+        e instanceof Error ? localizeError(e.message) : t("common.loadFailed")
+      );
     } finally {
       setLoading(false);
     }
@@ -81,7 +87,9 @@ export default function AdminPage() {
     });
     const data = await res.json();
     if (!res.ok) {
-      setMessage(data.error ?? "分配失敗");
+      setMessage(
+        data.error ? localizeError(data.error) : t("admin.assignFailed")
+      );
       return;
     }
     await load();
@@ -109,20 +117,18 @@ export default function AdminPage() {
     return (
       <PageShell showNav={false}>
         <Card className="mx-auto mt-16 max-w-sm">
-          <h1 className="text-xl font-bold text-brown-sugar">管理者登入</h1>
-          <p className="mt-1 text-xs text-brown-sugar/60">
-            輸入 ADMIN_SECRET 以管理今日活動
-          </p>
+          <h1 className="text-xl font-bold text-brown-sugar">{t("admin.loginTitle")}</h1>
+          <p className="mt-1 text-xs text-brown-sugar/60">{t("admin.loginHint")}</p>
           <form onSubmit={handleLogin} className="mt-4 space-y-3">
             <input
               type="password"
               value={secret}
               onChange={(e) => setSecret(e.target.value)}
-              placeholder="管理者密鑰"
+              placeholder={t("admin.secretPlaceholder")}
               className="w-full rounded-xl border border-brown-sugar/20 bg-cream px-4 py-3 text-sm outline-none focus:border-brown-sugar/40"
             />
             <Button type="submit" className="w-full">
-              進入管理
+              {t("admin.enter")}
             </Button>
           </form>
         </Card>
@@ -133,9 +139,9 @@ export default function AdminPage() {
   return (
     <PageShell showNav={false}>
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-brown-sugar">活動管理</h1>
+        <h1 className="text-2xl font-bold text-brown-sugar">{t("admin.title")}</h1>
         <p className="text-sm text-brown-sugar/60">
-          {sessionDate ? formatDisplayDate(sessionDate) : ""} · 分配豆花
+          {sessionDate ? formatDisplayDate(sessionDate) : ""} · {t("admin.assignTofu")}
         </p>
       </header>
 
@@ -145,7 +151,7 @@ export default function AdminPage() {
         </p>
       )}
 
-      {loading && <p className="text-sm text-brown-sugar/60">載入中…</p>}
+      {loading && <p className="text-sm text-brown-sugar/60">{t("common.loading")}</p>}
 
       <div className="space-y-4">
         {players.map((p) => (
@@ -157,15 +163,17 @@ export default function AdminPage() {
               </div>
               {p.completed_at && (
                 <span className="rounded-full bg-mung-green/20 px-2 py-0.5 text-xs text-mung-green">
-                  已完成
+                  {t("admin.completed")}
                 </span>
               )}
             </div>
 
             <p className="mt-2 text-sm">
-              目前：{" "}
+              {t("admin.current")}{" "}
               <strong>
-                {p.tofu_type ? getTofuLabel(p.tofu_type) : "尚未分配"}
+                {p.tofu_type
+                  ? getTofuLabelLocalized(p.tofu_type, locale)
+                  : t("tokens.unassigned")}
               </strong>
             </p>
 
@@ -186,7 +194,8 @@ export default function AdminPage() {
                           : "bg-tofu-white hover:bg-sunset/20"
                     }`}
                   >
-                    {tofu.emoji} {tofu.label.replace("豆花", "")}
+                    {tofu.emoji}{" "}
+                    {getTofuShortLocalized(tofu.id as TofuTypeId, locale)}
                   </button>
                 );
               })}
@@ -198,14 +207,14 @@ export default function AdminPage() {
                 onClick={() => complete(p.id)}
                 className="text-xs text-mung-green underline"
               >
-                標記完成
+                {t("admin.markComplete")}
               </button>
               <button
                 type="button"
                 onClick={() => clearTofu(p.id)}
                 className="text-xs text-brown-sugar/50 underline"
               >
-                清除豆花
+                {t("admin.clearTofu")}
               </button>
             </div>
           </Card>
@@ -220,7 +229,7 @@ export default function AdminPage() {
           setAuthed(false);
         }}
       >
-        登出
+        {t("admin.logout")}
       </Button>
     </PageShell>
   );

@@ -2,17 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLocale } from "@/components/LocaleProvider";
 import { siteConfig } from "@/lib/site";
-
-const links = [
-  { href: "/", label: "首頁" },
-  { href: "/lobby", label: "Lobby" },
-  { href: "/passport", label: "護照" },
-  ...(siteConfig.showLiveEntry ? [{ href: "/live", label: "LIVE" as const }] : []),
-];
 
 export function Nav() {
   const pathname = usePathname();
+  const { t } = useLocale();
+
+  const links = [
+    { href: "/", label: t("nav.home") },
+    { href: "/lobby", label: t("nav.lobby") },
+    { href: "/passport", label: t("nav.passport") },
+    ...(siteConfig.showLiveEntry
+      ? [{ href: "/live", label: t("nav.live") as string }]
+      : []),
+  ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-brown-sugar/10 bg-cream/95 backdrop-blur-md">

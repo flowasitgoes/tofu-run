@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useLocale } from "@/components/LocaleProvider";
 import { MadeByCredit } from "@/components/MadeByCredit";
 import { PageShell } from "@/components/PageShell";
 import { Card } from "@/components/ui/Card";
@@ -10,8 +11,11 @@ import {
   PURE_DOUHUA_GOAL,
   TOFU_TYPES,
   getTokenLabel,
-  getTofuLabel,
 } from "@/lib/constants";
+import {
+  getTokenLabelLocalized,
+  getTofuLabelLocalized,
+} from "@/lib/i18n-labels";
 import {
   clearStoredGoingAccount,
   getStoredGoingAccount,
@@ -30,9 +34,9 @@ import {
 import { siteConfig } from "@/lib/site";
 import type { PassportAccount, PassportRun } from "@/types/database";
 
-const RECORD_EMPTY = "---";
-
 export default function PassportPage() {
+  const { locale, t, localizeError } = useLocale();
+  const recordEmpty = t("common.recordEmpty");
   const [runnerIdInput, setRunnerIdInput] = useState("");
   const [sessionRunnerId, setSessionRunnerId] = useState<string | null>(null);
   const [account, setAccount] = useState<PassportAccount | null>(null);
@@ -66,7 +70,7 @@ export default function PassportPage() {
           { cache: "no-store" }
         );
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "載入失敗");
+        if (!res.ok) throw new Error(data.error ?? t("common.loadFailed"));
         const next = data as PassportAccount;
         setAccount(next);
         setSessionRunnerId(runnerId);
@@ -75,7 +79,11 @@ export default function PassportPage() {
         setError(null);
       } catch (e) {
         if (!cached) {
-          setError(e instanceof Error ? e.message : "載入失敗");
+          setError(
+            e instanceof Error
+              ? localizeError(e.message)
+              : t("common.loadFailed")
+          );
           setAccount(null);
         }
       } finally {
@@ -83,7 +91,7 @@ export default function PassportPage() {
         setRefreshing(false);
       }
     },
-    []
+    [localizeError, t]
   );
 
   useEffect(() => {
@@ -122,9 +130,11 @@ export default function PassportPage() {
       <PageShell>
         <Card className="mt-8 text-center">
           <p className="text-4xl mb-4">📔</p>
-          <h1 className="text-xl font-bold text-brown-sugar">豆花護照</h1>
+          <h1 className="text-xl font-bold text-brown-sugar">
+            {t("passport.title")}
+          </h1>
           <p className="mt-2 text-sm leading-relaxed text-brown-sugar/70">
-            完成首頁「想參加」後，用 Runner ID 登入即可查看你的帳戶與豆花目標。
+            {t("passport.loginHint")}
           </p>
         </Card>
 
@@ -132,7 +142,7 @@ export default function PassportPage() {
           <label className="block text-left">
             <div className="mb-2.5 flex items-baseline justify-between gap-2">
               <span className="text-xs font-medium text-brown-sugar/70">
-                Runner ID
+                {t("common.runnerId")}
               </span>
               <MadeByCredit className="shrink-0 text-right" />
             </div>
@@ -142,7 +152,7 @@ export default function PassportPage() {
               onChange={(e) =>
                 setRunnerIdInput(e.target.value.toUpperCase())
               }
-              placeholder="例如：DOG-214"
+              placeholder={t("common.exampleRunnerId")}
               className="w-full rounded-xl border border-brown-sugar/15 bg-cream px-4 py-3 font-mono text-sm text-brown-sugar outline-none focus:border-sunset/60 focus:ring-2 focus:ring-sunset/20"
             />
           </label>
@@ -152,14 +162,14 @@ export default function PassportPage() {
             </p>
           )}
           <Button type="submit" className="w-full" disabled={loginLoading}>
-            {loginLoading ? "登入中…" : "登入護照"}
+            {loginLoading ? t("passport.loggingIn") : t("passport.login")}
           </Button>
         </form>
 
         <p className="mt-6 text-center text-xs text-brown-sugar/50">
-          還沒報名？
+          {t("passport.notSignedUp")}
           <Link href="/" className="ml-1 underline">
-            回首頁想參加
+            {t("passport.backHomeSignup")}
           </Link>
         </p>
       </PageShell>
@@ -191,7 +201,7 @@ export default function PassportPage() {
     <PageShell>
       <header className="mb-6 text-center">
         <p className="text-4xl mb-2">📔</p>
-        <h1 className="text-2xl font-bold text-brown-sugar">豆花護照</h1>
+        <h1 className="text-2xl font-bold text-brown-sugar">{t("passport.title")}</h1>
         <div className="mt-1 flex items-baseline justify-between gap-2">
           <p className="font-mono text-sm text-twilight">{sessionRunnerId}</p>
           <MadeByCredit className="shrink-0 text-right" />
@@ -203,20 +213,21 @@ export default function PassportPage() {
           signup.custom_name &&
           signup.runner_name !== signup.nickname && (
             <p className="mt-0.5 text-xs text-brown-sugar/50">
-              名額原名：{signup.runner_name}
+              {t("passport.originalName")}
+              {signup.runner_name}
             </p>
           )}
       </header>
 
       {refreshing && !loading && (
         <p className="mb-2 text-center text-[10px] text-brown-sugar/45">
-          更新中…
+          {t("common.refreshing")}
         </p>
       )}
 
       {loading && (
         <p className="animate-pulse-soft text-center text-sm text-brown-sugar/60">
-          載入中…
+          {t("common.loading")}
         </p>
       )}
 
@@ -228,14 +239,16 @@ export default function PassportPage() {
 
       {signup && !loading && (
         <Card className="mb-4 border-2 border-mung-green/20 bg-mung-green/5">
-          <p className="text-xs font-medium text-brown-sugar/60">我的目標</p>
+          <p className="text-xs font-medium text-brown-sugar/60">
+            {t("passport.myGoal")}
+          </p>
           <p className="mt-1 text-lg font-bold text-mung-green">
             {signup.goal ?? "—"}
           </p>
           {signup.goal && signup.goal !== PURE_DOUHUA_GOAL && (
             <div className="mt-4">
               <p className="text-xs font-medium text-brown-sugar/60 mb-2">
-                活動日要收集的 Token
+                {t("passport.collectTokens")}
               </p>
               <ul className="space-y-2">
                 {(account?.collectTargets ?? []).map((t) => (
@@ -256,7 +269,7 @@ export default function PassportPage() {
           )}
           {signup.goal === PURE_DOUHUA_GOAL && (
             <p className="mt-3 text-xs text-brown-sugar/60">
-              純粹豆花路線，無需收集配料 Token。
+              {t("passport.pureRouteHint")}
             </p>
           )}
         </Card>
@@ -266,25 +279,25 @@ export default function PassportPage() {
         <div className="mb-4 space-y-2">
           {siteConfig.showLiveEntry && (
             <Button href="/live" className="w-full">
-              進入 LIVE 房間
+              {t("passport.enterLive")}
             </Button>
           )}
           <Button href="/lobby" variant="secondary" className="w-full">
-            查看想參加名單
+            {t("passport.viewLobby")}
           </Button>
         </div>
       )}
 
       {hasJoinedToday && siteConfig.showLiveEntry && (
         <p className="mb-4 text-center text-xs text-mung-green">
-          今日已加入活動，可進 LIVE 或掃描 Token
+          {t("passport.joinedToday")}
         </p>
       )}
 
       {signup && !loading && activityRuns.length > 0 && (
         <section className="space-y-4">
           <h2 className="text-sm font-semibold text-brown-sugar/70">
-            活動紀錄
+            {t("passport.activityLog")}
           </h2>
           {activityRuns.map((run) => {
             const duration =
@@ -297,14 +310,14 @@ export default function PassportPage() {
                 className="border-l-4 border-sunset/50"
               >
                 <p className="text-lg font-semibold text-brown-sugar">
-                  獲得：
+                  {t("passport.earned")}
                   {run.tofu_type ? (
                     <>
                       {tofuEmoji(run.tofu_type)}{" "}
-                      {getTofuLabel(run.tofu_type)}
+                      {getTofuLabelLocalized(run.tofu_type, locale)}
                     </>
                   ) : (
-                    <span className="text-brown-sugar/50">{RECORD_EMPTY}</span>
+                    <span className="text-brown-sugar/50">{recordEmpty}</span>
                   )}
                 </p>
                 <div className="mt-2 text-sm text-brown-sugar">
@@ -312,21 +325,23 @@ export default function PassportPage() {
                   {run.tokens.length > 0 ? (
                     <ul className="mt-1 space-y-1">
                       {run.tokens.map((t) => (
-                        <li key={t.id}>· {getTokenLabel(t.token_type)}</li>
+                        <li key={t.id}>
+                          · {getTokenLabelLocalized(t.token_type, locale)}
+                        </li>
                       ))}
                     </ul>
                   ) : (
                     <span className="ml-1 text-brown-sugar/50">
-                      {RECORD_EMPTY}
+                      {recordEmpty}
                     </span>
                   )}
                 </div>
                 <p className="mt-2 text-sm text-mung-green">
-                  完成時間：
+                  {t("passport.completionTime")}
                   {duration != null ? (
-                    `${duration} 分鐘`
+                    `${duration} ${t("common.minutes")}`
                   ) : (
-                    <span className="text-brown-sugar/50">{RECORD_EMPTY}</span>
+                    <span className="text-brown-sugar/50">{recordEmpty}</span>
                   )}
                 </p>
               </Card>
@@ -338,7 +353,7 @@ export default function PassportPage() {
       <div className="mt-6 space-y-2 pb-4">
         {hasJoinedToday && (
           <Button href="/lobby" variant="secondary" className="w-full">
-            前往 Lobby
+            {t("passport.goLobby")}
           </Button>
         )}
         <button
@@ -346,7 +361,7 @@ export default function PassportPage() {
           onClick={handleLogout}
           className="block w-full cursor-pointer text-center text-xs text-brown-sugar/50 underline hover:text-brown-sugar/70"
         >
-          登出護照
+          {t("passport.logout")}
         </button>
       </div>
     </PageShell>

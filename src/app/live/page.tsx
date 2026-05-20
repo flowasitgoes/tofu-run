@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useLocale } from "@/components/LocaleProvider";
 import { PageFooterNav } from "@/components/PageFooterNav";
 import { PageShell } from "@/components/PageShell";
 import { Card } from "@/components/ui/Card";
@@ -14,12 +15,12 @@ import { setStoredGoingAccount } from "@/lib/goingAccount";
 import { setStoredPlayer } from "@/lib/player";
 import { normalizeRunnerId } from "@/lib/runner";
 
-function OnlineBadge() {
+function OnlineBadge({ label }: { label: string }) {
   return (
     <span
       className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-mung-green text-cream"
-      title="在線"
-      aria-label="在線"
+      title={label}
+      aria-label={label}
     >
       <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d="M3 8.5l3 3 7-7" />
@@ -29,6 +30,7 @@ function OnlineBadge() {
 }
 
 function LivePageContent() {
+  const { t, localizeError } = useLocale();
   const searchParams = useSearchParams();
   const fromQr = searchParams.get("from") === "qr";
   const { account: going, mounted: goingMounted } = useStoredGoingAccount();
@@ -43,7 +45,10 @@ function LivePageContent() {
 
   const enterLive = useCallback(async (rawId: string) => {
     const runnerId = normalizeRunnerId(rawId);
-    if (!runnerId) { setEnterError("請輸入 Runner ID"); return; }
+    if (!runnerId) {
+      setEnterError(t("live.enterRunnerId"));
+      return;
+    }
     setEntering(true);
     setEnterError(null);
     try {
@@ -59,16 +64,18 @@ function LivePageContent() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "進入失敗");
+      if (!res.ok) throw new Error(data.error ?? t("common.enterFailed"));
       setStoredGoingAccount({ runnerId: data.runnerId });
       setStoredPlayer({ userId: data.userId, runnerId: data.runnerId, runnerName: data.runnerName });
       setEnteredRunnerId(data.runnerId);
     } catch (e) {
-      setEnterError(e instanceof Error ? e.message : "進入失敗");
+      setEnterError(
+        e instanceof Error ? localizeError(e.message) : t("common.enterFailed")
+      );
     } finally {
       setEntering(false);
     }
-  }, [player]);
+  }, [player, localizeError, t]);
 
   useEffect(() => {
     if (!mounted || enteredRunnerId) return;
@@ -87,7 +94,13 @@ function LivePageContent() {
   }, [mounted, enteredRunnerId, entering, player?.runnerId, going?.runnerId, enterLive]);
 
   if (!mounted) {
-    return <PageShell><p className="animate-pulse-soft py-16 text-center text-sm text-brown-sugar/60">載入中…</p></PageShell>;
+    return (
+      <PageShell>
+        <p className="animate-pulse-soft py-16 text-center text-sm text-brown-sugar/60">
+          {t("common.loading")}
+        </p>
+      </PageShell>
+    );
   }
 
   if (!enteredRunnerId) {
@@ -95,26 +108,28 @@ function LivePageContent() {
       <PageShell>
         <header className="mb-6 text-center">
           <p className="text-xs font-medium tracking-wide text-red-bean">LIVE</p>
-          <h1 className="mt-1 text-2xl font-bold text-brown-sugar">進入今日房間</h1>
+          <h1 className="mt-1 text-2xl font-bold text-brown-sugar">
+            {t("live.enterTitle")}
+          </h1>
           <p className="mt-2 text-sm leading-relaxed text-brown-sugar/70">
-            {fromQr
-              ? "掃碼成功！請輸入你的 Runner ID 進場。"
-              : "須輸入 Runner ID 才能進入，我們才知道你是誰。"}
+            {fromQr ? t("live.fromQr") : t("live.enterHint")}
           </p>
         </header>
         <Card className="border-2 border-red-bean/20 bg-gradient-to-br from-red-bean/5 to-cream">
           <form onSubmit={(e) => { e.preventDefault(); void enterLive(runnerIdInput); }} className="space-y-4">
             <label className="block">
-              <span className="mb-1.5 block text-xs font-medium text-brown-sugar/70">Runner ID</span>
-              <input type="text" value={runnerIdInput} onChange={(e) => { setRunnerIdInput(e.target.value.toUpperCase()); setEnterError(null); }} placeholder="例如：DOG-214" autoComplete="off" className="w-full rounded-xl border border-brown-sugar/15 bg-cream px-4 py-3 font-mono text-sm tracking-wide text-brown-sugar outline-none focus:border-red-bean/50 focus:ring-2 focus:ring-red-bean/15" />
+              <span className="mb-1.5 block text-xs font-medium text-brown-sugar/70">
+                {t("common.runnerId")}
+              </span>
+              <input type="text" value={runnerIdInput} onChange={(e) => { setRunnerIdInput(e.target.value.toUpperCase()); setEnterError(null); }} placeholder={t("common.exampleRunnerId")} autoComplete="off" className="w-full rounded-xl border border-brown-sugar/15 bg-cream px-4 py-3 font-mono text-sm tracking-wide text-brown-sugar outline-none focus:border-red-bean/50 focus:ring-2 focus:ring-red-bean/15" />
             </label>
             {enterError && <p className="rounded-lg bg-red-bean/10 px-3 py-2 text-xs text-red-bean">{enterError}</p>}
-            <Button type="submit" className="w-full" disabled={entering || !runnerIdInput.trim()}>{entering ? "進入中…" : "進入 LIVE"}</Button>
+            <Button type="submit" className="w-full" disabled={entering || !runnerIdInput.trim()}>{entering ? t("live.entering") : t("live.enter")}</Button>
           </form>
-          <p className="mt-4 text-center text-[11px] text-brown-sugar/50">須先完成首頁「想參加」報名。</p>
+          <p className="mt-4 text-center text-[11px] text-brown-sugar/50">{t("live.signupFirst")}</p>
           <div className="mt-3 flex gap-2">
-            <Button href="/passport" variant="secondary" className="flex-1 text-xs">護照登入</Button>
-            <Button href="/" variant="secondary" className="flex-1 text-xs">回首頁</Button>
+            <Button href="/passport" variant="secondary" className="flex-1 text-xs">{t("live.passportLogin")}</Button>
+            <Button href="/" variant="secondary" className="flex-1 text-xs">{t("live.backHome")}</Button>
           </div>
         </Card>
       </PageShell>
@@ -128,21 +143,21 @@ function LivePageContent() {
     <PageShell>
       <header className="mb-6">
         <p className="text-xs font-medium tracking-wide text-red-bean">LIVE</p>
-        <h1 className="text-2xl font-bold text-brown-sugar">今日在場</h1>
-        <p className="mt-1 text-sm text-brown-sugar/65">{sessionDateLabel || "今日"}</p>
-        <p className="mt-2 text-sm text-twilight">你：<span className="font-mono font-semibold">{enteredRunnerId}</span></p>
+        <h1 className="text-2xl font-bold text-brown-sugar">{t("live.todayOnSite")}</h1>
+        <p className="mt-1 text-sm text-brown-sugar/65">{sessionDateLabel || t("common.today")}</p>
+        <p className="mt-2 text-sm text-twilight">{t("live.youLabel")}<span className="font-mono font-semibold">{enteredRunnerId}</span></p>
       </header>
       <Card>
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <h2 className="font-semibold text-brown-sugar">進場的人</h2>
-            <p className="text-xs text-brown-sugar/50">共 {loading && count === 0 ? "…" : count} 人 · 在線 {loading && onlineCount === 0 && count === 0 ? "…" : onlineCount} 人{refreshing && <span className="ml-1.5 text-brown-sugar/40">更新中</span>}</p>
+            <h2 className="font-semibold text-brown-sugar">{t("live.participants")}</h2>
+            <p className="text-xs text-brown-sugar/50">{t("live.countOnline", { count: loading && count === 0 ? "…" : count, online: loading && onlineCount === 0 && count === 0 ? "…" : onlineCount })}{refreshing && <span className="ml-1.5 text-brown-sugar/40">{t("common.refreshing")}</span>}</p>
           </div>
-          <button type="button" onClick={() => void reload()} disabled={refreshing} className="text-xs text-brown-sugar/60 underline disabled:opacity-40">{refreshing ? "更新中…" : "重新整理"}</button>
+          <button type="button" onClick={() => void reload()} disabled={refreshing} className="text-xs text-brown-sugar/60 underline disabled:opacity-40">{refreshing ? t("common.refreshing") : t("common.refresh")}</button>
         </div>
         {loading && !showList && (
           <p className="animate-pulse-soft py-8 text-center text-sm text-brown-sugar/60">
-            載入中…
+            {t("common.loading")}
           </p>
         )}
         {error && !showList && (
@@ -150,12 +165,12 @@ function LivePageContent() {
         )}
         {error && showList && (
           <p className="mb-2 text-center text-xs text-red-bean/80">
-            更新失敗，顯示的是上次資料
+            {t("common.refreshFailed")}
           </p>
         )}
         {showEmpty && (
           <p className="py-8 text-center text-sm text-brown-sugar/60">
-            你是第一個進場的 🥣
+            {t("live.firstIn")}
           </p>
         )}
         {showList && (
@@ -170,8 +185,8 @@ function LivePageContent() {
                     {p.goal && <p className="mt-0.5 truncate text-xs text-mung-green">{p.goal}</p>}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    {isMe && <span className="rounded-full bg-sunset/20 px-2 py-0.5 text-[10px] font-medium text-brown-sugar">你</span>}
-                    {p.is_online ? <OnlineBadge /> : <span className="h-6 w-6 shrink-0 rounded-full border border-brown-sugar/15 bg-cream/80" aria-hidden />}
+                    {isMe && <span className="rounded-full bg-sunset/20 px-2 py-0.5 text-[10px] font-medium text-brown-sugar">{t("common.you")}</span>}
+                    {p.is_online ? <OnlineBadge label={t("live.online")} /> : <span className="h-6 w-6 shrink-0 rounded-full border border-brown-sugar/15 bg-cream/80" aria-hidden />}
                   </div>
                 </li>
               );
@@ -179,9 +194,9 @@ function LivePageContent() {
           </ul>
         )}
       </Card>
-      <p className="mt-4 text-center text-[11px] text-brown-sugar/50">綠色 ✓ 代表此刻也在 LIVE 頁面</p>
+      <p className="mt-4 text-center text-[11px] text-brown-sugar/50">{t("live.onlineHint")}</p>
       <div className="mt-5 space-y-3">
-        <Button href="/passport" variant="secondary" className="w-full">我的豆花護照</Button>
+        <Button href="/passport" variant="secondary" className="w-full">{t("live.myPassport")}</Button>
         <PageFooterNav />
       </div>
     </PageShell>
@@ -190,7 +205,7 @@ function LivePageContent() {
 
 export default function LivePage() {
   return (
-    <Suspense fallback={<PageShell><p className="animate-pulse-soft py-16 text-center text-sm text-brown-sugar/60">載入中…</p></PageShell>}>
+    <Suspense fallback={<PageShell><p className="animate-pulse-soft py-16 text-center text-sm text-brown-sugar/60">Loading…</p></PageShell>}>
       <LivePageContent />
     </Suspense>
   );

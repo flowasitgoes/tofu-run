@@ -1,7 +1,13 @@
-import Image from "next/image";
-import { TOKEN_TYPES, type TokenTypeId } from "@/lib/constants";
+"use client";
 
-/** 各地圖區 Token 釘點位置（對齊中央公園參考圖） */
+import Image from "next/image";
+import { useLocale } from "@/components/LocaleProvider";
+import { TOKEN_TYPES, type TokenTypeId } from "@/lib/constants";
+import {
+  getTokenLabelLocalized,
+  getTokenZoneLocalized,
+} from "@/lib/i18n-labels";
+
 const PIN_POSITIONS: Record<TokenTypeId, string> = {
   redbean: "left-[12%] top-[11%]",
   mungbean: "right-[4%] top-[14%]",
@@ -13,10 +19,12 @@ const PIN_POSITIONS: Record<TokenTypeId, string> = {
 const TOKEN_SIZE = 56;
 
 export function ParkMap() {
+  const { locale, t } = useLocale();
+
   return (
     <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border-2 border-brown-sugar/15 bg-gradient-to-b from-mung-green/20 via-tofu-white to-sunset/25 p-4 shadow-inner">
       <p className="text-center text-xs font-medium text-brown-sugar/60">
-        高雄中央公園 · 豆花地圖
+        {t("parkMap.title")}
       </p>
 
       <div className="absolute inset-4 rounded-2xl border border-dashed border-brown-sugar/20" />
@@ -34,14 +42,14 @@ export function ParkMap() {
           <div className="animate-float">
             <Image
               src={token.image}
-              alt={token.label}
+              alt={getTokenLabelLocalized(token.id, locale)}
               width={TOKEN_SIZE}
               height={TOKEN_SIZE}
               className="h-14 w-14 object-contain drop-shadow-lg"
             />
           </div>
           <span className="mt-0.5 rounded-full bg-cream/90 px-2 py-0.5 text-[10px] font-medium text-brown-sugar shadow-sm">
-            {token.zone}
+            {getTokenZoneLocalized(token.id, locale)}
           </span>
         </div>
       ))}

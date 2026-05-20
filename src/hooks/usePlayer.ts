@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useLocale } from "@/components/LocaleProvider";
 import { getStoredGoingAccount } from "@/lib/goingAccount";
 import { clearPassportCache } from "@/lib/passportCache";
 import { getStoredPlayer, setStoredPlayer } from "@/lib/player";
@@ -8,6 +9,7 @@ import { getCurrentPosition } from "@/lib/geolocation";
 import type { StoredPlayer } from "@/types/database";
 
 export function usePlayer() {
+  const { t } = useLocale();
   const [player, setPlayer] = useState<StoredPlayer | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -19,7 +21,7 @@ export function usePlayer() {
   const join = useCallback(async (): Promise<StoredPlayer> => {
     const going = getStoredGoingAccount();
     if (!going?.runnerId) {
-      throw new Error("請先於護照登入（須已完成想參加報名）");
+      throw new Error(t("hooks.passportLoginFirst"));
     }
 
     const existing = getStoredPlayer();
@@ -45,7 +47,7 @@ export function usePlayer() {
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error ?? "加入失敗");
+    if (!res.ok) throw new Error(data.error ?? t("common.joinFailed"));
 
     if (data.rejoined && existing?.runnerId === going.runnerId) {
       const refreshed: StoredPlayer = {
@@ -67,7 +69,7 @@ export function usePlayer() {
     setPlayer(newPlayer);
     clearPassportCache();
     return newPlayer;
-  }, []);
+  }, [t]);
 
   return { player, loading, join, setPlayer };
 }

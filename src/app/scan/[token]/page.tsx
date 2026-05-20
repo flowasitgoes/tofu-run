@@ -2,11 +2,17 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
+import { useLocale } from "@/components/LocaleProvider";
 import { PageShell } from "@/components/PageShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TokenIcon } from "@/components/TokenIcon";
-import { TOKEN_TYPES, getTokenLabel } from "@/lib/constants";
+import { TOKEN_TYPES } from "@/lib/constants";
+import {
+  getTokenLabelLocalized,
+  getTokenZoneLocalized,
+} from "@/lib/i18n-labels";
+import type { TokenTypeId } from "@/lib/constants";
 import { getCurrentPosition } from "@/lib/geolocation";
 import { useStoredPlayerSnapshot } from "@/hooks/useStoredPlayer";
 
@@ -17,6 +23,7 @@ export default function ScanPage({
 }: {
   params: Promise<{ token: string }>;
 }) {
+  const { locale, t, localizeError } = useLocale();
   const { token } = use(params);
   const tokenType = token.toLowerCase();
   const tokenInfo = TOKEN_TYPES.find((t) => t.id === tokenType);
@@ -59,7 +66,9 @@ export default function ScanPage({
       setStatus("success");
     } catch (e) {
       setStatus("error");
-      setError(e instanceof Error ? e.message : "掃描失敗");
+      setError(
+        e instanceof Error ? localizeError(e.message) : t("common.scanFailed")
+      );
     }
   }
 
@@ -67,9 +76,9 @@ export default function ScanPage({
     return (
       <PageShell showNav={false}>
         <Card className="mt-16 text-center">
-          <p className="text-red-bean">無效的 Checkpoint Token</p>
+          <p className="text-red-bean">{t("scan.invalidToken")}</p>
           <Button href="/" className="mt-4 w-full">
-            返回首頁
+            {t("scan.backHome")}
           </Button>
         </Card>
       </PageShell>
@@ -88,12 +97,13 @@ export default function ScanPage({
               className="mx-auto mb-4"
             />
           )}
-          <h1 className="text-xl font-bold">{tokenInfo?.zone}</h1>
-          <p className="mt-4 text-sm text-brown-sugar/70">
-            請先加入活動才能掃描 Token
-          </p>
+          <h1 className="text-xl font-bold">
+            {tokenInfo &&
+              getTokenZoneLocalized(tokenInfo.id as TokenTypeId, locale)}
+          </h1>
+          <p className="mt-4 text-sm text-brown-sugar/70">{t("scan.joinFirst")}</p>
           <Button href="/join" className="mt-6 w-full">
-            加入活動
+            {t("scan.joinActivity")}
           </Button>
         </Card>
       </PageShell>
@@ -114,33 +124,36 @@ export default function ScanPage({
           </div>
         )}
         <h1 className="text-2xl font-bold text-brown-sugar">
-          {tokenInfo?.zone}
+          {tokenInfo &&
+            getTokenZoneLocalized(tokenInfo.id as TokenTypeId, locale)}
         </h1>
-        <p className="text-sm text-brown-sugar/60">{getTokenLabel(tokenType)}</p>
+        <p className="text-sm text-brown-sugar/60">
+          {getTokenLabelLocalized(tokenType, locale)}
+        </p>
 
         {status === "scanning" && (
           <Card className="mt-8 w-full">
-            <p className="animate-pulse-soft">正在記錄掃描…</p>
-            <p className="mt-2 text-xs text-brown-sugar/50">取得 GPS 座標</p>
+            <p className="animate-pulse-soft">{t("scan.scanning")}</p>
+            <p className="mt-2 text-xs text-brown-sugar/50">{t("scan.gpsHint")}</p>
           </Card>
         )}
 
         {status === "success" && (
           <Card className="mt-8 w-full border-2 border-mung-green/30">
             <p className="text-2xl">✨</p>
-            <p className="mt-2 font-semibold text-mung-green">Token 已記錄！</p>
+            <p className="mt-2 font-semibold text-mung-green">{t("scan.recorded")}</p>
             <p className="mt-1 font-mono text-xs text-brown-sugar/60">
               {player.runnerName} · {player.runnerId}
             </p>
             {scannedAt && (
               <p className="mt-2 text-xs text-brown-sugar/50">
-                {new Date(scannedAt).toLocaleString("zh-TW", {
+                {new Date(scannedAt).toLocaleString(locale === "en" ? "en-US" : "zh-TW", {
                   timeZone: "Asia/Taipei",
                 })}
               </p>
             )}
             <Button href="/passport" className="mt-6 w-full">
-              查看護照
+              {t("scan.viewPassport")}
             </Button>
           </Card>
         )}
@@ -149,14 +162,14 @@ export default function ScanPage({
           <Card className="mt-8 w-full">
             <p className="text-red-bean">{error}</p>
             <Button className="mt-4 w-full" onClick={handleScan}>
-              重試
+              {t("common.retry")}
             </Button>
           </Card>
         )}
 
         {status === "idle" && (
           <Button className="mt-8 w-full" onClick={handleScan}>
-            掃描此 Token
+            {t("scan.scanThis")}
           </Button>
         )}
 
@@ -164,7 +177,7 @@ export default function ScanPage({
           href="/lobby"
           className="mt-6 text-xs text-brown-sugar/50 underline"
         >
-          返回 Lobby
+          {t("scan.backLobby")}
         </Link>
       </div>
     </PageShell>

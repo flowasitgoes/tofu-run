@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { Noto_Sans_TC } from "next/font/google";
 import { JsonLd } from "@/components/JsonLd";
+import { LocaleProvider } from "@/components/LocaleProvider";
+import { LOCALE_COOKIE, parseLocale } from "@/i18n";
 import { createMetadata } from "@/lib/metadata";
 import { siteConfig } from "@/lib/site";
 import "./globals.css";
@@ -28,16 +31,20 @@ export const viewport: Viewport = {
   colorScheme: "light",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const locale = parseLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+  const htmlLang = locale === "en" ? "en" : "zh-Hant";
+
   return (
-    <html lang="zh-Hant" className={`${notoSansTC.variable} h-full`}>
+    <html lang={htmlLang} className={`${notoSansTC.variable} h-full`}>
       <body className="min-h-full antialiased">
         <JsonLd />
-        {children}
+        <LocaleProvider>{children}</LocaleProvider>
       </body>
     </html>
   );

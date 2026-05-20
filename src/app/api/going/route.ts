@@ -12,7 +12,10 @@ import {
   insertGoingSignup,
 } from "@/lib/db";
 import { normalizeRunnerId, RUNNER_ID_PATTERN } from "@/lib/runner";
-import { validateCustomName } from "@/lib/validateCustomName";
+import {
+  customNameErrorMessage,
+  validateCustomName,
+} from "@/lib/validateCustomName";
 import {
   isSupabaseConfigured,
   isSupabaseServiceConfigured,
@@ -65,7 +68,10 @@ export async function POST(request: Request) {
 
     const customNameCheck = validateCustomName(trimmedCustomName);
     if (!customNameCheck.ok) {
-      return NextResponse.json({ error: customNameCheck.error }, { status: 400 });
+      return NextResponse.json(
+        { error: customNameErrorMessage(customNameCheck) },
+        { status: 400 }
+      );
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {

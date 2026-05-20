@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocale } from "@/components/LocaleProvider";
 import type { GoingJoinListEntry } from "@/types/database";
 
 const POLL_MS = 60_000;
@@ -24,6 +25,7 @@ async function fetchLobby(signal: AbortSignal): Promise<LobbyPayload> {
 }
 
 export function useLobbyList() {
+  const { localizeError, t } = useLocale();
   const [signups, setSignups] = useState<GoingJoinListEntry[]>([]);
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -60,7 +62,10 @@ export function useLobbyList() {
       if (controller.signal.aborted) return;
       if (requestId !== requestIdRef.current) return;
 
-      const message = e instanceof Error ? e.message : "載入失敗";
+      const message =
+        e instanceof Error
+          ? localizeError(e.message)
+          : t("common.loadFailed");
       if (!hasDataRef.current) {
         setError(message);
       }
@@ -69,7 +74,7 @@ export function useLobbyList() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [localizeError, t]);
 
   useEffect(() => {
     void load();
