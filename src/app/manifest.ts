@@ -1,7 +1,6 @@
 import type { MetadataRoute } from "next";
+import { seoAssets } from "@/lib/seo-assets";
 import { siteConfig } from "@/lib/site";
-
-const { icons } = siteConfig;
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -14,34 +13,23 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#fff8f0",
     lang: "zh-Hant",
     icons: [
+      ...seoAssets.icons.map((icon) => ({
+        src: icon.path,
+        sizes: icon.sizes,
+        type: icon.mimeType,
+        purpose: "any" as const,
+      })),
       {
-        src: icons.favicon64,
-        sizes: "64x64",
-        type: "image/jpeg",
-        purpose: "any",
-      },
-      {
-        src: icons.android192,
-        sizes: "192x192",
-        type: "image/jpeg",
-        purpose: "any",
-      },
-      {
-        src: icons.pwa512,
-        sizes: "512x512",
-        type: "image/jpeg",
-        purpose: "any",
-      },
-      {
-        src: icons.pwa512,
+        src: seoAssets.icons[3].path,
         sizes: "512x512",
         type: "image/jpeg",
         purpose: "maskable",
       },
       {
-        src: "/icon.svg",
+        src: seoAssets.vectorIcon.path,
         sizes: "any",
-        type: "image/svg+xml",
+        type: seoAssets.vectorIcon.mimeType,
+        purpose: "any",
       },
     ],
   };

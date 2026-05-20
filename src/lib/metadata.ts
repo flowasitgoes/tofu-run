@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { seoAssets } from "@/lib/seo-assets";
 import { absoluteUrl, ogImageUrl, siteConfig, siteUrl } from "@/lib/site";
 
 type PageMetaOptions = {
@@ -9,9 +10,28 @@ type PageMetaOptions = {
   ogType?: "website" | "article";
 };
 
-const { icons: siteIcons } = siteConfig;
-
 const defaultTitle = `${siteConfig.name} | ${siteConfig.nameEn}`;
+
+const { og } = seoAssets;
+
+const metadataIcons: NonNullable<Metadata["icons"]> = {
+  icon: [
+    ...seoAssets.icons.map((icon) => ({
+      url: icon.path,
+      sizes: icon.sizes,
+      type: icon.mimeType,
+    })),
+    { url: seoAssets.vectorIcon.path, type: seoAssets.vectorIcon.mimeType },
+  ],
+  apple: seoAssets.icons
+    .filter((icon) => icon.sizes === "192x192" || icon.sizes === "512x512")
+    .map((icon) => ({
+      url: icon.path,
+      sizes: icon.sizes,
+      type: icon.mimeType,
+    })),
+  shortcut: seoAssets.icons[1].path,
+};
 
 export function createMetadata({
   title,
@@ -22,7 +42,6 @@ export function createMetadata({
 }: PageMetaOptions = {}): Metadata {
   const pageTitle = title ? `${title} | ${siteConfig.name}` : defaultTitle;
   const pageUrl = absoluteUrl(path).replace(/\/$/, "") || siteUrl.replace(/\/$/, "");
-  const canonical = pageUrl;
 
   return {
     metadataBase: new URL(siteUrl),
@@ -41,46 +60,9 @@ export function createMetadata({
     category: "event",
     formatDetection: { email: false, address: false, telephone: false },
     alternates: {
-      canonical,
+      canonical: pageUrl,
     },
-    icons: {
-      icon: [
-        {
-          url: siteIcons.favicon32,
-          sizes: "32x32",
-          type: "image/jpeg",
-        },
-        {
-          url: siteIcons.favicon64,
-          sizes: "64x64",
-          type: "image/jpeg",
-        },
-        {
-          url: siteIcons.android192,
-          sizes: "192x192",
-          type: "image/jpeg",
-        },
-        {
-          url: siteIcons.pwa512,
-          sizes: "512x512",
-          type: "image/jpeg",
-        },
-        { url: "/icon.svg", type: "image/svg+xml" },
-      ],
-      apple: [
-        {
-          url: siteIcons.android192,
-          sizes: "192x192",
-          type: "image/jpeg",
-        },
-        {
-          url: siteIcons.pwa512,
-          sizes: "512x512",
-          type: "image/jpeg",
-        },
-      ],
-      shortcut: siteIcons.favicon64,
-    },
+    icons: metadataIcons,
     robots: noIndex
       ? { index: false, follow: false }
       : {
@@ -98,10 +80,10 @@ export function createMetadata({
       images: [
         {
           url: ogImageUrl,
-          width: 1200,
-          height: 630,
-          alt: siteConfig.ogImageAlt,
-          type: "image/png",
+          width: og.width,
+          height: og.height,
+          alt: og.alt,
+          type: og.mimeType,
         },
       ],
     },
@@ -109,7 +91,7 @@ export function createMetadata({
       card: "summary_large_image",
       title: pageTitle,
       description,
-      images: [ogImageUrl],
+      images: [{ url: ogImageUrl, alt: og.alt }],
     },
     other: {
       "geo.region": siteConfig.country,

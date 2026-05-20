@@ -1,3 +1,5 @@
+import { seoAssets } from "@/lib/seo-assets";
+
 /** 正式站自訂網域（OG / canonical 須與分享圖同網域，勿用 *.vercel.app） */
 export const PRODUCTION_SITE_URL = "https://tofu-run.ifunlove.com";
 
@@ -19,7 +21,7 @@ function getSiteUrl(): string {
 export const siteUrl = getSiteUrl();
 
 /** 絕對路徑 OG 圖（與 pray 的 ogImageUrl 同寫法） */
-export const ogImageUrl = `${siteUrl.replace(/\/$/, "")}/og.png`;
+export const ogImageUrl = `${siteUrl.replace(/\/$/, "")}${seoAssets.og.path}`;
 
 export const siteConfig = {
   name: "豆花慢跑",
@@ -49,19 +51,17 @@ export const siteConfig = {
   shortDescription:
     "高雄中央公園的城市慢跑遊戲。掃 QR 加入、選豆花、收集 Token 與豆花護照。",
   /** Open Graph / Twitter / LINE 橫式分享圖（1200×630 PNG） */
-  ogImage: "/og.png",
-  ogImageAlt:
-    "豆花慢跑 Tofu Run 宣傳圖：慢跑豆花、綠豆紅豆豆花與芋圓粉圓花生配料，高雄中央公園團體慢跑活動",
-  /** 網站圖示 / PWA / 加入主畫面（1080×1080 等僅放 public/，不寫入 og:image） */
+  ogImage: seoAssets.og.path,
+  ogImageAlt: seoAssets.og.alt,
+  /** 網站圖示 / PWA / 加入主畫面（勿與 og:image 混用） */
   icons: {
-    favicon32: "/32x32.jpg",
-    favicon64: "/64x64.jpg",
-    android192: "/192x192.jpg",
-    pwa512: "/512x512.jpg",
+    favicon32: seoAssets.icons[0].path,
+    favicon64: seoAssets.icons[1].path,
+    android192: seoAssets.icons[2].path,
+    pwa512: seoAssets.icons[3].path,
   },
-  appIcon: "/512x512.jpg",
-  appIconAlt:
-    "豆花慢跑 Tofu Run 吉祥物：豆花星球居民跑步圖示",
+  appIcon: seoAssets.icons[3].path,
+  appIconAlt: seoAssets.icons[3].alt,
   /** 活動日前先隱藏 LIVE 入口（Nav、護照、首頁） */
   showLiveEntry: false,
 } as const;
