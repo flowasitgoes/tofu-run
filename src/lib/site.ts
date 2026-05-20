@@ -35,7 +35,7 @@ export const siteConfig = {
   url: siteUrl,
   creator: "豆花慢跑",
   /** Google Search Console（HTML 標記驗證，可公開） */
-  googleSiteVerification: "1mE1Zrt2Etrno4lAitDyxtA_S1Ihed-Y3or14Mlwawo",
+  googleSiteVerification: "U6ksv_d9_QCvBN0bzjbCbZIo3cpel-idO2NbCJmHOsk",
   keywords: [
     "豆花慢跑",
     "Tofu Run",
