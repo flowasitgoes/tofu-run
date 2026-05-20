@@ -38,18 +38,31 @@ export const siteConfig = {
     "豆花慢跑",
     "Tofu Run",
     "高雄中央公園",
+    "Kaohsiung Central Park",
+    "高雄",
+    "Kaohsiung",
+    "Taiwan",
     "慢跑",
+    "group run",
     "城市遊戲",
+    "city game",
     "QR code 活動",
     "豆花",
+    "tofu pudding",
     "團體慢跑",
     "city walk",
     "高雄活動",
+    "checkpoint",
+    "gamification",
   ],
   description:
     "豆花慢跑（Tofu Run）是高雄中央公園的城市團體加油慢跑遊戲。掃描 QR 加入、選擇豆花配料、到公園各區掃描 Token，收集你的豆花護照——跑、跑、跑，享用你們拾取的豆花。",
+  descriptionEn:
+    "Tofu Run is a city group cheer-run game at Kaohsiung Central Park, Taiwan. Sign up with Runner ID, pick tofu toppings, scan checkpoint Tokens, and complete your tofu passport.",
   shortDescription:
     "高雄中央公園的城市慢跑遊戲。掃 QR 加入、選豆花、收集 Token 與豆花護照。",
+  shortDescriptionEn:
+    "City run game at Kaohsiung Central Park: QR signup, tofu toppings, Tokens, digital passport.",
   /** Open Graph / Twitter / LINE 橫式分享圖（1200×630 PNG） */
   ogImage: seoAssets.og.path,
   ogImageAlt: seoAssets.og.alt,

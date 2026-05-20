@@ -1,14 +1,39 @@
 import type { MetadataRoute } from "next";
-import { absoluteUrl } from "@/lib/site";
+import { absoluteSeoUrl } from "@/lib/seo-content";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
 
   return [
-    { url: absoluteUrl("/"), lastModified, changeFrequency: "weekly", priority: 1 },
-    { url: absoluteUrl("/join"), lastModified, changeFrequency: "monthly", priority: 0.9 },
-    { url: absoluteUrl("/lobby"), lastModified, changeFrequency: "daily", priority: 0.8 },
-    { url: absoluteUrl("/live"), lastModified, changeFrequency: "daily", priority: 0.85 },
-    { url: absoluteUrl("/passport"), lastModified, changeFrequency: "weekly", priority: 0.7 },
+    {
+      url: absoluteSeoUrl("/"),
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 1,
+    },
+    {
+      url: absoluteSeoUrl("/lobby"),
+      lastModified,
+      changeFrequency: "daily",
+      priority: 0.85,
+    },
+    {
+      url: absoluteSeoUrl("/passport"),
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: absoluteSeoUrl("/join"),
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.75,
+    },
+    {
+      url: absoluteSeoUrl("/live"),
+      lastModified,
+      changeFrequency: "daily",
+      priority: 0.7,
+    },
   ];
 }

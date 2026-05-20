@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { seoAssets } from "@/lib/seo-assets";
+import { absoluteSeoUrl } from "@/lib/seo-content";
 import { absoluteUrl, ogImageUrl, siteConfig, siteUrl } from "@/lib/site";
 
 type PageMetaOptions = {
@@ -42,6 +43,7 @@ export function createMetadata({
 }: PageMetaOptions = {}): Metadata {
   const pageTitle = title ? `${title} | ${siteConfig.name}` : defaultTitle;
   const pageUrl = absoluteUrl(path).replace(/\/$/, "") || siteUrl.replace(/\/$/, "");
+  const canonicalUrl = absoluteSeoUrl(path);
 
   return {
     metadataBase: new URL(siteUrl),
@@ -53,14 +55,22 @@ export function createMetadata({
         },
     description,
     keywords: [...siteConfig.keywords],
-    authors: [{ name: siteConfig.creator }],
+    authors: [{ name: siteConfig.creator, url: "https://ifunlove.com/" }],
     creator: siteConfig.creator,
     publisher: siteConfig.creator,
     applicationName: siteConfig.name,
-    category: "event",
+    category: "SportsEvent",
     formatDetection: { email: false, address: false, telephone: false },
     alternates: {
-      canonical: pageUrl,
+      canonical: canonicalUrl,
+      languages: {
+        "zh-Hant": canonicalUrl,
+        en: canonicalUrl,
+        "x-default": canonicalUrl,
+      },
+      types: {
+        "text/plain": absoluteSeoUrl("/llms.txt"),
+      },
     },
     icons: metadataIcons,
     robots: noIndex
@@ -68,11 +78,18 @@ export function createMetadata({
       : {
           index: true,
           follow: true,
-          googleBot: { index: true, follow: true },
+          googleBot: {
+            index: true,
+            follow: true,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+            "max-video-preview": -1,
+          },
         },
     openGraph: {
       type: ogType,
       locale: siteConfig.locale,
+      alternateLocale: ["en_US"],
       url: pageUrl,
       siteName: siteConfig.name,
       title: pageTitle,
@@ -97,8 +114,13 @@ export function createMetadata({
       "geo.region": siteConfig.country,
       "geo.placename": siteConfig.location,
       "apple-mobile-web-app-title": siteConfig.name,
+      "content-language": "zh-Hant",
       ...(process.env.NEXT_PUBLIC_FB_APP_ID && {
         "fb:app_id": process.env.NEXT_PUBLIC_FB_APP_ID,
+      }),
+      ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION && {
+        "google-site-verification":
+          process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
       }),
     },
   };
