@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { absoluteUrl, getShareOgImageUrl, siteConfig } from "@/lib/site";
+import { absoluteUrl, ogImageUrl, siteConfig, siteUrl } from "@/lib/site";
 
 type PageMetaOptions = {
   title?: string;
@@ -11,6 +11,8 @@ type PageMetaOptions = {
 
 const { icons: siteIcons } = siteConfig;
 
+const defaultTitle = `${siteConfig.name} | ${siteConfig.nameEn}`;
+
 export function createMetadata({
   title,
   description = siteConfig.description,
@@ -18,18 +20,16 @@ export function createMetadata({
   noIndex = false,
   ogType = "website",
 }: PageMetaOptions = {}): Metadata {
-  const pageTitle = title
-    ? `${title} | ${siteConfig.name}`
-    : `${siteConfig.name} | ${siteConfig.nameEn}`;
-  const canonical = absoluteUrl(path);
-  const ogImage = getShareOgImageUrl();
+  const pageTitle = title ? `${title} | ${siteConfig.name}` : defaultTitle;
+  const pageUrl = absoluteUrl(path).replace(/\/$/, "") || siteUrl.replace(/\/$/, "");
+  const canonical = pageUrl;
 
   return {
-    metadataBase: new URL(absoluteUrl("/")),
+    metadataBase: new URL(siteUrl),
     title: title
       ? title
       : {
-          default: `${siteConfig.name} | ${siteConfig.nameEn}`,
+          default: defaultTitle,
           template: `%s | ${siteConfig.name}`,
         },
     description,
@@ -39,6 +39,7 @@ export function createMetadata({
     publisher: siteConfig.creator,
     applicationName: siteConfig.name,
     category: "event",
+    formatDetection: { email: false, address: false, telephone: false },
     alternates: {
       canonical,
     },
@@ -85,23 +86,18 @@ export function createMetadata({
       : {
           index: true,
           follow: true,
-          googleBot: {
-            index: true,
-            follow: true,
-            "max-image-preview": "large",
-            "max-snippet": -1,
-          },
+          googleBot: { index: true, follow: true },
         },
     openGraph: {
       type: ogType,
       locale: siteConfig.locale,
-      url: canonical,
+      url: pageUrl,
       siteName: siteConfig.name,
       title: pageTitle,
       description,
       images: [
         {
-          url: ogImage,
+          url: ogImageUrl,
           width: 1200,
           height: 630,
           alt: siteConfig.ogImageAlt,
@@ -113,15 +109,15 @@ export function createMetadata({
       card: "summary_large_image",
       title: pageTitle,
       description,
-      images: {
-        url: ogImage,
-        alt: siteConfig.ogImageAlt,
-      },
+      images: [ogImageUrl],
     },
     other: {
       "geo.region": siteConfig.country,
       "geo.placename": siteConfig.location,
       "apple-mobile-web-app-title": siteConfig.name,
+      ...(process.env.NEXT_PUBLIC_FB_APP_ID && {
+        "fb:app_id": process.env.NEXT_PUBLIC_FB_APP_ID,
+      }),
     },
   };
 }

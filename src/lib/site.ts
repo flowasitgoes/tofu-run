@@ -1,9 +1,11 @@
 /** 正式站自訂網域（OG / canonical 須與分享圖同網域，勿用 *.vercel.app） */
 export const PRODUCTION_SITE_URL = "https://tofu-run.ifunlove.com";
 
-/** 網站根網址（SEO、OG、sitemap） */
+/** 網站根網址（SEO、OG、sitemap）；與 pray 一致用 NEXT_PUBLIC_SITE_URL */
 function getSiteUrl(): string {
-  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  const raw =
+    process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL;
+  const fromEnv = raw?.replace(/\/$/, "");
   if (fromEnv) return fromEnv;
 
   if (process.env.VERCEL) {
@@ -12,6 +14,12 @@ function getSiteUrl(): string {
 
   return "http://localhost:3000";
 }
+
+/** 根網址（與 pray layout 的 siteUrl 同用途） */
+export const siteUrl = getSiteUrl();
+
+/** 絕對路徑 OG 圖（與 pray 的 ogImageUrl 同寫法） */
+export const ogImageUrl = `${siteUrl.replace(/\/$/, "")}/og.png`;
 
 export const siteConfig = {
   name: "豆花慢跑",
@@ -22,7 +30,7 @@ export const siteConfig = {
   city: "高雄",
   country: "TW",
   locale: "zh_TW",
-  url: getSiteUrl(),
+  url: siteUrl,
   creator: "豆花慢跑",
   keywords: [
     "豆花慢跑",
@@ -65,7 +73,7 @@ export function absoluteUrl(path = ""): string {
   return `${base}${normalized}`;
 }
 
-/** 分享用大圖（與 og:url 同網域） */
+/** @deprecated 請用 ogImageUrl；保留以免舊引用 */
 export function getShareOgImageUrl(): string {
-  return absoluteUrl(siteConfig.ogImage);
+  return ogImageUrl;
 }

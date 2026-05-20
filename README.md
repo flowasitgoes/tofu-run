@@ -33,7 +33,8 @@ cp .env.local.example .env.local
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`（僅伺服器；報名／護照查詢用，**勿**加 `NEXT_PUBLIC_`）
 - `ADMIN_SECRET`（管理者頁面密鑰）
-- `NEXT_PUBLIC_APP_URL`（正式網域，須與 og:image 同網域，例：`https://tofu-run.ifunlove.com`）
+- `NEXT_PUBLIC_SITE_URL`（正式網域，須與 og:image 同網域，例：`https://tofu-run.ifunlove.com`）
+- `NEXT_PUBLIC_FB_APP_ID`（可選，Facebook App 數字 ID，輸出 `fb:app_id` meta）
 
 報名表 `going_signups` 建議執行 [`supabase/going_signups_lockdown_anon.sql`](./supabase/going_signups_lockdown_anon.sql)，避免前端用 anon key 直連讀取 Email。
 
@@ -62,23 +63,23 @@ npm run dev
 在各區域張貼 QR code，連結格式：
 
 ```
-{APP_URL}/scan/redbean   → 水池區
-{APP_URL}/scan/mungbean  → 樹林區
-{APP_URL}/scan/peanut    → 城市光廊區
-{APP_URL}/scan/tapioca   → 草地區
-{APP_URL}/scan/taro      → 捷運出口區
+{SITE_URL}/scan/redbean   → 水池區
+{SITE_URL}/scan/mungbean  → 樹林區
+{SITE_URL}/scan/peanut    → 城市光廊區
+{SITE_URL}/scan/tapioca   → 草地區
+{SITE_URL}/scan/taro      → 捷運出口區
 ```
 
 現場 LIVE 房間 QR（須輸入 Runner ID 進場）：
 
 ```
-{APP_URL}/live?from=qr
+{SITE_URL}/live?from=qr
 ```
 
 舊版加入頁（可選）：
 
 ```
-{APP_URL}/join
+{SITE_URL}/join
 ```
 
 ### LIVE 資料庫

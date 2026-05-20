@@ -13,11 +13,6 @@ const notoSansTC = Noto_Sans_TC({
 
 export const metadata: Metadata = {
   ...createMetadata(),
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
   appleWebApp: {
     capable: true,
     title: siteConfig.name,
