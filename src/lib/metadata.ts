@@ -44,6 +44,9 @@ export function createMetadata({
   const pageTitle = title ? `${title} | ${siteConfig.name}` : defaultTitle;
   const pageUrl = absoluteUrl(path).replace(/\/$/, "") || siteUrl.replace(/\/$/, "");
   const canonicalUrl = absoluteSeoUrl(path);
+  const googleSiteVerification =
+    process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ??
+    siteConfig.googleSiteVerification;
 
   return {
     metadataBase: new URL(siteUrl),
@@ -118,10 +121,9 @@ export function createMetadata({
       ...(process.env.NEXT_PUBLIC_FB_APP_ID && {
         "fb:app_id": process.env.NEXT_PUBLIC_FB_APP_ID,
       }),
-      ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION && {
-        "google-site-verification":
-          process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
-      }),
+      ...(googleSiteVerification
+        ? { "google-site-verification": googleSiteVerification }
+        : {}),
     },
   };
 }
