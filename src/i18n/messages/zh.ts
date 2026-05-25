@@ -174,7 +174,7 @@ export const zh = {
     tokenProgress: "Token 進度",
     countOnline: "共 {count} 人 · 在線 {online} 人",
     firstIn: "你是第一個進場的 🥣",
-    earnedBowls: "獲得 {count} 碗豆花!",
+    earnedBowls: "獲得 {count} 碗豆花",
     onlineHint:
       "綠色圓點＝在線；圖示右下角數字＝掃描次數；藍字「獲得N碗豆花」＝完成碗數",
     feed: "最新動態",

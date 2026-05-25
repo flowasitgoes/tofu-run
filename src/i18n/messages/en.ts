@@ -182,7 +182,7 @@ export const en: Messages = {
     tokenProgress: "Token progress",
     countOnline: "{count} people · {online} online",
     firstIn: "You're the first in 🥣",
-    earnedBowls: "Earned {count} bowl(s)!",
+    earnedBowls: "Earned {count} bowl(s)",
     onlineHint:
       "Green dot = online. Badge = scan count. Blue “Earned N bowl(s)” = bowls completed.",
     feed: "Latest activity",
