@@ -14,9 +14,8 @@ import {
   getTokenZoneLocalized,
 } from "@/lib/i18n-labels";
 import type { TokenTypeId } from "@/lib/constants";
-import { getCurrentPositionForScan } from "@/lib/geolocation";
 import { useStoredPlayerSnapshot } from "@/hooks/useStoredPlayer";
-import { publishTokenEarned } from "@/lib/live-realtime";
+import { performTokenScan } from "@/lib/perform-token-scan";
 import {
   getLiveRoomCache,
   markReturningFromScan,
@@ -30,8 +29,6 @@ const LOADING_MIN_MS = 1000;
 const LOADING_MAX_MS = 1500;
 /** 成功畫面停留後自動回 LIVE */
 const REDIRECT_TO_LIVE_MS = 1600;
-const SCAN_API_TIMEOUT_MS = 12_000;
-
 function randomLoadingMs() {
   return (
     LOADING_MIN_MS +
@@ -109,58 +106,13 @@ export default function ScanPage({
   async function persistScan(): Promise<string> {
     if (!player || !tokenInfo) throw new Error(t("common.scanFailed"));
 
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(
-      () => controller.abort(),
-      SCAN_API_TIMEOUT_MS
-    );
-
-    let res: Response;
-    try {
-      /** 先打 API 驗證路線；勿讓 GPS 拖住「不在路線」等錯誤 */
-      res = await fetch("/api/scan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          userId: player.userId,
-          tokenType,
-          lat: null,
-          lng: null,
-        }),
-      });
-    } catch (e) {
-      if (controller.signal.aborted) {
-        throw new Error(t("common.scanFailed"));
-      }
-      throw e;
-    } finally {
-      window.clearTimeout(timeoutId);
-    }
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-
-    void getCurrentPositionForScan();
-
-    const at =
-      (data.scannedAt as string | undefined) ??
-      (data.token?.scanned_at as string | undefined) ??
-      new Date().toISOString();
-
-    if (data.sessionId && data.token) {
-      publishTokenEarned({
-        sessionId: data.sessionId,
-        tokenId: data.token.id,
-        userId: player.userId,
-        runnerId: player.runnerId,
-        displayName: player.runnerName,
-        tokenType: data.token.token_type,
-        scannedAt: data.token.scanned_at,
-      });
-    }
-
-    return at;
+    const { scannedAt } = await performTokenScan({
+      userId: player.userId,
+      runnerId: player.runnerId,
+      runnerName: player.runnerName,
+      tokenType,
+    });
+    return scannedAt;
   }
 
   async function handleScan() {
@@ -192,8 +144,11 @@ export default function ScanPage({
     } catch (e) {
       setBarPercent(0);
       setStatus("error");
+      const raw = e instanceof Error ? e.message : "";
       setError(
-        e instanceof Error ? localizeError(e.message) : t("common.scanFailed")
+        raw === "SCAN_TIMEOUT"
+          ? t("common.scanFailed")
+          : localizeError(raw) || t("common.scanFailed")
       );
     } finally {
       scanRef.current = false;

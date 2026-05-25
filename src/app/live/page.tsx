@@ -26,6 +26,7 @@ import { normalizeRunnerId } from "@/lib/runner";
 import { LiveActivityFeed } from "@/components/LiveActivityFeed";
 import { LiveCompleteBadge } from "@/components/LiveCompleteBadge";
 import { LiveParticipantTokenIcons } from "@/components/LiveParticipantTokenIcons";
+import { LiveTokenScanner } from "@/components/LiveTokenScanner";
 
 /** 在線：實心綠點（與 Ground 完成用的 ✓ 區隔） */
 function OnlineBadge({ label }: { label: string }) {
@@ -207,9 +208,33 @@ function LivePageContent() {
       )}
       <header className="mb-6">
         <p className="text-xs font-medium tracking-wide text-red-bean">LIVE</p>
-        <h1 className="text-2xl font-bold text-brown-sugar">{t("live.todayOnSite")}</h1>
-        <p className="mt-1 text-sm text-brown-sugar/65">{sessionDateLabel || t("common.today")}</p>
-        <p className="mt-2 text-sm text-twilight">{t("live.youLabel")}<span className="font-mono font-semibold">{enteredRunnerId}</span></p>
+        <div className="mt-0.5 flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl font-bold text-brown-sugar">
+              {t("live.todayOnSite")}
+            </h1>
+            <p className="mt-1 text-sm text-brown-sugar/65">
+              {sessionDateLabel || t("common.today")}
+            </p>
+            <p className="mt-2 text-sm text-twilight">
+              {t("live.youLabel")}
+              <span className="font-mono font-semibold">{enteredRunnerId}</span>
+            </p>
+          </div>
+          {player?.userId ? (
+            <LiveTokenScanner
+              placement="header"
+              userId={player.userId}
+              runnerId={player.runnerId}
+              runnerName={player.runnerName}
+              disabled={refreshing}
+              onScanned={(tokenType) => {
+                setEarnedTokenType(tokenType);
+                void reload();
+              }}
+            />
+          ) : null}
+        </div>
       </header>
       <Card>
         <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-start gap-2">
