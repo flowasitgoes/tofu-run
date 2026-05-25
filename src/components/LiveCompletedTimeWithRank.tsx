@@ -20,12 +20,12 @@ export function LiveCompletedTimeWithRank({
     <span className="relative mr-1.5 inline-block shrink-0 whitespace-nowrap">
       <time
         dateTime={completedAt}
-        className="block pr-3.5 pb-2 text-[10px] text-brown-sugar/60"
+        className="block -translate-x-[2px] pr-3.5 pb-2 text-[10px] text-brown-sugar/60"
       >
         {formatTaipeiTime(completedAt, locale)}
       </time>
       <span
-        className="absolute bottom-0 right-0 flex h-4 min-w-4 translate-x-1.5 items-center justify-center rounded-[3px] bg-twilight px-0.5 text-[9px] font-bold leading-none text-white"
+        className="absolute bottom-0 right-0 flex h-4 min-w-4 translate-x-[4px] items-center justify-center rounded-[3px] bg-twilight px-0.5 text-[9px] font-bold leading-none text-white"
         aria-label={rankAriaLabel}
       >
         {rank}
