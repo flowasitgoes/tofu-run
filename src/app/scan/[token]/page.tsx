@@ -19,6 +19,7 @@ import { performTokenScan } from "@/lib/perform-token-scan";
 import {
   getLiveRoomCache,
   markReturningFromScan,
+  prefetchLiveRoomCache,
   setLiveRoomCache,
   setStoredLiveRunnerId,
 } from "@/lib/liveSession";
@@ -132,7 +133,9 @@ export default function ScanPage({
 
     try {
       const at = await persistScan();
+      const prefetchPromise = prefetchLiveRoomCache(player.runnerId);
       await waitMs(duration);
+      await prefetchPromise.catch(() => {});
       setScannedAt(at);
       setStoredLiveRunnerId(player.runnerId);
       markReturningFromScan({

@@ -13,9 +13,21 @@ export function mergeTokenIntoLiveParticipants(
   if (!TOKEN_IDS.has(event.tokenType)) return participants;
   return participants.map((p) => {
     if (p.user_id !== event.userId) return p;
+    const earned_token_ids = [...(p.earned_token_ids ?? []), event.tokenType];
+    const required = p.required_token_ids ?? [];
+    const is_complete =
+      required.length > 0 &&
+      required.every((id) => earned_token_ids.includes(id));
+    const completed_at =
+      is_complete && !p.is_complete
+        ? event.scannedAt
+        : p.completed_at ?? (is_complete ? event.scannedAt : null);
+
     return {
       ...p,
-      earned_token_ids: [...(p.earned_token_ids ?? []), event.tokenType],
+      earned_token_ids,
+      is_complete,
+      completed_at,
     };
   });
 }

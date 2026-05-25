@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { useLocale } from "@/components/LocaleProvider";
 import { parseTokenTypeFromScanText } from "@/lib/parse-scan-url";
+import type { TokenEarnedBroadcast } from "@/lib/ground-merge";
 import { performTokenScan } from "@/lib/perform-token-scan";
 
 type LiveTokenScannerProps = {
@@ -11,7 +12,7 @@ type LiveTokenScannerProps = {
   runnerId: string;
   runnerName: string;
   disabled?: boolean;
-  onScanned: (tokenType: string) => void;
+  onScanned: (event: TokenEarnedBroadcast) => void;
   /** 頁首「今日在場」右側大按鈕 */
   placement?: "header" | "inline";
 };
@@ -82,14 +83,26 @@ export function LiveTokenScanner({
       await stopScanner();
 
       try {
-        await performTokenScan({
+        const result = await performTokenScan({
           userId,
           runnerId,
           runnerName,
           tokenType,
         });
         setOpen(false);
-        onScanned(tokenType);
+        if (result.broadcast) {
+          onScanned(result.broadcast);
+        } else {
+          onScanned({
+            sessionId: result.sessionId,
+            tokenId: `local-${Date.now()}`,
+            userId,
+            runnerId,
+            displayName: runnerName,
+            tokenType: result.tokenType,
+            scannedAt: result.scannedAt,
+          });
+        }
       } catch (e) {
         const raw = e instanceof Error ? e.message : "";
         setError(

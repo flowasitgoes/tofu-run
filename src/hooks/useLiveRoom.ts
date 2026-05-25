@@ -15,13 +15,14 @@ import {
 } from "@/lib/liveSession";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { getTodayDateString } from "@/lib/session";
+import type { TokenEarnedBroadcast } from "@/lib/ground-merge";
 import type { GroundFeedItem, LiveParticipant } from "@/types/database";
 
 /** Realtime 為主；輪詢僅作 Replication 未開 user_sessions 時的後備 */
 const POLL_MS = 45_000;
 const REALTIME_DEBOUNCE_MS = 250;
-/** 從掃描頁回 LIVE：先顯示快取，延後背景更新 */
-const RETURN_FROM_SCAN_DEFER_MS = 2800;
+/** 從掃描頁回 LIVE：快取已在掃描頁預拉時，僅短暫緩衝 toast */
+const RETURN_FROM_SCAN_DEFER_MS = 200;
 
 type LivePayload = {
   sessionDate: string;
@@ -93,6 +94,7 @@ export function useLiveRoom(runnerId: string | null) {
   const reloadDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const deferReloadRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipNextVisibleReloadRef = useRef(false);
+  const appliedTokenIdsRef = useRef(new Set<string>());
 
   const applyPayload = useCallback((data: LivePayload) => {
     setParticipants(data.participants);
@@ -169,14 +171,39 @@ export function useLiveRoom(runnerId: string | null) {
     }, REALTIME_DEBOUNCE_MS);
   }, [load]);
 
+  /** 掃描當下立刻更新名單 + 快取（toast 與列表同一來源） */
+  const applyTokenEarned = useCallback(
+    (event: TokenEarnedBroadcast) => {
+      if (appliedTokenIdsRef.current.has(event.tokenId)) return;
+      appliedTokenIdsRef.current.add(event.tokenId);
+
+      setParticipants((prev) => {
+        const next = mergeTokenIntoLiveParticipants(prev, event);
+        if (runnerId) {
+          const cached = getLiveRoomCache(runnerId);
+          if (cached) {
+            setLiveRoomCache({
+              ...cached,
+              runnerId,
+              participants: next,
+              feed: prependLiveFeedItem(cached.feed ?? [], event),
+            });
+          }
+        }
+        return next;
+      });
+      setFeed((prev) => prependLiveFeedItem(prev, event));
+      void load({ silent: true });
+    },
+    [runnerId, load]
+  );
+
   useLiveSessionSync({
     sessionId,
     participants,
     enabled: Boolean(sessionId),
     onTokenEarned: (event) => {
-      setParticipants((prev) => mergeTokenIntoLiveParticipants(prev, event));
-      setFeed((prev) => prependLiveFeedItem(prev, event));
-      scheduleSilentReload();
+      applyTokenEarned(event);
     },
     onNeedsFullReload: () => scheduleSilentReload(),
   });
@@ -316,5 +343,6 @@ export function useLiveRoom(runnerId: string | null) {
     error,
     hasCachedData: hasDataRef.current,
     reload: () => load({ silent: hasDataRef.current }),
+    applyTokenEarned,
   };
 }

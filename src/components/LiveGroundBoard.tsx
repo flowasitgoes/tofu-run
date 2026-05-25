@@ -5,6 +5,7 @@ import { LiveParticipantTokenIcons } from "@/components/LiveParticipantTokenIcon
 import { getTokenLabelLocalized } from "@/lib/i18n-labels";
 import { TOKEN_TYPES } from "@/lib/constants";
 import type { TokenTypeId } from "@/lib/constants";
+import { formatTaipeiTime } from "@/lib/format-time";
 import type { LiveGroundPayload } from "@/types/database";
 
 function earnedIdsInScanOrder(
@@ -19,18 +20,6 @@ function earnedIdsInScanOrder(
         new Date(a[1]).getTime() - new Date(b[1]).getTime()
     )
     .map(([id]) => id);
-}
-
-function formatTime(iso: string, locale: string) {
-  try {
-    return new Date(iso).toLocaleTimeString(locale === "en" ? "en-US" : "zh-TW", {
-      hour: "numeric",
-      minute: "2-digit",
-      timeZone: "Asia/Taipei",
-    });
-  } catch {
-    return "";
-  }
 }
 
 import { LiveCompleteBadge } from "@/components/LiveCompleteBadge";
@@ -97,7 +86,7 @@ export function LiveGroundBoard({
                     dateTime={row.completedAt}
                     className="text-[10px] text-brown-sugar/60 whitespace-nowrap"
                   >
-                    {formatTime(row.completedAt, locale)}
+                    {formatTaipeiTime(row.completedAt, locale)}
                   </time>
                 ) : (
                   <span className="text-[10px] text-brown-sugar/30">—</span>

@@ -1,5 +1,6 @@
 import { getCurrentPositionForScan } from "@/lib/geolocation";
 import { publishTokenEarned } from "@/lib/live-realtime";
+import type { TokenEarnedBroadcast } from "@/lib/ground-merge";
 
 export const SCAN_API_TIMEOUT_MS = 12_000;
 
@@ -7,6 +8,7 @@ export type PerformTokenScanResult = {
   scannedAt: string;
   sessionId: string;
   tokenType: string;
+  broadcast: TokenEarnedBroadcast | null;
 };
 
 export async function performTokenScan(params: {
@@ -62,21 +64,27 @@ export async function performTokenScan(params: {
     | { id: string; token_type: string; scanned_at: string }
     | undefined;
 
-  if (sessionId && token) {
-    publishTokenEarned({
-      sessionId,
-      tokenId: token.id,
-      userId: params.userId,
-      runnerId: params.runnerId,
-      displayName: params.runnerName,
-      tokenType: token.token_type,
-      scannedAt: token.scanned_at,
-    });
+  const broadcast: TokenEarnedBroadcast | null =
+    sessionId && token
+      ? {
+          sessionId,
+          tokenId: token.id,
+          userId: params.userId,
+          runnerId: params.runnerId,
+          displayName: params.runnerName,
+          tokenType: token.token_type,
+          scannedAt: token.scanned_at,
+        }
+      : null;
+
+  if (broadcast) {
+    publishTokenEarned(broadcast);
   }
 
   return {
     scannedAt,
     sessionId: sessionId ?? "",
     tokenType: params.tokenType,
+    broadcast,
   };
 }

@@ -10,7 +10,7 @@ const ROOM_KEY = "tofu-run-live-room";
 const GROUND_KEY = "tofu-run-live-ground";
 
 /** 快取結構版本（遞增後舊 sessionStorage 會失效並重抓 API） */
-export const LIVE_CACHE_VERSION = 8;
+export const LIVE_CACHE_VERSION = 9;
 const RETURNING_KEY = "tofu-run-live-returning";
 const PENDING_TOKEN_KEY = "tofu-run-pending-token";
 
@@ -129,6 +129,35 @@ export function setLiveGroundCache(
     cachedAt: Date.now(),
   };
   storage()?.setItem(GROUND_KEY, JSON.stringify(entry));
+}
+
+/** 掃描成功後預拉 LIVE 名單，回 /live 時列表與 toast 同步 */
+export async function prefetchLiveRoomCache(
+  runnerId: string,
+  signal?: AbortSignal
+): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `/api/live?runnerId=${encodeURIComponent(runnerId)}`,
+      { cache: "no-store", signal }
+    );
+    if (!res.ok) return false;
+    const data = await res.json();
+    if (!data.sessionId) return false;
+    setLiveRoomCache({
+      runnerId,
+      sessionDate: data.sessionDate as string,
+      sessionDateLabel: data.sessionDateLabel as string,
+      sessionId: data.sessionId as string,
+      count: data.count ?? 0,
+      onlineCount: data.onlineCount ?? 0,
+      participants: data.participants ?? [],
+      feed: data.feed ?? [],
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** LIVE 在場時預熱 Ground API，進看板可先顯示快取 */

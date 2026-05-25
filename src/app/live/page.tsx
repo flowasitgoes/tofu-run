@@ -21,6 +21,7 @@ import { useStoredPlayerSnapshot } from "@/hooks/useStoredPlayer";
 import { getCurrentPosition } from "@/lib/geolocation";
 import { setStoredGoingAccount } from "@/lib/goingAccount";
 import { setStoredPlayer } from "@/lib/player";
+import { formatTaipeiTime } from "@/lib/format-time";
 import { countCompletedBowls } from "@/lib/ground-completion";
 import { normalizeRunnerId } from "@/lib/runner";
 import { LiveActivityFeed } from "@/components/LiveActivityFeed";
@@ -49,7 +50,7 @@ function OnlineBadge({ label }: { label: string }) {
 }
 
 function LivePageContent() {
-  const { t, localizeError } = useLocale();
+  const { locale, t, localizeError } = useLocale();
   const searchParams = useSearchParams();
   const fromQr = searchParams.get("from") === "qr";
   const { account: going, mounted: goingMounted } = useStoredGoingAccount();
@@ -74,6 +75,7 @@ function LivePageContent() {
     error,
     hasCachedData,
     reload,
+    applyTokenEarned,
   } = useLiveRoom(enteredRunnerId);
 
   useTokenRealtime({
@@ -228,9 +230,9 @@ function LivePageContent() {
               runnerId={player.runnerId}
               runnerName={player.runnerName}
               disabled={refreshing}
-              onScanned={(tokenType) => {
-                setEarnedTokenType(tokenType);
-                void reload();
+              onScanned={(event) => {
+                setEarnedTokenType(event.tokenType);
+                applyTokenEarned(event);
               }}
             />
           ) : null}
@@ -314,19 +316,36 @@ function LivePageContent() {
                       />
                     ) : null}
                   </div>
-                  <div className="flex shrink-0 flex-col items-center gap-0.5 pl-0.5">
+                  <div className="flex shrink-0 flex-col items-center gap-0 pl-0.5">
                       {isMe ? (
-                        <span className="rounded-full bg-sunset/20 px-2 py-0.5 text-[10px] font-medium leading-none text-brown-sugar">
+                        <span className="-mt-1 mb-0.5 rounded-full bg-sunset/20 px-2 py-0.5 text-[10px] font-medium leading-none text-brown-sugar">
                           {t("common.you")}
                         </span>
                       ) : null}
-                      {p.is_online ? (
-                        <OnlineBadge label={t("live.online")} />
+                      <div className="my-1">
+                        {p.is_online ? (
+                          <OnlineBadge label={t("live.online")} />
+                        ) : (
+                          <span
+                            className="h-6 w-6 shrink-0 rounded-full border border-brown-sugar/15 bg-cream/80"
+                            aria-hidden
+                          />
+                        )}
+                      </div>
+                      {p.is_complete && p.completed_at ? (
+                        <time
+                          dateTime={p.completed_at}
+                          className="mr-1.5 text-[10px] text-brown-sugar/60 whitespace-nowrap"
+                        >
+                          {formatTaipeiTime(p.completed_at, locale)}
+                        </time>
                       ) : (
                         <span
-                          className="h-6 w-6 shrink-0 rounded-full border border-brown-sugar/15 bg-cream/80"
+                          className="mr-1.5 text-[10px] text-brown-sugar/30"
                           aria-hidden
-                        />
+                        >
+                          —
+                        </span>
                       )}
                   </div>
                 </li>
