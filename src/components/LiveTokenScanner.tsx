@@ -51,6 +51,7 @@ export function LiveTokenScanner({
   const readerId = `live-qr-${useId().replace(/:/g, "")}`;
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const handlingRef = useRef(false);
+  const lastActivateAtRef = useRef(0);
 
   const stopScanner = useCallback(async () => {
     const scanner = scannerRef.current;
@@ -150,6 +151,9 @@ export function LiveTokenScanner({
 
   const openScanner = useCallback(() => {
     if (disabled || busy || open) return;
+    const now = Date.now();
+    if (now - lastActivateAtRef.current < 400) return;
+    lastActivateAtRef.current = now;
     setError(null);
     setCameraBlocked(false);
     setOpen(true);
@@ -188,10 +192,9 @@ export function LiveTokenScanner({
 
   const headerButtonClass = isHeader
     ? [
-        "flex h-[4.25rem] w-[4.25rem] shrink-0 touch-manipulation flex-col items-center justify-center gap-1 rounded-2xl text-[#fc8e0b] ring-2 transition-[background-color,transform] duration-150 [-webkit-tap-highlight-color:transparent]",
-        "bg-[#fc8e0b]/22 ring-[#fc8e0b]/40",
-        "active:scale-[0.97] active:bg-[#fc8e0b]/35 active:ring-[#fc8e0b]/55",
-        open ? "bg-[#fc8e0b]/35 ring-[#fc8e0b]/55" : "",
+        "flex h-[4.25rem] w-[4.25rem] shrink-0 cursor-pointer select-none touch-manipulation flex-col items-center justify-center gap-1 rounded-2xl text-white shadow-sm ring-2 ring-[#e07d0a] [-webkit-tap-highlight-color:transparent]",
+        "bg-[#fc8e0b]",
+        "active:scale-[0.97] active:brightness-95",
         "disabled:opacity-40",
       ].join(" ")
     : "flex flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-brown-sugar transition-colors hover:bg-sunset/15 disabled:opacity-40 touch-manipulation [-webkit-tap-highlight-color:transparent]";
@@ -201,7 +204,15 @@ export function LiveTokenScanner({
       <button
         type="button"
         disabled={disabled || busy}
-        onClick={openScanner}
+        onPointerUp={(e) => {
+          if (disabled || busy) return;
+          if (e.pointerType === "mouse" && e.button !== 0) return;
+          openScanner();
+        }}
+        onClick={(e) => {
+          e.preventDefault();
+          openScanner();
+        }}
         className={headerButtonClass}
         aria-label={t("live.scanToken")}
         aria-expanded={open}
@@ -212,7 +223,7 @@ export function LiveTokenScanner({
             {t("live.scanToken")}
           </span>
         ) : (
-          <span className="text-[10px] font-semibold leading-none">
+          <span className="text-[10px] font-semibold leading-none text-white/95">
             {t("live.scanToken")}
           </span>
         )}

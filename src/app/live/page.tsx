@@ -385,7 +385,7 @@ function LivePageContent() {
         )}
       </Card>
       <p className="mt-4 text-center text-[11px] text-brown-sugar/50">{t("live.onlineHint")}</p>
-      {showList && <LiveActivityFeed feed={feed} />}
+      {enteredRunnerId ? <LiveActivityFeed feed={feed} /> : null}
       <div className="mt-5 space-y-3">
         <Button href="/live/ground" className="w-full">
           {t("live.viewGround")}
