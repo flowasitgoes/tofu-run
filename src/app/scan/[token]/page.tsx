@@ -17,6 +17,11 @@ import type { TokenTypeId } from "@/lib/constants";
 import { getCurrentPositionForScan } from "@/lib/geolocation";
 import { useStoredPlayerSnapshot } from "@/hooks/useStoredPlayer";
 import { publishTokenEarned } from "@/lib/live-realtime";
+import {
+  markReturnFromScan,
+  setStoredLiveRunnerId,
+} from "@/lib/liveSession";
+import { clearPassportCache } from "@/lib/passportCache";
 
 const VALID = TOKEN_TYPES.map((t) => t.id);
 const LOADING_MIN_MS = 1000;
@@ -68,7 +73,7 @@ export default function ScanPage({
   useEffect(() => {
     if (status !== "success") return;
     const id = window.setTimeout(() => {
-      router.push("/live");
+      router.replace("/live");
     }, REDIRECT_TO_LIVE_MS);
     return () => window.clearTimeout(id);
   }, [status, router]);
@@ -130,6 +135,9 @@ export default function ScanPage({
       const [at] = await Promise.all([persistScan(), waitMs(duration)]);
       setScannedAt(at);
       setStatus("success");
+      setStoredLiveRunnerId(player.runnerId);
+      markReturnFromScan(tokenType);
+      clearPassportCache();
     } catch (e) {
       setBarPercent(0);
       setStatus("error");

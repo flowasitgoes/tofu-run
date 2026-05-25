@@ -11,6 +11,7 @@ import { TokenEarnedToast } from "@/components/TokenEarnedToast";
 import { useLiveRoom } from "@/hooks/useLiveRoom";
 import { useTokenRealtime } from "@/hooks/useTokenRealtime";
 import {
+  consumePendingTokenToast,
   getStoredLiveRunnerId,
   setStoredLiveRunnerId,
 } from "@/lib/liveSession";
@@ -41,7 +42,9 @@ function LivePageContent() {
   const fromQr = searchParams.get("from") === "qr";
   const { account: going, mounted: goingMounted } = useStoredGoingAccount();
   const { player, mounted: playerMounted } = useStoredPlayerSnapshot();
-  const [enteredRunnerId, setEnteredRunnerId] = useState<string | null>(null);
+  const [enteredRunnerId, setEnteredRunnerId] = useState<string | null>(() =>
+    typeof window !== "undefined" ? getStoredLiveRunnerId() : null
+  );
   const [earnedTokenType, setEarnedTokenType] = useState<string | null>(null);
   const [runnerIdInput, setRunnerIdInput] = useState("");
   const [entering, setEntering] = useState(false);
@@ -109,13 +112,9 @@ function LivePageContent() {
   }, [mounted, enteredRunnerId, player?.runnerId, going?.runnerId, runnerIdInput]);
 
   useEffect(() => {
-    if (!mounted || enteredRunnerId) return;
-    const restored = getStoredLiveRunnerId();
-    if (restored) {
-      setEnteredRunnerId(restored);
-      autoEnterTriedRef.current = true;
-    }
-  }, [mounted, enteredRunnerId]);
+    const pending = consumePendingTokenToast();
+    if (pending) setEarnedTokenType(pending);
+  }, []);
 
   useEffect(() => {
     if (!mounted || enteredRunnerId || entering || autoEnterTriedRef.current) {
@@ -127,7 +126,7 @@ function LivePageContent() {
     void enterLive(autoId);
   }, [mounted, enteredRunnerId, entering, player?.runnerId, going?.runnerId, enterLive]);
 
-  if (!mounted) {
+  if (!mounted && !enteredRunnerId) {
     return (
       <PageShell>
         <p className="animate-pulse-soft py-16 text-center text-sm text-brown-sugar/60">
@@ -195,7 +194,7 @@ function LivePageContent() {
           </div>
           <button type="button" onClick={() => void reload()} disabled={refreshing} className="text-xs text-brown-sugar/60 underline disabled:opacity-40">{refreshing ? t("common.refreshing") : t("common.refresh")}</button>
         </div>
-        {loading && !showList && (
+        {loading && !showList && participants.length === 0 && (
           <p className="animate-pulse-soft py-8 text-center text-sm text-brown-sugar/60">
             {t("common.loading")}
           </p>

@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
-import { getLiveRoomCache, setLiveRoomCache } from "@/lib/liveSession";
+import {
+  clearReturnFromScan,
+  getLiveRoomCache,
+  setLiveRoomCache,
+  shouldDeferLiveRefetch,
+} from "@/lib/liveSession";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { getTodayDateString } from "@/lib/session";
 import type { LiveParticipant } from "@/types/database";
@@ -64,7 +69,7 @@ export function useLiveRoom(runnerId: string | null) {
   );
   const [count, setCount] = useState(initial?.count ?? 0);
   const [onlineCount, setOnlineCount] = useState(initial?.onlineCount ?? 0);
-  const [loading, setLoading] = useState(!initial);
+  const [loading, setLoading] = useState(!initial && !shouldDeferLiveRefetch());
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(
@@ -205,6 +210,9 @@ export function useLiveRoom(runnerId: string | null) {
     }
 
     const cached = hydrateFromCache(runnerId);
+    const deferRefetch = shouldDeferLiveRefetch();
+    let deferTimer: ReturnType<typeof setTimeout> | null = null;
+
     if (cached) {
       setParticipants(cached.participants);
       setCount(cached.count);
@@ -213,16 +221,29 @@ export function useLiveRoom(runnerId: string | null) {
       setSessionId(cached.sessionId);
       hasDataRef.current = true;
       setLoading(false);
-      void load({ silent: true });
+      if (deferRefetch) {
+        deferTimer = window.setTimeout(() => {
+          clearReturnFromScan();
+          void load({ silent: true });
+        }, 2000);
+      } else {
+        void load({ silent: true });
+      }
+    } else if (deferRefetch) {
+      setLoading(false);
+      deferTimer = window.setTimeout(() => {
+        clearReturnFromScan();
+        void load();
+      }, 300);
     } else {
       hasDataRef.current = false;
       void load();
     }
 
     const onVisible = () => {
-      if (document.visibilityState === "visible") {
-        void load({ silent: true });
-      }
+      if (document.visibilityState !== "visible") return;
+      if (shouldDeferLiveRefetch()) return;
+      void load({ silent: true });
     };
     document.addEventListener("visibilitychange", onVisible);
 
@@ -233,6 +254,7 @@ export function useLiveRoom(runnerId: string | null) {
     }, POLL_MS);
 
     return () => {
+      if (deferTimer) clearTimeout(deferTimer);
       abortRef.current?.abort();
       requestIdRef.current += 1;
       document.removeEventListener("visibilitychange", onVisible);
