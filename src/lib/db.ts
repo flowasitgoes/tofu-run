@@ -476,6 +476,40 @@ export async function completeSession(userSessionId: string): Promise<void> {
   if (error) throw error;
 }
 
+/** 今日場次掃描紀錄（新→舊），供防刷規則判斷 */
+export async function getRecentUserSessionTokenScans(
+  userId: string,
+  sessionId: string,
+  limit = 30
+): Promise<Pick<Token, "token_type" | "scanned_at">[]> {
+  const supabase = createSupabaseClient();
+
+  const { data, error } = await supabase
+    .from("tokens")
+    .select("token_type, scanned_at")
+    .eq("user_id", userId)
+    .eq("session_id", sessionId)
+    .order("scanned_at", { ascending: false })
+    .limit(limit);
+
+  if (error && isMissingColumn(error, "session_id")) {
+    const session = await getOrCreateTodaySession();
+    if (session.id !== sessionId) return [];
+    const { data: legacy, error: legacyError } = await supabase
+      .from("tokens")
+      .select("token_type, scanned_at")
+      .eq("user_id", userId)
+      .gte("scanned_at", `${session.date}T00:00:00`)
+      .order("scanned_at", { ascending: false })
+      .limit(limit);
+    if (legacyError) throw legacyError;
+    return (legacy ?? []) as Pick<Token, "token_type" | "scanned_at">[];
+  }
+
+  if (error) throw error;
+  return (data ?? []) as Pick<Token, "token_type" | "scanned_at">[];
+}
+
 export async function recordToken(
   userId: string,
   sessionId: string,

@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import {
   getGoingSignupByRunnerId,
   getOrCreateTodaySession,
+  getRecentUserSessionTokenScans,
   getUserById,
   getUserSessionForToday,
   recordToken,
 } from "@/lib/db";
+import { validateScanRules } from "@/lib/scan-rules";
 import { TOKEN_TYPES } from "@/lib/constants";
 import { collectTargetsFromSignup } from "@/lib/toppings";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -65,6 +67,15 @@ export async function POST(request: Request) {
         { error: "此 Token 不在你的豆花路線" },
         { status: 403 }
       );
+    }
+
+    const recentScans = await getRecentUserSessionTokenScans(
+      userId,
+      session.id
+    );
+    const scanBlock = validateScanRules(recentScans, tokenType);
+    if (scanBlock) {
+      return NextResponse.json({ error: scanBlock }, { status: 429 });
     }
 
     const token = await recordToken(

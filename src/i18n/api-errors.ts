@@ -32,6 +32,10 @@ const API_ERROR_KEYS: Record<string, string> = {
   "掃描失敗": "common.scanFailed",
   "你已經收集過此 Token": "api.tokenAlreadyCollected",
   "此 Token 不在你的豆花路線": "api.tokenNotOnRoute",
+  "同一配料不能連續掃描，請先掃其他配料": "api.scanSameToppingConsecutive",
+  "豆花 Token 需間隔 40 秒後才能再掃": "api.scanTofuCooldown",
+  "豆花 Token 需間隔 1 分鐘後才能再掃": "api.scanTofuCooldown",
+  "配料 Token 需間隔 1 分鐘後才能再掃": "api.scanToppingCooldown",
   "純粹豆花路線無需掃描配料 Token": "api.pureRouteNoScan",
   "找不到使用者": "api.userNotFound",
   "讀取 Ground 失敗": "api.groundReadFailed",
@@ -66,6 +70,11 @@ const enApiExtras: Record<string, string> = {
   "api.submitFailed": "Submit failed",
   "api.tokenAlreadyCollected": "You already collected this Token",
   "api.tokenNotOnRoute": "This Token is not on your tofu route",
+  "api.scanSameToppingConsecutive":
+    "Cannot scan the same topping twice in a row — scan another topping first",
+  "api.scanTofuCooldown": "Wait 40 seconds before scanning the tofu Token again",
+  "api.scanToppingCooldown":
+    "Wait 1 minute before scanning another topping Token",
   "api.pureRouteNoScan": "Plain tofu route — no topping Tokens to scan",
   "api.userNotFound": "User not found",
   "api.groundReadFailed": "Could not load Ground board",
