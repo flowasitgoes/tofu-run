@@ -126,7 +126,7 @@ export function LiveGroundBoard({
                     {t("ground.feedEarned", { token: label })}
                   </span>
                   <time className="shrink-0 text-[10px] text-brown-sugar/45">
-                    {formatTime(item.scanned_at, locale)}
+                    {formatTaipeiTime(item.scanned_at, locale)}
                   </time>
                 </li>
               );

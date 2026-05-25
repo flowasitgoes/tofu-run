@@ -20,7 +20,7 @@ import { useStoredGoingAccount } from "@/hooks/useStoredGoingAccount";
 import { useStoredPlayerSnapshot } from "@/hooks/useStoredPlayer";
 import { getCurrentPosition } from "@/lib/geolocation";
 import { setStoredGoingAccount } from "@/lib/goingAccount";
-import { setStoredPlayer } from "@/lib/player";
+import { getStoredPlayer, setStoredPlayer } from "@/lib/player";
 import { formatTaipeiTime } from "@/lib/format-time";
 import { countCompletedBowls } from "@/lib/ground-completion";
 import { normalizeRunnerId } from "@/lib/runner";
@@ -62,6 +62,7 @@ function LivePageContent() {
   const [entering, setEntering] = useState(false);
   const [enterError, setEnterError] = useState<string | null>(null);
   const autoEnterTriedRef = useRef(false);
+  const hydratePlayerTriedRef = useRef(false);
   const mounted = goingMounted && playerMounted;
   const {
     participants,
@@ -133,7 +134,13 @@ function LivePageContent() {
     const restored = getStoredLiveRunnerId();
     if (restored) {
       setEnteredRunnerId(restored);
-      autoEnterTriedRef.current = true;
+      const stored = getStoredPlayer();
+      if (
+        stored?.userId &&
+        normalizeRunnerId(stored.runnerId) === normalizeRunnerId(restored)
+      ) {
+        autoEnterTriedRef.current = true;
+      }
     }
     setStorageReady(true);
   }, [mounted]);
@@ -147,6 +154,29 @@ function LivePageContent() {
     autoEnterTriedRef.current = true;
     void enterLive(autoId);
   }, [mounted, enteredRunnerId, entering, player?.runnerId, going?.runnerId, enterLive]);
+
+  /** 僅還原 runnerId、本地無護照 userId 時，再 enter 一次以顯示頁首掃描鈕 */
+  useEffect(() => {
+    if (
+      !mounted ||
+      !storageReady ||
+      !enteredRunnerId ||
+      player?.userId ||
+      entering ||
+      hydratePlayerTriedRef.current
+    ) {
+      return;
+    }
+    hydratePlayerTriedRef.current = true;
+    void enterLive(enteredRunnerId);
+  }, [
+    mounted,
+    storageReady,
+    enteredRunnerId,
+    player?.userId,
+    entering,
+    enterLive,
+  ]);
 
   useEffect(() => {
     if (!enteredRunnerId || !sessionId) return;
