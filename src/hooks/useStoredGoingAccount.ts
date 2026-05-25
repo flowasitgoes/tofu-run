@@ -10,10 +10,8 @@ import { clearStoredPlayer } from "@/lib/player";
 
 /** 避免 SSR 與 localStorage 不一致造成 hydration 錯誤 */
 export function useStoredGoingAccount() {
-  const [account, setAccount] = useState<StoredGoingAccount | null>(() =>
-    typeof window !== "undefined" ? getStoredGoingAccount() : null
-  );
-  const [mounted, setMounted] = useState(() => typeof window !== "undefined");
+  const [account, setAccount] = useState<StoredGoingAccount | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setAccount(getStoredGoingAccount());

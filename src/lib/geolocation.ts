@@ -40,7 +40,7 @@ export function getCurrentPosition(
 export function getCurrentPositionForScan(): Promise<GeoPosition | null> {
   return getCurrentPosition({
     enableHighAccuracy: false,
-    timeout: 3500,
+    timeout: 2000,
     maximumAge: 120_000,
   });
 }

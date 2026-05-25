@@ -173,7 +173,7 @@ export const zh = {
     participants: "進場的人",
     countOnline: "共 {count} 人 · 在線 {online} 人",
     firstIn: "你是第一個進場的 🥣",
-    onlineHint: "綠色 ✓ 代表近幾分鐘內仍在活動（LIVE／掃 Token 都算）",
+    onlineHint: "綠色圓點代表近幾分鐘內仍在活動（LIVE／掃 Token 都算）；完成進度請看 Ground 看板",
     myPassport: "我的豆花護照",
     viewGround: "Ground 看板（全员 Token）",
   },

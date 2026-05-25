@@ -181,7 +181,7 @@ export const en: Messages = {
     participants: "Checked in",
     countOnline: "{count} people · {online} online",
     firstIn: "You're the first in 🥣",
-    onlineHint: "Green ✓ means active in the last few minutes (LIVE or scanning)",
+    onlineHint: "Green dot = active in the last few minutes (LIVE or scanning). Completion is on the Ground board.",
     myPassport: "My tofu passport",
     viewGround: "Ground board (all Tokens)",
   },

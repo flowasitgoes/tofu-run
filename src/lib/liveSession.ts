@@ -3,11 +3,17 @@ import type { LiveParticipant } from "@/types/database";
 
 const RUNNER_KEY = "tofu-run-live-runner";
 const ROOM_KEY = "tofu-run-live-room";
-const RETURN_SCAN_KEY = "tofu-run-return-from-scan";
-const PENDING_TOKEN_TOAST_KEY = "tofu-run-pending-token-toast";
+const RETURNING_KEY = "tofu-run-live-returning";
+const PENDING_TOKEN_KEY = "tofu-run-pending-token";
 
-/** 從掃描頁回 LIVE 後，短時間內略過 focus 全量刷新 */
-const RETURN_SCAN_GRACE_MS = 10_000;
+/** 掃描成功後回 LIVE：略過立即 refetch，先顯示快取 */
+const RETURNING_TTL_MS = 8000;
+
+export type PendingTokenEarn = {
+  tokenType: string;
+  scannedAt: string;
+  sessionDate: string;
+};
 
 export type LiveRoomCache = {
   runnerId: string;
@@ -72,44 +78,47 @@ export function setLiveRoomCache(
   storage()?.setItem(ROOM_KEY, JSON.stringify(entry));
 }
 
-/** 掃描成功、即將回 LIVE：標記剛從掃描返回，避免進場畫面閃爍與立即重打 API */
-export function markReturnFromScan(tokenType: string): void {
+/** 掃描完成、即將回 LIVE 時標記（sessionStorage） */
+export function markReturningFromScan(pending?: PendingTokenEarn): void {
   const s = storage();
   if (!s) return;
-  s.setItem(RETURN_SCAN_KEY, String(Date.now()));
   s.setItem(
-    PENDING_TOKEN_TOAST_KEY,
-    JSON.stringify({ tokenType, at: Date.now() })
+    RETURNING_KEY,
+    JSON.stringify({ at: Date.now(), sessionDate: getTodayDateString() })
   );
+  if (pending) {
+    s.setItem(PENDING_TOKEN_KEY, JSON.stringify(pending));
+  }
 }
 
-export function shouldDeferLiveRefetch(): boolean {
+export function isReturningFromScan(): boolean {
   try {
-    const raw = storage()?.getItem(RETURN_SCAN_KEY);
+    const raw = storage()?.getItem(RETURNING_KEY);
     if (!raw) return false;
-    const age = Date.now() - Number(raw);
-    if (age > RETURN_SCAN_GRACE_MS) {
-      storage()?.removeItem(RETURN_SCAN_KEY);
-      return false;
-    }
-    return true;
+    const { at, sessionDate } = JSON.parse(raw) as {
+      at: number;
+      sessionDate: string;
+    };
+    if (sessionDate !== getTodayDateString()) return false;
+    return Date.now() - at < RETURNING_TTL_MS;
   } catch {
     return false;
   }
 }
 
-export function clearReturnFromScan(): void {
-  storage()?.removeItem(RETURN_SCAN_KEY);
+export function clearReturningFromScan(): void {
+  storage()?.removeItem(RETURNING_KEY);
 }
 
-/** 回 LIVE 時顯示剛掃到的 Token 提示（只取一次） */
-export function consumePendingTokenToast(): string | null {
+/** 回 LIVE 時顯示剛掃到的 Token 提示（讀一次即清除） */
+export function consumePendingTokenEarn(): PendingTokenEarn | null {
   try {
-    const raw = storage()?.getItem(PENDING_TOKEN_TOAST_KEY);
+    const raw = storage()?.getItem(PENDING_TOKEN_KEY);
+    storage()?.removeItem(PENDING_TOKEN_KEY);
     if (!raw) return null;
-    storage()?.removeItem(PENDING_TOKEN_TOAST_KEY);
-    const { tokenType } = JSON.parse(raw) as { tokenType: string };
-    return tokenType ?? null;
+    const entry = JSON.parse(raw) as PendingTokenEarn;
+    if (entry.sessionDate !== getTodayDateString()) return null;
+    return entry;
   } catch {
     return null;
   }

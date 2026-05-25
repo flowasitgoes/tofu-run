@@ -11,7 +11,7 @@ import { TokenEarnedToast } from "@/components/TokenEarnedToast";
 import { useLiveRoom } from "@/hooks/useLiveRoom";
 import { useTokenRealtime } from "@/hooks/useTokenRealtime";
 import {
-  consumePendingTokenToast,
+  consumePendingTokenEarn,
   getStoredLiveRunnerId,
   setStoredLiveRunnerId,
 } from "@/lib/liveSession";
@@ -21,17 +21,24 @@ import { getCurrentPosition } from "@/lib/geolocation";
 import { setStoredGoingAccount } from "@/lib/goingAccount";
 import { setStoredPlayer } from "@/lib/player";
 import { normalizeRunnerId } from "@/lib/runner";
+import { LiveParticipantTokenIcons } from "@/components/LiveParticipantTokenIcons";
 
+/** 在線：實心綠點（與 Ground 完成用的 ✓ 區隔） */
 function OnlineBadge({ label }: { label: string }) {
   return (
     <span
-      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-mung-green text-cream"
+      className="relative flex h-6 w-6 shrink-0 items-center justify-center"
       title={label}
       aria-label={label}
     >
-      <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M3 8.5l3 3 7-7" />
-      </svg>
+      <span
+        className="absolute h-6 w-6 rounded-full bg-mung-green/20"
+        aria-hidden
+      />
+      <span
+        className="relative h-3 w-3 rounded-full bg-mung-green ring-2 ring-cream"
+        aria-hidden
+      />
     </span>
   );
 }
@@ -42,9 +49,8 @@ function LivePageContent() {
   const fromQr = searchParams.get("from") === "qr";
   const { account: going, mounted: goingMounted } = useStoredGoingAccount();
   const { player, mounted: playerMounted } = useStoredPlayerSnapshot();
-  const [enteredRunnerId, setEnteredRunnerId] = useState<string | null>(() =>
-    typeof window !== "undefined" ? getStoredLiveRunnerId() : null
-  );
+  const [enteredRunnerId, setEnteredRunnerId] = useState<string | null>(null);
+  const [storageReady, setStorageReady] = useState(false);
   const [earnedTokenType, setEarnedTokenType] = useState<string | null>(null);
   const [runnerIdInput, setRunnerIdInput] = useState("");
   const [entering, setEntering] = useState(false);
@@ -60,6 +66,7 @@ function LivePageContent() {
     loading,
     refreshing,
     error,
+    hasCachedData,
     reload,
   } = useLiveRoom(enteredRunnerId);
 
@@ -112,9 +119,16 @@ function LivePageContent() {
   }, [mounted, enteredRunnerId, player?.runnerId, going?.runnerId, runnerIdInput]);
 
   useEffect(() => {
-    const pending = consumePendingTokenToast();
-    if (pending) setEarnedTokenType(pending);
-  }, []);
+    if (!mounted) return;
+    const pending = consumePendingTokenEarn();
+    if (pending) setEarnedTokenType(pending.tokenType);
+    const restored = getStoredLiveRunnerId();
+    if (restored) {
+      setEnteredRunnerId(restored);
+      autoEnterTriedRef.current = true;
+    }
+    setStorageReady(true);
+  }, [mounted]);
 
   useEffect(() => {
     if (!mounted || enteredRunnerId || entering || autoEnterTriedRef.current) {
@@ -126,7 +140,7 @@ function LivePageContent() {
     void enterLive(autoId);
   }, [mounted, enteredRunnerId, entering, player?.runnerId, going?.runnerId, enterLive]);
 
-  if (!mounted && !enteredRunnerId) {
+  if (!mounted || !storageReady) {
     return (
       <PageShell>
         <p className="animate-pulse-soft py-16 text-center text-sm text-brown-sugar/60">
@@ -169,8 +183,9 @@ function LivePageContent() {
     );
   }
 
-  const showEmpty = !loading && !error && participants.length === 0;
-  const showList = participants.length > 0;
+  const showEmpty =
+    !loading && !error && participants.length === 0 && !hasCachedData;
+  const showList = participants.length > 0 || (hasCachedData && loading);
 
   return (
     <PageShell>
@@ -194,7 +209,7 @@ function LivePageContent() {
           </div>
           <button type="button" onClick={() => void reload()} disabled={refreshing} className="text-xs text-brown-sugar/60 underline disabled:opacity-40">{refreshing ? t("common.refreshing") : t("common.refresh")}</button>
         </div>
-        {loading && !showList && participants.length === 0 && (
+        {loading && !showList && !hasCachedData && (
           <p className="animate-pulse-soft py-8 text-center text-sm text-brown-sugar/60">
             {t("common.loading")}
           </p>
@@ -217,12 +232,13 @@ function LivePageContent() {
             {participants.map((p) => {
               const isMe = enteredRunnerId === p.runner_id;
               return (
-                <li key={p.user_id} className={`flex items-center gap-3 py-3 ${isMe ? "bg-sunset/10 -mx-1 rounded-xl px-1" : ""}`}>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-mono text-sm font-semibold text-twilight">{p.runner_id}</p>
+                <li key={p.user_id} className={`flex items-center gap-2 py-3 ${isMe ? "bg-sunset/10 -mx-1 rounded-xl px-1" : ""}`}>
+                  <div className="w-[6.75rem] min-w-0 shrink-0">
+                    <p className="truncate font-mono text-sm font-semibold text-twilight">{p.runner_id}</p>
                     <p className="truncate text-sm text-brown-sugar">{p.display_name}</p>
                     {p.goal && <p className="mt-0.5 truncate text-xs text-mung-green">{p.goal}</p>}
                   </div>
+                  <LiveParticipantTokenIcons tokenIds={p.earned_token_ids ?? []} className="min-w-0 flex-1" />
                   <div className="flex shrink-0 items-center gap-2">
                     {isMe && <span className="rounded-full bg-sunset/20 px-2 py-0.5 text-[10px] font-medium text-brown-sugar">{t("common.you")}</span>}
                     {p.is_online ? <OnlineBadge label={t("live.online")} /> : <span className="h-6 w-6 shrink-0 rounded-full border border-brown-sugar/15 bg-cream/80" aria-hidden />}

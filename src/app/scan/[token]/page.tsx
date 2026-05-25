@@ -18,16 +18,19 @@ import { getCurrentPositionForScan } from "@/lib/geolocation";
 import { useStoredPlayerSnapshot } from "@/hooks/useStoredPlayer";
 import { publishTokenEarned } from "@/lib/live-realtime";
 import {
-  markReturnFromScan,
+  getLiveRoomCache,
+  markReturningFromScan,
+  setLiveRoomCache,
   setStoredLiveRunnerId,
 } from "@/lib/liveSession";
-import { clearPassportCache } from "@/lib/passportCache";
+import { getTodayDateString } from "@/lib/session";
 
 const VALID = TOKEN_TYPES.map((t) => t.id);
 const LOADING_MIN_MS = 1000;
 const LOADING_MAX_MS = 1500;
 /** 成功畫面停留後自動回 LIVE */
 const REDIRECT_TO_LIVE_MS = 1600;
+const SCAN_API_TIMEOUT_MS = 12_000;
 
 function randomLoadingMs() {
   return (
@@ -64,6 +67,30 @@ export default function ScanPage({
   const scanRef = useRef(false);
 
   useEffect(() => {
+    if (!player?.runnerId) return;
+    setStoredLiveRunnerId(player.runnerId);
+    const rid = player.runnerId;
+    if (getLiveRoomCache(rid)) return;
+    void fetch(`/api/live?runnerId=${encodeURIComponent(rid)}`, {
+      cache: "no-store",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.sessionId) return;
+        setLiveRoomCache({
+          runnerId: rid,
+          sessionDate: data.sessionDate,
+          sessionDateLabel: data.sessionDateLabel,
+          sessionId: data.sessionId,
+          count: data.count ?? 0,
+          onlineCount: data.onlineCount ?? 0,
+          participants: data.participants ?? [],
+        });
+      })
+      .catch(() => {});
+  }, [player?.runnerId]);
+
+  useEffect(() => {
     if (player && tokenInfo && status === "idle") {
       void handleScan();
     }
@@ -81,20 +108,39 @@ export default function ScanPage({
   async function persistScan(): Promise<string> {
     if (!player || !tokenInfo) throw new Error(t("common.scanFailed"));
 
-    const geo = await getCurrentPositionForScan();
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(
+      () => controller.abort(),
+      SCAN_API_TIMEOUT_MS
+    );
 
-    const res = await fetch("/api/scan", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: player.userId,
-        tokenType,
-        lat: geo?.lat ?? null,
-        lng: geo?.lng ?? null,
-      }),
-    });
+    let res: Response;
+    try {
+      /** 先打 API 驗證路線；勿讓 GPS 拖住「不在路線」等錯誤 */
+      res = await fetch("/api/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          userId: player.userId,
+          tokenType,
+          lat: null,
+          lng: null,
+        }),
+      });
+    } catch (e) {
+      if (controller.signal.aborted) {
+        throw new Error(t("common.scanFailed"));
+      }
+      throw e;
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
+
+    void getCurrentPositionForScan();
 
     const at =
       (data.scannedAt as string | undefined) ??
@@ -132,12 +178,16 @@ export default function ScanPage({
     });
 
     try {
-      const [at] = await Promise.all([persistScan(), waitMs(duration)]);
+      const at = await persistScan();
+      await waitMs(duration);
       setScannedAt(at);
-      setStatus("success");
       setStoredLiveRunnerId(player.runnerId);
-      markReturnFromScan(tokenType);
-      clearPassportCache();
+      markReturningFromScan({
+        tokenType,
+        scannedAt: at,
+        sessionDate: getTodayDateString(),
+      });
+      setStatus("success");
     } catch (e) {
       setBarPercent(0);
       setStatus("error");
@@ -259,9 +309,14 @@ export default function ScanPage({
         {status === "error" && (
           <Card className="mt-8 w-full">
             <p className="text-red-bean">{error}</p>
-            <Button className="mt-4 w-full" onClick={() => void handleScan()}>
-              {t("common.retry")}
-            </Button>
+            <div className="mt-4 flex flex-col gap-2">
+              <Button href="/live" variant="secondary" className="w-full">
+                {t("scan.backLive")}
+              </Button>
+              <Button className="w-full" onClick={() => void handleScan()}>
+                {t("common.retry")}
+              </Button>
+            </div>
           </Card>
         )}
 

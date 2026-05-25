@@ -827,6 +827,62 @@ export async function touchLiveSeen(
   throw error;
 }
 
+async function getSessionEarnedTokenIdsByUser(
+  sessionId: string,
+  userIds: string[]
+): Promise<Map<string, string[]>> {
+  const result = new Map<string, string[]>();
+  if (!userIds.length) return result;
+
+  const supabase = createSupabaseServiceClient();
+  const tokenTypeSet = new Set<string>(TOKEN_TYPES.map((t) => t.id));
+  const earnedLists = new Map<string, string[]>();
+  for (const id of userIds) earnedLists.set(id, []);
+
+  const { data: sessionRow } = await supabase
+    .from("sessions")
+    .select("date")
+    .eq("id", sessionId)
+    .maybeSingle();
+  const sessionDate =
+    (sessionRow?.date as string | undefined) ?? getTodayDateString();
+
+  let tokenRows: Token[] = [];
+  const withSession = await supabase
+    .from("tokens")
+    .select("user_id, token_type, scanned_at")
+    .eq("session_id", sessionId)
+    .in("user_id", userIds)
+    .order("scanned_at", { ascending: true });
+
+  if (withSession.error && isMissingColumn(withSession.error, "session_id")) {
+    const { data: legacy, error: legacyError } = await supabase
+      .from("tokens")
+      .select("user_id, token_type, scanned_at")
+      .in("user_id", userIds)
+      .gte("scanned_at", `${sessionDate}T00:00:00`)
+      .order("scanned_at", { ascending: true });
+    if (legacyError) throw legacyError;
+    tokenRows = (legacy ?? []) as Token[];
+  } else {
+    if (withSession.error) throw withSession.error;
+    tokenRows = (withSession.data ?? []) as Token[];
+  }
+
+  for (const tok of tokenRows) {
+    const list = earnedLists.get(tok.user_id);
+    const type = tok.token_type;
+    const typeId = String(type);
+    if (!list || !tokenTypeSet.has(typeId) || list.includes(typeId)) continue;
+    list.push(typeId);
+  }
+
+  for (const [userId, list] of earnedLists) {
+    result.set(userId, list);
+  }
+  return result;
+}
+
 export async function getLiveParticipants(
   sessionId: string
 ): Promise<LiveParticipant[]> {
@@ -876,6 +932,9 @@ export async function getLiveParticipants(
 
   if (!rows?.length) return [];
 
+  const userIds = rows.map((row) => row.user_id as string);
+  const earnedByUser = await getSessionEarnedTokenIdsByUser(sessionId, userIds);
+
   const runnerIds = rows.map((row) => {
     const user = row.users as unknown as { runner_id: string };
     return user.runner_id;
@@ -920,6 +979,7 @@ export async function getLiveParticipants(
       goal: (signup?.goal as string | null) ?? null,
       joined_at: row.joined_at as string,
       is_online: isOnline,
+      earned_token_ids: earnedByUser.get(row.user_id as string) ?? [],
     };
   });
 }

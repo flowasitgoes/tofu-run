@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import {
-  clearReturnFromScan,
+  clearReturningFromScan,
   getLiveRoomCache,
+  isReturningFromScan,
   setLiveRoomCache,
-  shouldDeferLiveRefetch,
 } from "@/lib/liveSession";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { getTodayDateString } from "@/lib/session";
@@ -15,6 +15,8 @@ import type { LiveParticipant } from "@/types/database";
 /** Realtime 為主；輪詢僅作 Replication 未開 user_sessions 時的後備 */
 const POLL_MS = 45_000;
 const REALTIME_DEBOUNCE_MS = 250;
+/** 從掃描頁回 LIVE：先顯示快取，延後背景更新 */
+const RETURN_FROM_SCAN_DEFER_MS = 2800;
 
 type LivePayload = {
   sessionDate: string;
@@ -69,7 +71,7 @@ export function useLiveRoom(runnerId: string | null) {
   );
   const [count, setCount] = useState(initial?.count ?? 0);
   const [onlineCount, setOnlineCount] = useState(initial?.onlineCount ?? 0);
-  const [loading, setLoading] = useState(!initial && !shouldDeferLiveRefetch());
+  const [loading, setLoading] = useState(!initial);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(
@@ -80,6 +82,8 @@ export function useLiveRoom(runnerId: string | null) {
   const requestIdRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const reloadDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const deferReloadRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipNextVisibleReloadRef = useRef(false);
 
   const applyPayload = useCallback((data: LivePayload) => {
     setParticipants(data.participants);
@@ -209,10 +213,13 @@ export function useLiveRoom(runnerId: string | null) {
       return;
     }
 
-    const cached = hydrateFromCache(runnerId);
-    const deferRefetch = shouldDeferLiveRefetch();
-    let deferTimer: ReturnType<typeof setTimeout> | null = null;
+    const fromScan = isReturningFromScan();
+    if (fromScan) {
+      clearReturningFromScan();
+      skipNextVisibleReloadRef.current = true;
+    }
 
+    const cached = hydrateFromCache(runnerId);
     if (cached) {
       setParticipants(cached.participants);
       setCount(cached.count);
@@ -221,28 +228,35 @@ export function useLiveRoom(runnerId: string | null) {
       setSessionId(cached.sessionId);
       hasDataRef.current = true;
       setLoading(false);
-      if (deferRefetch) {
-        deferTimer = window.setTimeout(() => {
-          clearReturnFromScan();
+
+      const deferMs = fromScan ? RETURN_FROM_SCAN_DEFER_MS : 0;
+      if (deferMs > 0) {
+        deferReloadRef.current = setTimeout(() => {
+          deferReloadRef.current = null;
           void load({ silent: true });
-        }, 2000);
+        }, deferMs);
       } else {
         void load({ silent: true });
       }
-    } else if (deferRefetch) {
-      setLoading(false);
-      deferTimer = window.setTimeout(() => {
-        clearReturnFromScan();
-        void load();
-      }, 300);
     } else {
       hasDataRef.current = false;
-      void load();
+      if (fromScan) {
+        setLoading(false);
+        deferReloadRef.current = setTimeout(() => {
+          deferReloadRef.current = null;
+          void load();
+        }, RETURN_FROM_SCAN_DEFER_MS);
+      } else {
+        void load();
+      }
     }
 
     const onVisible = () => {
       if (document.visibilityState !== "visible") return;
-      if (shouldDeferLiveRefetch()) return;
+      if (skipNextVisibleReloadRef.current) {
+        skipNextVisibleReloadRef.current = false;
+        return;
+      }
       void load({ silent: true });
     };
     document.addEventListener("visibilitychange", onVisible);
@@ -254,9 +268,12 @@ export function useLiveRoom(runnerId: string | null) {
     }, POLL_MS);
 
     return () => {
-      if (deferTimer) clearTimeout(deferTimer);
       abortRef.current?.abort();
       requestIdRef.current += 1;
+      if (deferReloadRef.current) {
+        clearTimeout(deferReloadRef.current);
+        deferReloadRef.current = null;
+      }
       document.removeEventListener("visibilitychange", onVisible);
       clearInterval(interval);
     };
@@ -271,6 +288,7 @@ export function useLiveRoom(runnerId: string | null) {
     loading,
     refreshing,
     error,
+    hasCachedData: hasDataRef.current,
     reload: () => load({ silent: hasDataRef.current }),
   };
 }

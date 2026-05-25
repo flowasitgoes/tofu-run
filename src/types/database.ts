@@ -33,6 +33,8 @@ export type LiveParticipant = {
   goal: string | null;
   joined_at: string;
   is_online: boolean;
+  /** 已領取 Token，依掃描時間先後排序（最多 6 個） */
+  earned_token_ids: string[];
 };
 
 export type Token = {
