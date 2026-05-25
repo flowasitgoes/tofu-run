@@ -85,6 +85,7 @@ export default function ScanPage({
           count: data.count ?? 0,
           onlineCount: data.onlineCount ?? 0,
           participants: data.participants ?? [],
+          feed: data.feed ?? [],
         });
       })
       .catch(() => {});

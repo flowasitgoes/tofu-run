@@ -59,6 +59,8 @@ export const TOFU_TYPES = [
 ] as const;
 
 export const MAX_TOPPING_PICKS = 3;
+/** LIVE 名單圖示格：豆花 1 + 配料最多 3 */
+export const LIVE_TOKEN_ICON_SLOTS = 1 + MAX_TOPPING_PICKS;
 export const PURE_DOUHUA_GOAL = "純粹豆花";
 
 /** 依選擇的配料 id 組出目標豆花名稱，例如「紅豆花生芋圓豆花」 */

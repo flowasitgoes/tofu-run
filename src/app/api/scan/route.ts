@@ -4,7 +4,6 @@ import {
   getOrCreateTodaySession,
   getUserById,
   getUserSessionForToday,
-  hasSessionToken,
   recordToken,
 } from "@/lib/db";
 import { TOKEN_TYPES } from "@/lib/constants";
@@ -65,13 +64,6 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "此 Token 不在你的豆花路線" },
         { status: 403 }
-      );
-    }
-
-    if (await hasSessionToken(userId, session.id, tokenType)) {
-      return NextResponse.json(
-        { error: "你已經收集過此 Token" },
-        { status: 409 }
       );
     }
 

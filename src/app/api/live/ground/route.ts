@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     const session = await getOrCreateTodaySession();
 
     if (runnerId && RUNNER_ID_PATTERN.test(runnerId)) {
-      const membership = await getTodaySessionMembership(runnerId);
+      const membership = await getTodaySessionMembership(runnerId, session.id);
       if (membership) {
         await touchLiveSeen(membership.userId, membership.sessionId);
       }

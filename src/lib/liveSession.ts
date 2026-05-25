@@ -1,8 +1,16 @@
 import { getTodayDateString } from "@/lib/session";
-import type { LiveParticipant } from "@/types/database";
+import type {
+  GroundFeedItem,
+  LiveGroundPayload,
+  LiveParticipant,
+} from "@/types/database";
 
 const RUNNER_KEY = "tofu-run-live-runner";
 const ROOM_KEY = "tofu-run-live-room";
+const GROUND_KEY = "tofu-run-live-ground";
+
+/** 快取結構版本（遞增後舊 sessionStorage 會失效並重抓 API） */
+export const LIVE_CACHE_VERSION = 8;
 const RETURNING_KEY = "tofu-run-live-returning";
 const PENDING_TOKEN_KEY = "tofu-run-pending-token";
 
@@ -16,6 +24,7 @@ export type PendingTokenEarn = {
 };
 
 export type LiveRoomCache = {
+  v: number;
   runnerId: string;
   sessionDate: string;
   sessionDateLabel: string;
@@ -23,6 +32,14 @@ export type LiveRoomCache = {
   count: number;
   onlineCount: number;
   participants: LiveParticipant[];
+  feed: GroundFeedItem[];
+  cachedAt: number;
+};
+
+export type LiveGroundCache = LiveGroundPayload & {
+  v: number;
+  runnerId: string;
+  sessionDate: string;
   cachedAt: number;
 };
 
@@ -56,6 +73,7 @@ export function setStoredLiveRunnerId(runnerId: string): void {
 export function clearStoredLiveSession(): void {
   storage()?.removeItem(RUNNER_KEY);
   storage()?.removeItem(ROOM_KEY);
+  storage()?.removeItem(GROUND_KEY);
 }
 
 export function getLiveRoomCache(runnerId: string): LiveRoomCache | null {
@@ -63,6 +81,7 @@ export function getLiveRoomCache(runnerId: string): LiveRoomCache | null {
     const raw = storage()?.getItem(ROOM_KEY);
     if (!raw) return null;
     const entry = JSON.parse(raw) as LiveRoomCache;
+    if (entry.v !== LIVE_CACHE_VERSION) return null;
     if (entry.runnerId !== runnerId) return null;
     if (entry.sessionDate !== getTodayDateString()) return null;
     return entry;
@@ -72,10 +91,56 @@ export function getLiveRoomCache(runnerId: string): LiveRoomCache | null {
 }
 
 export function setLiveRoomCache(
-  data: Omit<LiveRoomCache, "cachedAt" | "runnerId"> & { runnerId: string }
+  data: Omit<LiveRoomCache, "cachedAt" | "runnerId" | "v"> & {
+    runnerId: string;
+  }
 ): void {
-  const entry: LiveRoomCache = { ...data, cachedAt: Date.now() };
+  const entry: LiveRoomCache = {
+    ...data,
+    v: LIVE_CACHE_VERSION,
+    cachedAt: Date.now(),
+  };
   storage()?.setItem(ROOM_KEY, JSON.stringify(entry));
+}
+
+export function getLiveGroundCache(runnerId: string): LiveGroundCache | null {
+  try {
+    const raw = storage()?.getItem(GROUND_KEY);
+    if (!raw) return null;
+    const entry = JSON.parse(raw) as LiveGroundCache;
+    if (entry.v !== LIVE_CACHE_VERSION) return null;
+    if (entry.runnerId !== runnerId) return null;
+    if (entry.sessionDate !== getTodayDateString()) return null;
+    return entry;
+  } catch {
+    return null;
+  }
+}
+
+export function setLiveGroundCache(
+  runnerId: string,
+  payload: LiveGroundPayload
+): void {
+  const entry: LiveGroundCache = {
+    ...payload,
+    v: LIVE_CACHE_VERSION,
+    runnerId,
+    sessionDate: payload.sessionDate,
+    cachedAt: Date.now(),
+  };
+  storage()?.setItem(GROUND_KEY, JSON.stringify(entry));
+}
+
+/** LIVE 在場時預熱 Ground API，進看板可先顯示快取 */
+export function prefetchLiveGroundCache(runnerId: string): void {
+  const q = `?runnerId=${encodeURIComponent(runnerId)}`;
+  void fetch(`/api/live/ground${q}`, { cache: "no-store" })
+    .then(async (res) => {
+      if (!res.ok) return;
+      const payload = (await res.json()) as LiveGroundPayload;
+      if (payload?.sessionId) setLiveGroundCache(runnerId, payload);
+    })
+    .catch(() => {});
 }
 
 /** 掃描完成、即將回 LIVE 時標記（sessionStorage） */

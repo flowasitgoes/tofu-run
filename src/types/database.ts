@@ -33,8 +33,13 @@ export type LiveParticipant = {
   goal: string | null;
   joined_at: string;
   is_online: boolean;
-  /** 已領取 Token，依掃描時間先後排序（最多 6 個） */
+  /** 已領取 Token，依掃描時間先後（含重複掃；名單 UI 最多顯示 4 種） */
   earned_token_ids: string[];
+  /** 此人須掃的 Token（豆花 + 報名配料） */
+  required_token_ids: string[];
+  /** 豆花 + 報名配料是否已全部掃齊（至少一碗） */
+  is_complete: boolean;
+  completed_at: string | null;
 };
 
 export type Token = {
@@ -55,6 +60,8 @@ export type GroundParticipantRow = {
   goal: string | null;
   joined_at: string;
   earned: Record<string, string | null>;
+  /** 已掃 Token，依掃描時間先後（最多 6 個） */
+  earned_token_ids: string[];
   /** 此人須掃的 Token（豆花 + 報名配料） */
   requiredTokenIds: string[];
   isComplete: boolean;

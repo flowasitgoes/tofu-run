@@ -13,7 +13,8 @@ export default function LiveGroundPage() {
   const { t } = useLocale();
   const { player } = useStoredPlayerSnapshot();
   const runnerId = player?.runnerId ?? null;
-  const { data, loading, refreshing, error, reload } = useLiveGround(runnerId);
+  const { data, loading, refreshing, error, hasCachedData, reload } =
+    useLiveGround(runnerId);
 
   return (
     <PageShell mainClassName="max-w-2xl">
@@ -39,12 +40,12 @@ export default function LiveGroundPage() {
           </button>
         </div>
 
-        {loading && !data && (
+        {loading && !data && !hasCachedData && (
           <p className="animate-pulse-soft py-10 text-center text-sm text-brown-sugar/60">
             {t("common.loading")}
           </p>
         )}
-        {error && !data && (
+        {error && !data && !hasCachedData && (
           <p className="py-6 text-center text-sm text-red-bean">{error}</p>
         )}
         {data && (

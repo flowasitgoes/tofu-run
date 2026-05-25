@@ -8,11 +8,17 @@ import {
   tokenRowToBroadcast,
 } from "@/lib/live-realtime";
 import type { TokenEarnedBroadcast } from "@/lib/ground-merge";
-import type { LiveGroundPayload, Token } from "@/types/database";
+import type { Token } from "@/types/database";
+
+type SessionSyncParticipant = {
+  user_id: string;
+  runner_id: string;
+  display_name: string;
+};
 
 type Options = {
   sessionId: string | null;
-  participants: LiveGroundPayload["participants"];
+  participants: SessionSyncParticipant[];
   enabled?: boolean;
   /** Broadcast + DB INSERT：即時更新 Ground */
   onTokenEarned: (event: TokenEarnedBroadcast) => void;

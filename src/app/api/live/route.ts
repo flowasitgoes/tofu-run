@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import {
-  getLiveParticipants,
+  getLiveRoomData,
   getOrCreateTodaySession,
   getTodaySessionMembership,
   touchLiveSeen,
@@ -31,7 +31,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    const membership = await getTodaySessionMembership(runnerId);
+    const session = await getOrCreateTodaySession();
+    const membership = await getTodaySessionMembership(runnerId, session.id);
     if (!membership) {
       return NextResponse.json(
         { error: "請先輸入 Runner ID 進入 LIVE" },
@@ -41,8 +42,7 @@ export async function GET(request: Request) {
 
     await touchLiveSeen(membership.userId, membership.sessionId);
 
-    const session = await getOrCreateTodaySession();
-    const participants = await getLiveParticipants(session.id);
+    const { participants, feed } = await getLiveRoomData(session.id, session.date);
     const onlineCount = participants.filter((p) => p.is_online).length;
 
     return NextResponse.json(
@@ -53,6 +53,7 @@ export async function GET(request: Request) {
         count: participants.length,
         onlineCount,
         participants,
+        feed,
       },
       { headers: { "Cache-Control": "no-store" } }
     );

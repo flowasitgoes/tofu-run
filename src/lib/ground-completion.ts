@@ -34,3 +34,22 @@ export function computeGroundCompletion(
 
   return { isComplete: true, completedAt };
 }
+
+/** 已完成幾碗：路線上每種 Token 各掃滿 N 次算 N 碗（取各類掃描次數最小值） */
+export function countCompletedBowls(
+  requiredIds: string[],
+  earnedTokenIds: string[]
+): number {
+  if (requiredIds.length === 0) return 0;
+
+  const counts = new Map<string, number>();
+  for (const id of earnedTokenIds) {
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+
+  let min = Infinity;
+  for (const id of requiredIds) {
+    min = Math.min(min, counts.get(id) ?? 0);
+  }
+  return min === Infinity ? 0 : min;
+}

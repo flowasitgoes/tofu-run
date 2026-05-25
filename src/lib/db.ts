@@ -508,17 +508,132 @@ export async function recordToken(
   return data as Token;
 }
 
+const TOKEN_SCAN_SELECT = "id, user_id, token_type, scanned_at";
+
+function nextCalendarDate(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + 1));
+  return dt.toISOString().slice(0, 10);
+}
+
+function mergeTokenRows(into: Map<string, Token>, rows: Token[] | null | undefined) {
+  for (const row of rows ?? []) into.set(row.id, row);
+}
+
+/**
+ * 今日場次 Token（Ground / LIVE 名單共用）
+ * 合併：① 綁定 session_id ② 進場後掃描（跨日仍顯示）③ 當日曆日（session_id 為 null 的舊資料）
+ */
+async function fetchSessionTokenScans(
+  sessionId: string,
+  sessionDate: string,
+  userIds: string[],
+  sinceIso?: string | null
+): Promise<Token[]> {
+  if (!userIds.length) return [];
+
+  const supabase = createSupabaseServiceClient();
+  const byId = new Map<string, Token>();
+  const anchor = sinceIso ?? `${sessionDate}T00:00:00`;
+  const dayEnd = `${nextCalendarDate(sessionDate)}T00:00:00`;
+
+  const withSession = await supabase
+    .from("tokens")
+    .select(TOKEN_SCAN_SELECT)
+    .eq("session_id", sessionId)
+    .in("user_id", userIds);
+
+  if (withSession.error && isMissingColumn(withSession.error, "session_id")) {
+    const { data: legacy, error: legacyError } = await supabase
+      .from("tokens")
+      .select(TOKEN_SCAN_SELECT)
+      .in("user_id", userIds)
+      .gte("scanned_at", anchor);
+    if (legacyError) throw legacyError;
+    return (legacy ?? []) as Token[];
+  }
+
+  if (withSession.error) throw withSession.error;
+  mergeTokenRows(byId, (withSession.data ?? []) as Token[]);
+
+  const [bySince, byDay] = await Promise.all([
+    supabase
+      .from("tokens")
+      .select(TOKEN_SCAN_SELECT)
+      .in("user_id", userIds)
+      .gte("scanned_at", anchor),
+    supabase
+      .from("tokens")
+      .select(TOKEN_SCAN_SELECT)
+      .in("user_id", userIds)
+      .gte("scanned_at", `${sessionDate}T00:00:00`)
+      .lt("scanned_at", dayEnd),
+  ]);
+
+  if (bySince.error) throw bySince.error;
+  if (byDay.error) throw byDay.error;
+  mergeTokenRows(byId, (bySince.data ?? []) as Token[]);
+  mergeTokenRows(byId, (byDay.data ?? []) as Token[]);
+
+  return [...byId.values()].sort(
+    (a, b) =>
+      new Date(b.scanned_at).getTime() - new Date(a.scanned_at).getTime()
+  );
+}
+
+type GroundSessionRow = {
+  user_id: string;
+  runner_id: string;
+  runner_name: string;
+  joined_at: string;
+};
+
+async function fetchGroundSessionRows(
+  sessionId: string
+): Promise<GroundSessionRow[]> {
+  const supabase = createSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("user_sessions")
+    .select(
+      `
+      user_id,
+      joined_at,
+      users!inner (
+        runner_id,
+        runner_name
+      )
+    `
+    )
+    .eq("session_id", sessionId)
+    .order("joined_at", { ascending: true });
+
+  if (error) throw error;
+
+  return (data ?? []).map((row) => {
+    const user = row.users as unknown as {
+      runner_id: string;
+      runner_name: string;
+    };
+    return {
+      user_id: row.user_id as string,
+      runner_id: user.runner_id,
+      runner_name: user.runner_name,
+      joined_at: row.joined_at as string,
+    };
+  });
+}
+
 export async function getLiveGroundData(
   sessionId: string,
   sessionDate: string,
   sessionDateLabel: string
 ): Promise<LiveGroundPayload> {
-  const participants = await getLiveParticipants(sessionId);
   const tokenIds: string[] = TOKEN_TYPES.map((t) => t.id);
   const emptyEarned = (): Record<string, string | null> =>
     Object.fromEntries(tokenIds.map((id) => [id, null]));
 
-  if (participants.length === 0) {
+  const sessionRows = await fetchGroundSessionRows(sessionId);
+  if (sessionRows.length === 0) {
     return {
       sessionId,
       sessionDate,
@@ -528,87 +643,91 @@ export async function getLiveGroundData(
     };
   }
 
+  const userIds = sessionRows.map((r) => r.user_id);
+  const runnerIds = sessionRows.map((r) => r.runner_id);
+  const sinceIso = sessionRows
+    .map((r) => r.joined_at)
+    .sort()[0]!;
   const supabase = createSupabaseServiceClient();
-  const userIds = participants.map((p) => p.user_id);
 
-  let tokenRows: Token[] = [];
-  const withSession = await supabase
-    .from("tokens")
-    .select("*")
-    .eq("session_id", sessionId)
-    .in("user_id", userIds)
-    .order("scanned_at", { ascending: false });
+  const [tokenRows, signupResult] = await Promise.all([
+    fetchSessionTokenScans(sessionId, sessionDate, userIds, sinceIso),
+    supabase
+      .from("going_signups")
+      .select(
+        "runner_id, nickname, runner_name, goal, topping1, topping2, topping3"
+      )
+      .in("runner_id", runnerIds)
+      .eq("intent", "join"),
+  ]);
 
-  if (withSession.error && isMissingColumn(withSession.error, "session_id")) {
-    const { data: legacy, error: legacyError } = await supabase
-      .from("tokens")
-      .select("*")
-      .in("user_id", userIds)
-      .gte("scanned_at", `${sessionDate}T00:00:00`)
-      .order("scanned_at", { ascending: false });
-    if (legacyError) throw legacyError;
-    tokenRows = (legacy ?? []) as Token[];
-  } else {
-    if (withSession.error) throw withSession.error;
-    tokenRows = (withSession.data ?? []) as Token[];
-  }
+  if (signupResult.error) throw signupResult.error;
+
+  const signupByRunner = new Map(
+    (signupResult.data ?? []).map((s) => [s.runner_id as string, s])
+  );
 
   const earnedByUser = new Map<string, Record<string, string | null>>();
-  for (const p of participants) {
-    earnedByUser.set(p.user_id, emptyEarned());
+  const earnedOrderByUser = new Map<string, string[]>();
+  for (const row of sessionRows) {
+    earnedByUser.set(row.user_id, emptyEarned());
+    earnedOrderByUser.set(row.user_id, []);
   }
 
-  for (const tok of tokenRows) {
+  const tokenRowsByScan = [...tokenRows].sort(
+    (a, b) =>
+      new Date(a.scanned_at).getTime() - new Date(b.scanned_at).getTime()
+  );
+
+  for (const tok of tokenRowsByScan) {
     const earned = earnedByUser.get(tok.user_id);
-    if (!earned || !tokenIds.includes(tok.token_type)) continue;
-    if (!earned[tok.token_type]) {
-      earned[tok.token_type] = tok.scanned_at;
+    const order = earnedOrderByUser.get(tok.user_id);
+    const type = String(tok.token_type);
+    if (!earned || !order || !tokenIds.includes(type)) continue;
+    if (!earned[type]) {
+      earned[type] = tok.scanned_at;
+    }
+    if (order) {
+      order.push(type);
     }
   }
 
-  const runnerIds = participants.map((p) => p.runner_id);
-  const { data: signupRows, error: signupError } = await supabase
-    .from("going_signups")
-    .select("runner_id, goal, topping1, topping2, topping3")
-    .in("runner_id", runnerIds)
-    .eq("intent", "join");
-
-  if (signupError) throw signupError;
-
-  const signupByRunner = new Map(
-    (signupRows ?? []).map((s) => [s.runner_id as string, s])
-  );
-
   const runnerByUser = new Map(
-    participants.map((p) => [p.user_id, p.runner_id])
+    sessionRows.map((r) => [r.user_id, r.runner_id])
   );
-  const nameByUser = new Map(
-    participants.map((p) => [p.user_id, p.display_name])
-  );
+  const nameByUser = new Map<string, string>();
 
-  const rows: GroundParticipantRow[] = participants.map((p) => {
-    const earned = earnedByUser.get(p.user_id) ?? emptyEarned();
-    const signup = signupByRunner.get(p.runner_id);
+  const rows: GroundParticipantRow[] = sessionRows.map((row) => {
+    const signup = signupByRunner.get(row.runner_id);
+    const displayName =
+      (signup?.nickname as string | undefined)?.trim() ||
+      (signup?.runner_name as string | undefined)?.trim() ||
+      row.runner_name;
+    nameByUser.set(row.user_id, displayName);
+
+    const goal = (signup?.goal as string | null) ?? null;
+    const earned = earnedByUser.get(row.user_id) ?? emptyEarned();
     const requiredTokenIds = signup
       ? requiredTokenIdsForGoal(
-          signup.goal as string | null,
+          goal,
           signup.topping1 as string | null,
           signup.topping2 as string | null,
           signup.topping3 as string | null
         )
-      : requiredTokenIdsForGoal(p.goal, null, null, null);
+      : requiredTokenIdsForGoal(null, null, null, null);
     const { isComplete, completedAt } = computeGroundCompletion(
       requiredTokenIds,
       earned
     );
 
     return {
-      user_id: p.user_id,
-      runner_id: p.runner_id,
-      display_name: p.display_name,
-      goal: p.goal,
-      joined_at: p.joined_at,
+      user_id: row.user_id,
+      runner_id: row.runner_id,
+      display_name: displayName,
+      goal,
+      joined_at: row.joined_at,
       earned,
+      earned_token_ids: earnedOrderByUser.get(row.user_id) ?? [],
       requiredTokenIds,
       isComplete,
       completedAt,
@@ -783,13 +902,15 @@ export async function getAdminLobbyRows(sessionId: string) {
 }
 
 export async function getTodaySessionMembership(
-  runnerId: string
+  runnerId: string,
+  sessionId?: string
 ): Promise<{
   userId: string;
   sessionId: string;
   userSessionId: string;
 } | null> {
-  const session = await getOrCreateTodaySession();
+  const resolvedSessionId =
+    sessionId ?? (await getOrCreateTodaySession()).id;
   const user = await getUserByRunnerId(runnerId);
   if (!user) return null;
 
@@ -798,7 +919,7 @@ export async function getTodaySessionMembership(
     .from("user_sessions")
     .select("id, user_id, session_id")
     .eq("user_id", user.id)
-    .eq("session_id", session.id)
+    .eq("session_id", resolvedSessionId)
     .maybeSingle();
 
   if (error) throw error;
@@ -827,65 +948,92 @@ export async function touchLiveSeen(
   throw error;
 }
 
-async function getSessionEarnedTokenIdsByUser(
+async function loadSessionTokenData(
   sessionId: string,
-  userIds: string[]
-): Promise<Map<string, string[]>> {
-  const result = new Map<string, string[]>();
-  if (!userIds.length) return result;
+  userIds: string[],
+  sessionDate: string,
+  sinceIso?: string | null
+): Promise<{
+  earnedByUser: Map<string, string[]>;
+  tokenRows: Token[];
+}> {
+  const earnedByUser = new Map<string, string[]>();
+  if (!userIds.length) {
+    return { earnedByUser, tokenRows: [] };
+  }
 
-  const supabase = createSupabaseServiceClient();
   const tokenTypeSet = new Set<string>(TOKEN_TYPES.map((t) => t.id));
   const earnedLists = new Map<string, string[]>();
   for (const id of userIds) earnedLists.set(id, []);
 
-  const { data: sessionRow } = await supabase
-    .from("sessions")
-    .select("date")
-    .eq("id", sessionId)
-    .maybeSingle();
-  const sessionDate =
-    (sessionRow?.date as string | undefined) ?? getTodayDateString();
+  const tokenRows = await fetchSessionTokenScans(
+    sessionId,
+    sessionDate,
+    userIds,
+    sinceIso
+  );
+  const byScanOrder = [...tokenRows].sort(
+    (a, b) =>
+      new Date(a.scanned_at).getTime() - new Date(b.scanned_at).getTime()
+  );
 
-  let tokenRows: Token[] = [];
-  const withSession = await supabase
-    .from("tokens")
-    .select("user_id, token_type, scanned_at")
-    .eq("session_id", sessionId)
-    .in("user_id", userIds)
-    .order("scanned_at", { ascending: true });
-
-  if (withSession.error && isMissingColumn(withSession.error, "session_id")) {
-    const { data: legacy, error: legacyError } = await supabase
-      .from("tokens")
-      .select("user_id, token_type, scanned_at")
-      .in("user_id", userIds)
-      .gte("scanned_at", `${sessionDate}T00:00:00`)
-      .order("scanned_at", { ascending: true });
-    if (legacyError) throw legacyError;
-    tokenRows = (legacy ?? []) as Token[];
-  } else {
-    if (withSession.error) throw withSession.error;
-    tokenRows = (withSession.data ?? []) as Token[];
-  }
-
-  for (const tok of tokenRows) {
+  for (const tok of byScanOrder) {
     const list = earnedLists.get(tok.user_id);
-    const type = tok.token_type;
-    const typeId = String(type);
-    if (!list || !tokenTypeSet.has(typeId) || list.includes(typeId)) continue;
+    const typeId = String(tok.token_type);
+    if (!list || !tokenTypeSet.has(typeId)) continue;
     list.push(typeId);
   }
 
   for (const [userId, list] of earnedLists) {
-    result.set(userId, list);
+    earnedByUser.set(userId, list);
   }
-  return result;
+  return { earnedByUser, tokenRows };
 }
 
-export async function getLiveParticipants(
-  sessionId: string
-): Promise<LiveParticipant[]> {
+export function buildLiveSessionFeed(
+  tokenRows: Token[],
+  participants: LiveParticipant[]
+): GroundFeedItem[] {
+  const runnerByUser = new Map(
+    participants.map((p) => [p.user_id, p.runner_id])
+  );
+  const nameByUser = new Map(
+    participants.map((p) => [p.user_id, p.display_name])
+  );
+
+  return tokenRows.slice(0, 30).map((tok) => ({
+    id: tok.id,
+    user_id: tok.user_id,
+    runner_id: runnerByUser.get(tok.user_id) ?? "",
+    display_name: nameByUser.get(tok.user_id) ?? "",
+    token_type: tok.token_type,
+    scanned_at: tok.scanned_at,
+  }));
+}
+
+export type LiveRoomData = {
+  participants: LiveParticipant[];
+  feed: GroundFeedItem[];
+};
+
+export async function getLiveRoomData(
+  sessionId: string,
+  sessionDate: string = getTodayDateString()
+): Promise<LiveRoomData> {
+  const { participants, tokenRows } = await fetchLiveParticipantRows(
+    sessionId,
+    sessionDate
+  );
+  return {
+    participants,
+    feed: buildLiveSessionFeed(tokenRows, participants),
+  };
+}
+
+async function fetchLiveParticipantRows(
+  sessionId: string,
+  sessionDate: string
+): Promise<{ participants: LiveParticipant[]; tokenRows: Token[] }> {
   const supabase = createSupabaseServiceClient();
 
   const withLiveSelect = `
@@ -930,19 +1078,43 @@ export async function getLiveParticipants(
     rows = (primary.data ?? []) as Record<string, unknown>[];
   }
 
-  if (!rows?.length) return [];
+  if (!rows?.length) return { participants: [], tokenRows: [] };
 
   const userIds = rows.map((row) => row.user_id as string);
-  const earnedByUser = await getSessionEarnedTokenIdsByUser(sessionId, userIds);
+  const sinceIso = rows
+    .map((row) => row.joined_at as string)
+    .sort()[0];
+  const { earnedByUser, tokenRows } = await loadSessionTokenData(
+    sessionId,
+    userIds,
+    sessionDate,
+    sinceIso
+  );
 
   const runnerIds = rows.map((row) => {
     const user = row.users as unknown as { runner_id: string };
     return user.runner_id;
   });
 
+  const tokenIds: string[] = TOKEN_TYPES.map((t) => t.id);
+  const emptyEarned = (): Record<string, string | null> =>
+    Object.fromEntries(tokenIds.map((id) => [id, null]));
+
+  const earnedRecordsByUser = new Map<string, Record<string, string | null>>();
+  for (const uid of userIds) earnedRecordsByUser.set(uid, emptyEarned());
+  for (const tok of tokenRows) {
+    const earned = earnedRecordsByUser.get(tok.user_id);
+    const type = String(tok.token_type);
+    if (earned && tokenIds.includes(type) && !earned[type]) {
+      earned[type] = tok.scanned_at;
+    }
+  }
+
   const { data: signups, error: signupError } = await supabase
     .from("going_signups")
-    .select("runner_id, nickname, runner_name, goal")
+    .select(
+      "runner_id, nickname, runner_name, goal, topping1, topping2, topping3"
+    )
     .in("runner_id", runnerIds)
     .eq("intent", "join");
 
@@ -954,7 +1126,7 @@ export async function getLiveParticipants(
 
   const onlineCutoff = Date.now() - LIVE_ONLINE_SECONDS * 1000;
 
-  return rows.map((row) => {
+  const participants = rows.map((row) => {
     const user = row.users as unknown as {
       runner_id: string;
       runner_name: string;
@@ -972,14 +1144,43 @@ export async function getLiveParticipants(
         ? new Date(liveSeen).getTime() > onlineCutoff
         : false;
 
+    const goal = (signup?.goal as string | null) ?? null;
+    const earned =
+      earnedRecordsByUser.get(row.user_id as string) ?? emptyEarned();
+    const requiredTokenIds = signup
+      ? requiredTokenIdsForGoal(
+          goal,
+          signup.topping1 as string | null,
+          signup.topping2 as string | null,
+          signup.topping3 as string | null
+        )
+      : requiredTokenIdsForGoal(null, null, null, null);
+    const { isComplete, completedAt } = computeGroundCompletion(
+      requiredTokenIds,
+      earned
+    );
+
     return {
       user_id: row.user_id as string,
       runner_id: user.runner_id,
       display_name: displayName,
-      goal: (signup?.goal as string | null) ?? null,
+      goal,
       joined_at: row.joined_at as string,
       is_online: isOnline,
       earned_token_ids: earnedByUser.get(row.user_id as string) ?? [],
+      required_token_ids: requiredTokenIds,
+      is_complete: isComplete,
+      completed_at: completedAt,
     };
   });
+
+  return { participants, tokenRows };
+}
+
+export async function getLiveParticipants(
+  sessionId: string,
+  sessionDate: string = getTodayDateString()
+): Promise<LiveParticipant[]> {
+  const { participants } = await getLiveRoomData(sessionId, sessionDate);
+  return participants;
 }

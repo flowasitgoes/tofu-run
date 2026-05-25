@@ -25,14 +25,16 @@ export function mergeTokenIntoGround(
   const participants = payload.participants.map((row) => {
     if (row.user_id !== event.userId) return row;
     const earned = { ...row.earned };
+    let earned_token_ids = row.earned_token_ids;
     if (!earned[event.tokenType]) {
       earned[event.tokenType] = event.scannedAt;
     }
+    earned_token_ids = [...earned_token_ids, event.tokenType];
     const { isComplete, completedAt } = computeGroundCompletion(
       row.requiredTokenIds,
       earned
     );
-    return { ...row, earned, isComplete, completedAt };
+    return { ...row, earned, earned_token_ids, isComplete, completedAt };
   });
 
   const feedItem: GroundFeedItem = {

@@ -13,6 +13,7 @@ import { useTokenRealtime } from "@/hooks/useTokenRealtime";
 import {
   consumePendingTokenEarn,
   getStoredLiveRunnerId,
+  prefetchLiveGroundCache,
   setStoredLiveRunnerId,
 } from "@/lib/liveSession";
 import { useStoredGoingAccount } from "@/hooks/useStoredGoingAccount";
@@ -20,7 +21,10 @@ import { useStoredPlayerSnapshot } from "@/hooks/useStoredPlayer";
 import { getCurrentPosition } from "@/lib/geolocation";
 import { setStoredGoingAccount } from "@/lib/goingAccount";
 import { setStoredPlayer } from "@/lib/player";
+import { countCompletedBowls } from "@/lib/ground-completion";
 import { normalizeRunnerId } from "@/lib/runner";
+import { LiveActivityFeed } from "@/components/LiveActivityFeed";
+import { LiveCompleteBadge } from "@/components/LiveCompleteBadge";
 import { LiveParticipantTokenIcons } from "@/components/LiveParticipantTokenIcons";
 
 /** 在線：實心綠點（與 Ground 完成用的 ✓ 區隔） */
@@ -59,6 +63,7 @@ function LivePageContent() {
   const mounted = goingMounted && playerMounted;
   const {
     participants,
+    feed,
     sessionDateLabel,
     sessionId,
     count,
@@ -140,6 +145,11 @@ function LivePageContent() {
     void enterLive(autoId);
   }, [mounted, enteredRunnerId, entering, player?.runnerId, going?.runnerId, enterLive]);
 
+  useEffect(() => {
+    if (!enteredRunnerId || !sessionId) return;
+    prefetchLiveGroundCache(enteredRunnerId);
+  }, [enteredRunnerId, sessionId, participants.length]);
+
   if (!mounted || !storageReady) {
     return (
       <PageShell>
@@ -202,12 +212,33 @@ function LivePageContent() {
         <p className="mt-2 text-sm text-twilight">{t("live.youLabel")}<span className="font-mono font-semibold">{enteredRunnerId}</span></p>
       </header>
       <Card>
-        <div className="mb-3 flex items-center justify-between">
-          <div>
+        <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-start gap-2">
+          <div className="min-w-0">
             <h2 className="font-semibold text-brown-sugar">{t("live.participants")}</h2>
-            <p className="text-xs text-brown-sugar/50">{t("live.countOnline", { count: loading && count === 0 ? "…" : count, online: loading && onlineCount === 0 && count === 0 ? "…" : onlineCount })}{refreshing && <span className="ml-1.5 text-brown-sugar/40">{t("common.refreshing")}</span>}</p>
+            <p className="text-xs text-brown-sugar/50">
+              {t("live.countOnline", {
+                count: loading && count === 0 ? "…" : count,
+                online:
+                  loading && onlineCount === 0 && count === 0 ? "…" : onlineCount,
+              })}
+              {refreshing && (
+                <span className="ml-1.5 text-brown-sugar/40">
+                  {t("common.refreshing")}
+                </span>
+              )}
+            </p>
           </div>
-          <button type="button" onClick={() => void reload()} disabled={refreshing} className="text-xs text-brown-sugar/60 underline disabled:opacity-40">{refreshing ? t("common.refreshing") : t("common.refresh")}</button>
+          <h2 className="pt-0.5 text-center text-sm font-semibold text-brown-sugar whitespace-nowrap">
+            {t("live.tokenProgress")}
+          </h2>
+          <button
+            type="button"
+            onClick={() => void reload()}
+            disabled={refreshing}
+            className="justify-self-end text-xs text-brown-sugar/60 underline disabled:opacity-40"
+          >
+            {refreshing ? t("common.refreshing") : t("common.refresh")}
+          </button>
         </div>
         {loading && !showList && !hasCachedData && (
           <p className="animate-pulse-soft py-8 text-center text-sm text-brown-sugar/60">
@@ -231,6 +262,10 @@ function LivePageContent() {
           <ul className="divide-y divide-brown-sugar/8">
             {participants.map((p) => {
               const isMe = enteredRunnerId === p.runner_id;
+              const bowlsDone = countCompletedBowls(
+                p.required_token_ids ?? [],
+                p.earned_token_ids ?? []
+              );
               return (
                 <li key={p.user_id} className={`flex items-center gap-2 py-3 ${isMe ? "bg-sunset/10 -mx-1 rounded-xl px-1" : ""}`}>
                   <div className="w-[6.75rem] min-w-0 shrink-0">
@@ -238,10 +273,36 @@ function LivePageContent() {
                     <p className="truncate text-sm text-brown-sugar">{p.display_name}</p>
                     {p.goal && <p className="mt-0.5 truncate text-xs text-mung-green">{p.goal}</p>}
                   </div>
-                  <LiveParticipantTokenIcons tokenIds={p.earned_token_ids ?? []} className="min-w-0 flex-1" />
-                  <div className="flex shrink-0 items-center gap-2">
-                    {isMe && <span className="rounded-full bg-sunset/20 px-2 py-0.5 text-[10px] font-medium text-brown-sugar">{t("common.you")}</span>}
-                    {p.is_online ? <OnlineBadge label={t("live.online")} /> : <span className="h-6 w-6 shrink-0 rounded-full border border-brown-sugar/15 bg-cream/80" aria-hidden />}
+                  <div className="flex min-w-0 flex-1 items-center gap-1 overflow-visible">
+                    <LiveParticipantTokenIcons
+                      tokenIds={p.earned_token_ids ?? []}
+                      className="min-w-0 flex-1 overflow-visible"
+                      showScanCounts
+                    />
+                    {bowlsDone > 0 ? (
+                      <LiveCompleteBadge
+                        variant="earned"
+                        earnedLabel={t("live.earnedBowls", {
+                          count: bowlsDone,
+                        })}
+                        label={t("ground.completeDone")}
+                      />
+                    ) : null}
+                  </div>
+                  <div className="flex shrink-0 flex-col items-center gap-0.5 pl-0.5">
+                      {isMe ? (
+                        <span className="rounded-full bg-sunset/20 px-2 py-0.5 text-[10px] font-medium leading-none text-brown-sugar">
+                          {t("common.you")}
+                        </span>
+                      ) : null}
+                      {p.is_online ? (
+                        <OnlineBadge label={t("live.online")} />
+                      ) : (
+                        <span
+                          className="h-6 w-6 shrink-0 rounded-full border border-brown-sugar/15 bg-cream/80"
+                          aria-hidden
+                        />
+                      )}
                   </div>
                 </li>
               );
@@ -250,6 +311,7 @@ function LivePageContent() {
         )}
       </Card>
       <p className="mt-4 text-center text-[11px] text-brown-sugar/50">{t("live.onlineHint")}</p>
+      {showList && <LiveActivityFeed feed={feed} />}
       <div className="mt-5 space-y-3">
         <Button href="/live/ground" className="w-full">
           {t("live.viewGround")}

@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
+import { useLiveSessionSync } from "@/hooks/useLiveSessionSync";
+import {
+  mergeTokenIntoLiveParticipants,
+  prependLiveFeedItem,
+} from "@/lib/live-merge";
 import {
   clearReturningFromScan,
   getLiveRoomCache,
@@ -10,7 +15,7 @@ import {
 } from "@/lib/liveSession";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { getTodayDateString } from "@/lib/session";
-import type { LiveParticipant } from "@/types/database";
+import type { GroundFeedItem, LiveParticipant } from "@/types/database";
 
 /** Realtime 為主；輪詢僅作 Replication 未開 user_sessions 時的後備 */
 const POLL_MS = 45_000;
@@ -25,6 +30,7 @@ type LivePayload = {
   count: number;
   onlineCount: number;
   participants: LiveParticipant[];
+  feed: GroundFeedItem[];
 };
 
 async function fetchLive(
@@ -44,6 +50,7 @@ async function fetchLive(
     count: data.count ?? 0,
     onlineCount: data.onlineCount ?? 0,
     participants: data.participants ?? [],
+    feed: data.feed ?? [],
   };
 }
 
@@ -52,6 +59,7 @@ function hydrateFromCache(runnerId: string) {
   if (!cached) return null;
   return {
     participants: cached.participants,
+    feed: cached.feed ?? [],
     sessionDateLabel: cached.sessionDateLabel,
     count: cached.count,
     onlineCount: cached.onlineCount,
@@ -66,6 +74,7 @@ export function useLiveRoom(runnerId: string | null) {
   const [participants, setParticipants] = useState<LiveParticipant[]>(
     initial?.participants ?? []
   );
+  const [feed, setFeed] = useState<GroundFeedItem[]>(initial?.feed ?? []);
   const [sessionDateLabel, setSessionDateLabel] = useState(
     initial?.sessionDateLabel ?? ""
   );
@@ -87,6 +96,7 @@ export function useLiveRoom(runnerId: string | null) {
 
   const applyPayload = useCallback((data: LivePayload) => {
     setParticipants(data.participants);
+    setFeed(data.feed);
     setCount(data.count);
     setOnlineCount(data.onlineCount);
     setSessionDateLabel(data.sessionDateLabel);
@@ -100,6 +110,7 @@ export function useLiveRoom(runnerId: string | null) {
         count: data.count,
         onlineCount: data.onlineCount,
         participants: data.participants,
+        feed: data.feed,
       });
     }
   }, [runnerId]);
@@ -158,6 +169,18 @@ export function useLiveRoom(runnerId: string | null) {
     }, REALTIME_DEBOUNCE_MS);
   }, [load]);
 
+  useLiveSessionSync({
+    sessionId,
+    participants,
+    enabled: Boolean(sessionId),
+    onTokenEarned: (event) => {
+      setParticipants((prev) => mergeTokenIntoLiveParticipants(prev, event));
+      setFeed((prev) => prependLiveFeedItem(prev, event));
+      scheduleSilentReload();
+    },
+    onNeedsFullReload: () => scheduleSilentReload(),
+  });
+
   useEffect(() => {
     if (!runnerId || !sessionId) return;
 
@@ -206,6 +229,7 @@ export function useLiveRoom(runnerId: string | null) {
     if (!runnerId) {
       setLoading(false);
       setParticipants([]);
+      setFeed([]);
       setCount(0);
       setOnlineCount(0);
       setSessionId(null);
@@ -222,6 +246,7 @@ export function useLiveRoom(runnerId: string | null) {
     const cached = hydrateFromCache(runnerId);
     if (cached) {
       setParticipants(cached.participants);
+      setFeed(cached.feed);
       setCount(cached.count);
       setOnlineCount(cached.onlineCount);
       setSessionDateLabel(cached.sessionDateLabel);
@@ -281,6 +306,7 @@ export function useLiveRoom(runnerId: string | null) {
 
   return {
     participants,
+    feed,
     sessionDateLabel,
     sessionId,
     count,
