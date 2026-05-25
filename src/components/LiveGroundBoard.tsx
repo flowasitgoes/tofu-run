@@ -6,6 +6,7 @@ import { getTokenLabelLocalized } from "@/lib/i18n-labels";
 import { TOKEN_TYPES } from "@/lib/constants";
 import type { TokenTypeId } from "@/lib/constants";
 import { formatTaipeiTime } from "@/lib/format-time";
+import { sortFeedNewestFirst } from "@/lib/live-merge";
 import type { LiveGroundPayload } from "@/types/database";
 
 function earnedIdsInScanOrder(
@@ -103,7 +104,7 @@ export function LiveGroundBoard({
             {t("ground.feed")}
           </h3>
           <ul className="max-h-48 space-y-1.5 overflow-y-auto rounded-2xl bg-cream/50 px-3 py-2">
-            {payload.feed.map((item) => {
+            {sortFeedNewestFirst(payload.feed).map((item) => {
               const tok = TOKEN_TYPES.find((x) => x.id === item.token_type);
               const label = tok
                 ? getTokenLabelLocalized(tok.id as TokenTypeId, locale)

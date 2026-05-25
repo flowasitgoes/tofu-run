@@ -734,14 +734,21 @@ export async function getLiveGroundData(
     };
   });
 
-  const feed: GroundFeedItem[] = tokenRows.slice(0, 30).map((tok) => ({
-    id: tok.id,
-    user_id: tok.user_id,
-    runner_id: runnerByUser.get(tok.user_id) ?? "",
-    display_name: nameByUser.get(tok.user_id) ?? "",
-    token_type: tok.token_type,
-    scanned_at: tok.scanned_at,
-  }));
+  const feed = buildLiveSessionFeed(
+    tokenRows,
+    rows.map((r) => ({
+      user_id: r.user_id,
+      runner_id: r.runner_id,
+      display_name: r.display_name,
+      goal: r.goal,
+      joined_at: r.joined_at,
+      is_online: false,
+      earned_token_ids: r.earned_token_ids,
+      required_token_ids: r.requiredTokenIds,
+      is_complete: r.isComplete,
+      completed_at: r.completedAt,
+    }))
+  );
 
   return {
     sessionId,
@@ -1001,7 +1008,12 @@ export function buildLiveSessionFeed(
     participants.map((p) => [p.user_id, p.display_name])
   );
 
-  return tokenRows.slice(0, 30).map((tok) => ({
+  const newestFirst = [...tokenRows].sort(
+    (a, b) =>
+      new Date(b.scanned_at).getTime() - new Date(a.scanned_at).getTime()
+  );
+
+  return newestFirst.slice(0, 30).map((tok) => ({
     id: tok.id,
     user_id: tok.user_id,
     runner_id: runnerByUser.get(tok.user_id) ?? "",

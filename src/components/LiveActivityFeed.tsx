@@ -4,6 +4,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { TOKEN_TYPES } from "@/lib/constants";
 import { getTokenLabelLocalized } from "@/lib/i18n-labels";
 import type { TokenTypeId } from "@/lib/constants";
+import { sortFeedNewestFirst } from "@/lib/live-merge";
 import type { GroundFeedItem } from "@/types/database";
 
 function formatTime(iso: string, locale: string) {
@@ -24,6 +25,7 @@ const FEED_SCROLL_CLASS =
 
 export function LiveActivityFeed({ feed }: { feed: GroundFeedItem[] }) {
   const { locale, t } = useLocale();
+  const orderedFeed = sortFeedNewestFirst(feed);
 
   return (
     <div className="mt-5">
@@ -68,7 +70,7 @@ export function LiveActivityFeed({ feed }: { feed: GroundFeedItem[] }) {
           </ul>
         )}
       </div>
-      {feed.length > 0 ? (
+      {orderedFeed.length > 0 ? (
         <p className="mt-2 text-center text-[11px] text-brown-sugar/45">
           {t("live.feedHint")}
         </p>

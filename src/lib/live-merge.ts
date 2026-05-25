@@ -5,6 +5,14 @@ import type { TokenEarnedBroadcast } from "@/lib/ground-merge";
 const FEED_MAX = 30;
 const TOKEN_IDS = new Set<string>(TOKEN_TYPES.map((t) => t.id));
 
+/** 最新動態：掃描時間愈晚愈上面 */
+export function sortFeedNewestFirst(feed: GroundFeedItem[]): GroundFeedItem[] {
+  return [...feed].sort(
+    (a, b) =>
+      new Date(b.scanned_at).getTime() - new Date(a.scanned_at).getTime()
+  );
+}
+
 /** 掃描廣播：名單 Token 次數即時 +1（含重複掃同一種） */
 export function mergeTokenIntoLiveParticipants(
   participants: LiveParticipant[],
