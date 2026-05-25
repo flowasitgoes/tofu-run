@@ -139,23 +139,13 @@ export function LiveGroundBoard({
                       >
                         {at ? (
                           <span
-                            className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-mung-green ${
-                              isMe
-                                ? "bg-white/50 ring-1 ring-mung-green/25"
-                                : "bg-mung-green/20"
-                            }`}
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-mung-green/20 text-mung-green"
                             title={formatTime(at, locale)}
                           >
                             ✓
                           </span>
                         ) : needed ? (
-                          <span
-                            className={`inline-block h-7 w-7 rounded-full border border-dashed ${
-                              isMe
-                                ? "border-brown-sugar/25 bg-white/30"
-                                : "border-brown-sugar/15"
-                            }`}
-                          />
+                          <span className="inline-block h-7 w-7 rounded-full border border-dashed border-brown-sugar/15" />
                         ) : (
                           <span
                             className="inline-block h-7 w-7 text-[10px] leading-7 text-brown-sugar/20"
@@ -171,13 +161,7 @@ export function LiveGroundBoard({
                     {row.isComplete ? (
                       <CompleteCheckIcon label={t("ground.completeDone")} />
                     ) : (
-                      <span
-                        className={`inline-block h-7 w-7 rounded border ${
-                          isMe
-                            ? "border-brown-sugar/25 bg-white/30"
-                            : "border-brown-sugar/10 bg-cream/60"
-                        }`}
-                      />
+                      <span className="inline-block h-7 w-7 rounded border border-brown-sugar/10 bg-cream/60" />
                     )}
                   </td>
                   <td className="min-w-[3.25rem] px-3 py-2.5 text-center text-xs text-brown-sugar/75 whitespace-nowrap">

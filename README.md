@@ -60,6 +60,8 @@ npm run dev
 
 ## Checkpoint QR Code
 
+**一鍵產生可列印 QR 圖**：部署後開啟 [`/checkpoint-qr.html`](https://tofu-run.ifunlove.com/checkpoint-qr.html)（可改網址、下載 PNG、瀏覽器列印）。本機開發可用 `http://localhost:3000/checkpoint-qr.html` 預覽版面（QR 內容建議仍用正式網域，選手手機才能開）。
+
 在各區域張貼 QR code，連結格式：
 
 ```

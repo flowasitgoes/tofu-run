@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Checkpoint QR · 豆花慢跑</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 1.5rem;
+      font-family: system-ui, "Noto Sans TC", sans-serif;
+      background: #fff8f0;
+      color: #5c3d2e;
+    }
+    h1 { font-size: 1.25rem; margin: 0 0 0.25rem; }
+    .hint { font-size: 0.8rem; opacity: 0.65; margin-bottom: 1rem; }
+    .base {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      font-size: 0.85rem;
+    }
+    .base label { display: flex; align-items: center; gap: 0.35rem; }
+    .base input[type="text"] {
+      flex: 1;
+      min-width: 16rem;
+      padding: 0.4rem 0.6rem;
+      border: 1px solid rgba(92, 61, 46, 0.2);
+      border-radius: 0.5rem;
+      background: #fff;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1.25rem;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid rgba(92, 61, 46, 0.12);
+      border-radius: 1rem;
+      padding: 1rem;
+      text-align: center;
+      break-inside: avoid;
+    }
+    .card img {
+      width: 200px;
+      height: 200px;
+      display: block;
+      margin: 0 auto;
+      border-radius: 0.5rem;
+    }
+    .zone { font-weight: 600; margin-top: 0.75rem; font-size: 0.95rem; }
+    .token { font-size: 0.8rem; opacity: 0.7; margin-top: 0.15rem; }
+    .url {
+      font-size: 0.65rem;
+      word-break: break-all;
+      opacity: 0.55;
+      margin-top: 0.5rem;
+    }
+    .card a.dl {
+      display: inline-block;
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      color: #7ba05b;
+    }
+    @media print {
+      body { padding: 0.5rem; }
+      .no-print { display: none !important; }
+      .grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print">
+    <h1>Checkpoint QR Code（豆花 + 5 配料）</h1>
+    <p class="hint">
+      掃碼會開啟 <code>/scan/{token}</code>。正式活動請用正式網域；列印前請確認下方網址正確。
+    </p>
+    <div class="base">
+      <label>網站根網址
+        <input type="text" id="siteBase" value="https://tofu-run.ifunlove.com" />
+      </label>
+      <button type="button" id="apply">更新 QR</button>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <script>
+    const CHECKPOINTS = [
+      { id: "tofu", zone: "太陽泉／起點", label: "豆花 Token" },
+      { id: "redbean", zone: "水池區", label: "紅豆 Token" },
+      { id: "mungbean", zone: "樹林區", label: "綠豆 Token" },
+      { id: "peanut", zone: "城市光廊區", label: "花生 Token" },
+      { id: "tapioca", zone: "草地區", label: "粉圓 Token" },
+      { id: "taro", zone: "捷運出口區", label: "芋圓 Token" },
+    ];
+
+    function qrImageUrl(scanUrl) {
+      const data = encodeURIComponent(scanUrl);
+      return "https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=12&data=" + data;
+    }
+
+    function render() {
+      const raw = document.getElementById("siteBase").value.trim().replace(/\/$/, "");
+      const grid = document.getElementById("grid");
+      grid.innerHTML = "";
+
+      CHECKPOINTS.forEach(function (cp) {
+        const scanUrl = raw + "/scan/" + cp.id;
+        const imgUrl = qrImageUrl(scanUrl);
+        const card = document.createElement("article");
+        card.className = "card";
+        card.innerHTML =
+          '<img src="' + imgUrl + '" width="200" height="200" alt="QR ' + cp.zone + '" />' +
+          '<p class="zone">' + cp.zone + "</p>" +
+          '<p class="token">' + cp.label + "</p>" +
+          '<p class="url">' + scanUrl + "</p>" +
+          '<a class="dl no-print" href="' + imgUrl + '" download="qr-' + cp.id + '.png">下載 PNG</a>';
+        grid.appendChild(card);
+      });
+    }
+
+    document.getElementById("apply").addEventListener("click", render);
+    render();
+  </script>
+</body>
+</html>
