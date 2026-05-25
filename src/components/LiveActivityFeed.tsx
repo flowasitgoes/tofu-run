@@ -28,7 +28,7 @@ export function LiveActivityFeed({ feed }: { feed: GroundFeedItem[] }) {
   const orderedFeed = sortFeedNewestFirst(feed);
 
   return (
-    <div className="mt-5">
+    <div className="mt-7">
       <h3 className="mb-2 text-xs font-semibold tracking-wide text-brown-sugar/70">
         {t("live.feed")}
       </h3>
