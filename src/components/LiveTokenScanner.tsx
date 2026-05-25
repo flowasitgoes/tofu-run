@@ -47,6 +47,7 @@ export function LiveTokenScanner({
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cameraBlocked, setCameraBlocked] = useState(false);
   const readerId = `live-qr-${useId().replace(/:/g, "")}`;
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const handlingRef = useRef(false);
@@ -80,6 +81,7 @@ export function LiveTokenScanner({
       handlingRef.current = true;
       setBusy(true);
       setError(null);
+      setCameraBlocked(false);
       await stopScanner();
 
       try {
@@ -146,20 +148,31 @@ export function LiveTokenScanner({
     );
   }, [readerId, stopScanner, handleDecode]);
 
+  const openScanner = useCallback(() => {
+    if (disabled || busy || open) return;
+    setError(null);
+    setCameraBlocked(false);
+    setOpen(true);
+  }, [disabled, busy, open]);
+
   useEffect(() => {
     if (!open) {
       handlingRef.current = false;
       setBusy(false);
+      setCameraBlocked(false);
       void stopScanner();
       return;
     }
 
-    setError(null);
+    let cancelled = false;
     void startScanner().catch(() => {
+      if (cancelled) return;
+      setCameraBlocked(true);
       setError(t("live.scanCameraDenied"));
     });
 
     return () => {
+      cancelled = true;
       void stopScanner();
     };
   }, [open, startScanner, stopScanner, t]);
@@ -168,22 +181,30 @@ export function LiveTokenScanner({
     if (busy) return;
     setOpen(false);
     setError(null);
+    setCameraBlocked(false);
   };
 
   const isHeader = placement === "header";
+
+  const headerButtonClass = isHeader
+    ? [
+        "flex h-[4.25rem] w-[4.25rem] shrink-0 touch-manipulation flex-col items-center justify-center gap-1 rounded-2xl text-[#fc8e0b] ring-2 transition-[background-color,transform] duration-150 [-webkit-tap-highlight-color:transparent]",
+        "bg-[#fc8e0b]/22 ring-[#fc8e0b]/40",
+        "active:scale-[0.97] active:bg-[#fc8e0b]/35 active:ring-[#fc8e0b]/55",
+        open ? "bg-[#fc8e0b]/35 ring-[#fc8e0b]/55" : "",
+        "disabled:opacity-40",
+      ].join(" ")
+    : "flex flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-brown-sugar transition-colors hover:bg-sunset/15 disabled:opacity-40 touch-manipulation [-webkit-tap-highlight-color:transparent]";
 
   return (
     <>
       <button
         type="button"
         disabled={disabled || busy}
-        onClick={() => setOpen(true)}
-        className={
-          isHeader
-            ? "flex h-[4.25rem] w-[4.25rem] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl bg-[#fc8e0b]/12 text-[#fc8e0b] ring-2 ring-[#fc8e0b]/25 transition-colors hover:bg-[#fc8e0b]/20 active:scale-[0.98] disabled:opacity-40"
-            : "flex flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-brown-sugar transition-colors hover:bg-sunset/15 disabled:opacity-40"
-        }
+        onClick={openScanner}
+        className={headerButtonClass}
         aria-label={t("live.scanToken")}
+        aria-expanded={open}
       >
         <ScanGlyph className={isHeader ? "h-7 w-7" : "h-7 w-7"} />
         {!isHeader ? (
@@ -221,27 +242,53 @@ export function LiveTokenScanner({
             </button>
           </div>
 
-          <p className="mb-3 text-center text-xs text-cream/75">
-            {t("live.scanHint")}
-          </p>
+          {cameraBlocked ? (
+            <div className="mx-auto flex w-full max-w-sm flex-1 flex-col items-center justify-center gap-5 px-4 text-center">
+              <p className="text-sm leading-relaxed text-cream/90">
+                {error ?? t("live.scanCameraDenied")}
+              </p>
+              <button
+                type="button"
+                onClick={close}
+                className="w-full max-w-xs rounded-2xl bg-[#fc8e0b] px-6 py-3 text-sm font-semibold text-white shadow-md active:scale-[0.98]"
+              >
+                {t("live.scanBackToLive")}
+              </button>
+            </div>
+          ) : (
+            <>
+              <p className="mb-3 text-center text-xs text-cream/75">
+                {t("live.scanHint")}
+              </p>
 
-          <div className="relative mx-auto w-full max-w-sm flex-1 min-h-[240px]">
-            <div
-              id={readerId}
-              className="overflow-hidden rounded-2xl bg-black [&_video]:rounded-2xl"
-            />
-            {busy ? (
-              <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/60">
-                <p className="text-sm font-medium text-cream">
-                  {t("scan.scanning")}
-                </p>
+              <div className="relative mx-auto w-full max-w-sm min-h-[240px] flex-1">
+                <div
+                  id={readerId}
+                  className="h-full min-h-[240px] overflow-hidden rounded-2xl bg-black [&_video]:rounded-2xl"
+                />
+                {busy ? (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/60">
+                    <p className="text-sm font-medium text-cream">
+                      {t("scan.scanning")}
+                    </p>
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-          </div>
 
-          {error ? (
-            <p className="mt-3 text-center text-sm text-red-bean/90">{error}</p>
-          ) : null}
+              {error ? (
+                <div className="mt-4 space-y-3 text-center">
+                  <p className="text-sm text-red-bean/90">{error}</p>
+                  <button
+                    type="button"
+                    onClick={close}
+                    className="w-full max-w-xs rounded-2xl border border-cream/30 px-6 py-2.5 text-sm font-medium text-cream"
+                  >
+                    {t("live.scanBackToLive")}
+                  </button>
+                </div>
+              ) : null}
+            </>
+          )}
         </div>
       ) : null}
     </>

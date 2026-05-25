@@ -177,6 +177,7 @@ export const zh = {
     scanClose: "關閉",
     scanInvalidQr: "無法辨識此 QR Code，請對準檢查點",
     scanCameraDenied: "無法開啟相機，請允許相機權限後再試",
+    scanBackToLive: "返回 LIVE",
     countOnline: "共 {count} 人 · 在線 {online} 人",
     firstIn: "你是第一個進場的 🥣",
     earnedBowls: "獲得 {count} 碗豆花",

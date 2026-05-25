@@ -185,6 +185,7 @@ export const en: Messages = {
     scanClose: "Close",
     scanInvalidQr: "Unrecognized QR — use a checkpoint code",
     scanCameraDenied: "Camera blocked — allow camera access and retry",
+    scanBackToLive: "Back to LIVE",
     countOnline: "{count} people · {online} online",
     firstIn: "You're the first in 🥣",
     earnedBowls: "Earned {count} bowl(s)",
