@@ -12,8 +12,10 @@ import {
   TOFU_TYPES,
   getTokenLabel,
 } from "@/lib/constants";
+import type { TokenTypeId } from "@/lib/constants";
 import {
   getTokenLabelLocalized,
+  getTokenZoneLocalized,
   getTofuLabelLocalized,
 } from "@/lib/i18n-labels";
 import {
@@ -25,6 +27,8 @@ import {
   getPassportCache,
   setPassportCache,
 } from "@/lib/passportCache";
+import { TokenEarnedToast } from "@/components/TokenEarnedToast";
+import { useTokenRealtime } from "@/hooks/useTokenRealtime";
 import { useStoredPlayerSnapshot } from "@/hooks/useStoredPlayer";
 import { clearStoredPlayer } from "@/lib/player";
 import {
@@ -44,6 +48,7 @@ export default function PassportPage() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [earnedTokenType, setEarnedTokenType] = useState<string | null>(null);
 
   const loadAccount = useCallback(
     async (runnerId: string, options?: { force?: boolean }) => {
@@ -125,6 +130,18 @@ export default function PassportPage() {
   const hasJoinedToday =
     player && sessionRunnerId && player.runnerId === sessionRunnerId;
 
+  useTokenRealtime({
+    userId: account?.user?.id ?? null,
+    sessionId: account?.todaySessionId ?? null,
+    onTokenEarned: ({ token }) => {
+      setEarnedTokenType(token.token_type);
+      if (sessionRunnerId) {
+        void loadAccount(sessionRunnerId, { force: true });
+      }
+    },
+    enabled: Boolean(sessionRunnerId && account?.user?.id),
+  });
+
   if (!sessionRunnerId && !loading) {
     return (
       <PageShell>
@@ -199,6 +216,12 @@ export default function PassportPage() {
 
   return (
     <PageShell>
+      {earnedTokenType && (
+        <TokenEarnedToast
+          tokenType={earnedTokenType}
+          onDone={() => setEarnedTokenType(null)}
+        />
+      )}
       <header className="mb-6 text-center">
         <p className="text-4xl mb-2">📔</p>
         <h1 className="text-2xl font-bold text-brown-sugar">{t("passport.title")}</h1>
@@ -245,22 +268,33 @@ export default function PassportPage() {
           <p className="mt-1 text-lg font-bold text-mung-green">
             {signup.goal ?? "—"}
           </p>
-          {signup.goal && signup.goal !== PURE_DOUHUA_GOAL && (
+          {(account?.collectTargets ?? []).length > 0 && (
             <div className="mt-4">
               <p className="text-xs font-medium text-brown-sugar/60 mb-2">
                 {t("passport.collectTokens")}
               </p>
               <ul className="space-y-2">
-                {(account?.collectTargets ?? []).map((t) => (
+                {(account?.collectTargets ?? []).map((target) => (
                   <li
-                    key={t.id}
+                    key={target.id}
                     className="flex items-center justify-between rounded-xl bg-cream/80 px-3 py-2 text-sm"
                   >
-                    <span className="font-medium text-brown-sugar">
-                      {t.label}
+                    <span className="flex items-center gap-2 font-medium text-brown-sugar">
+                      {getTokenLabelLocalized(
+                        target.id as TokenTypeId,
+                        locale
+                      )}
+                      {target.id === "tofu" && (
+                        <span className="rounded-full bg-sunset/25 px-1.5 py-0.5 text-[10px] font-medium text-brown-sugar/80">
+                          {t("passport.baseTofuRequired")}
+                        </span>
+                      )}
                     </span>
                     <span className="text-xs text-brown-sugar/55">
-                      {t.zone}
+                      {getTokenZoneLocalized(
+                        target.id as TokenTypeId,
+                        locale
+                      )}
                     </span>
                   </li>
                 ))}
@@ -280,6 +314,11 @@ export default function PassportPage() {
           {siteConfig.showLiveEntry && (
             <Button href="/live" className="w-full">
               {t("passport.enterLive")}
+            </Button>
+          )}
+          {hasJoinedToday && siteConfig.showLiveEntry && (
+            <Button href="/live/ground" variant="secondary" className="w-full">
+              {t("live.viewGround")}
             </Button>
           )}
           <Button href="/lobby" variant="secondary" className="w-full">

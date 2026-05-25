@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import {
   claimPoolUserByRunnerId,
+  ensureUserSessionForLive,
   getGoingSignupByRunnerId,
   getOrCreateTodaySession,
   getUserByRunnerId,
-  joinSession,
   touchLiveSeen,
 } from "@/lib/db";
 import { normalizeRunnerId, RUNNER_ID_PATTERN } from "@/lib/runner";
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       if (!poolUser || poolUser.id !== userId) {
         return NextResponse.json({ error: "身份不符" }, { status: 403 });
       }
-      await joinSession(userId, session.id);
+      await ensureUserSessionForLive(userId, session.id, runnerId);
       await touchLiveSeen(userId, session.id);
       return NextResponse.json({
         userId,
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
       );
     }
 
-    await joinSession(user.id, session.id);
+    await ensureUserSessionForLive(user.id, session.id, runnerId);
     await touchLiveSeen(user.id, session.id);
 
     return NextResponse.json({

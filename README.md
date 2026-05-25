@@ -63,6 +63,7 @@ npm run dev
 在各區域張貼 QR code，連結格式：
 
 ```
+{SITE_URL}/scan/tofu      → 太陽泉／起點（全員必掃豆花）
 {SITE_URL}/scan/redbean   → 水池區
 {SITE_URL}/scan/mungbean  → 樹林區
 {SITE_URL}/scan/peanut    → 城市光廊區
@@ -84,7 +85,16 @@ npm run dev
 
 ### LIVE 資料庫
 
-在 Supabase 執行 [`supabase/add_live_seen_at.sql`](./supabase/add_live_seen_at.sql)，為 `user_sessions` 新增 `live_seen_at` 欄位（在線綠 ✓ 用）。
+在 Supabase 執行：
+
+1. [`supabase/add_live_seen_at.sql`](./supabase/add_live_seen_at.sql) — `user_sessions.live_seen_at`（在線綠 ✓）
+2. [`supabase/add_tokens_session_id.sql`](./supabase/add_tokens_session_id.sql) — `tokens.session_id` + 同日同種不可重複掃
+3. Dashboard → **Database → Replication** — 啟用 **Realtime**：
+   - **`user_sessions`** — LIVE 名單有人進場時即時更新
+   - **`tokens`** — 掃 Token Toast、Ground 看板（DB 變更）
+   - 專案設定中允許 **Broadcast**（Ground 即時亮格用 WebSocket 廣播，不必重拉 API）
+
+LIVE Ground 看板：`{SITE_URL}/live/ground`（公開讀取今日進度；建議投屏）
 
 ## 管理者流程
 

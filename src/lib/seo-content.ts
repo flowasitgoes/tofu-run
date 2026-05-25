@@ -66,6 +66,13 @@ export const seoContent = {
     },
   ],
   checkpoints: [
+    {
+      id: "tofu",
+      zoneZh: "太陽泉／起點",
+      zoneEn: "Sun fountain / Start",
+      tokenZh: "豆花 Token",
+      tokenEn: "Tofu Token",
+    },
     { id: "redbean", zoneZh: "水池區", zoneEn: "Pond area", tokenZh: "紅豆 Token" },
     { id: "mungbean", zoneZh: "樹林區", zoneEn: "Grove area", tokenZh: "綠豆 Token" },
     { id: "peanut", zoneZh: "城市光廊區", zoneEn: "City arcade", tokenZh: "花生 Token" },

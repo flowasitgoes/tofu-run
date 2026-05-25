@@ -7,7 +7,13 @@ import { PageFooterNav } from "@/components/PageFooterNav";
 import { PageShell } from "@/components/PageShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { TokenEarnedToast } from "@/components/TokenEarnedToast";
 import { useLiveRoom } from "@/hooks/useLiveRoom";
+import { useTokenRealtime } from "@/hooks/useTokenRealtime";
+import {
+  getStoredLiveRunnerId,
+  setStoredLiveRunnerId,
+} from "@/lib/liveSession";
 import { useStoredGoingAccount } from "@/hooks/useStoredGoingAccount";
 import { useStoredPlayerSnapshot } from "@/hooks/useStoredPlayer";
 import { getCurrentPosition } from "@/lib/geolocation";
@@ -36,12 +42,30 @@ function LivePageContent() {
   const { account: going, mounted: goingMounted } = useStoredGoingAccount();
   const { player, mounted: playerMounted } = useStoredPlayerSnapshot();
   const [enteredRunnerId, setEnteredRunnerId] = useState<string | null>(null);
+  const [earnedTokenType, setEarnedTokenType] = useState<string | null>(null);
   const [runnerIdInput, setRunnerIdInput] = useState("");
   const [entering, setEntering] = useState(false);
   const [enterError, setEnterError] = useState<string | null>(null);
   const autoEnterTriedRef = useRef(false);
   const mounted = goingMounted && playerMounted;
-  const { participants, sessionDateLabel, count, onlineCount, loading, refreshing, error, reload } = useLiveRoom(enteredRunnerId);
+  const {
+    participants,
+    sessionDateLabel,
+    sessionId,
+    count,
+    onlineCount,
+    loading,
+    refreshing,
+    error,
+    reload,
+  } = useLiveRoom(enteredRunnerId);
+
+  useTokenRealtime({
+    userId: player?.runnerId === enteredRunnerId ? player.userId : null,
+    sessionId: sessionId ?? null,
+    onTokenEarned: ({ token }) => setEarnedTokenType(token.token_type),
+    enabled: Boolean(enteredRunnerId && sessionId && player?.userId),
+  });
 
   const enterLive = useCallback(async (rawId: string) => {
     const runnerId = normalizeRunnerId(rawId);
@@ -68,6 +92,7 @@ function LivePageContent() {
       setStoredGoingAccount({ runnerId: data.runnerId });
       setStoredPlayer({ userId: data.userId, runnerId: data.runnerId, runnerName: data.runnerName });
       setEnteredRunnerId(data.runnerId);
+      setStoredLiveRunnerId(data.runnerId);
     } catch (e) {
       setEnterError(
         e instanceof Error ? localizeError(e.message) : t("common.enterFailed")
@@ -82,6 +107,15 @@ function LivePageContent() {
     const autoId = player?.runnerId ?? going?.runnerId;
     if (autoId && !runnerIdInput) setRunnerIdInput(autoId);
   }, [mounted, enteredRunnerId, player?.runnerId, going?.runnerId, runnerIdInput]);
+
+  useEffect(() => {
+    if (!mounted || enteredRunnerId) return;
+    const restored = getStoredLiveRunnerId();
+    if (restored) {
+      setEnteredRunnerId(restored);
+      autoEnterTriedRef.current = true;
+    }
+  }, [mounted, enteredRunnerId]);
 
   useEffect(() => {
     if (!mounted || enteredRunnerId || entering || autoEnterTriedRef.current) {
@@ -141,6 +175,12 @@ function LivePageContent() {
 
   return (
     <PageShell>
+      {earnedTokenType && (
+        <TokenEarnedToast
+          tokenType={earnedTokenType}
+          onDone={() => setEarnedTokenType(null)}
+        />
+      )}
       <header className="mb-6">
         <p className="text-xs font-medium tracking-wide text-red-bean">LIVE</p>
         <h1 className="text-2xl font-bold text-brown-sugar">{t("live.todayOnSite")}</h1>
@@ -196,6 +236,9 @@ function LivePageContent() {
       </Card>
       <p className="mt-4 text-center text-[11px] text-brown-sugar/50">{t("live.onlineHint")}</p>
       <div className="mt-5 space-y-3">
+        <Button href="/live/ground" className="w-full">
+          {t("live.viewGround")}
+        </Button>
         <Button href="/passport" variant="secondary" className="w-full">{t("live.myPassport")}</Button>
         <PageFooterNav />
       </div>

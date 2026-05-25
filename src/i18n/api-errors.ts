@@ -30,6 +30,11 @@ const API_ERROR_KEYS: Record<string, string> = {
   "載入失敗": "common.loadFailed",
   "進入失敗": "common.enterFailed",
   "掃描失敗": "common.scanFailed",
+  "你已經收集過此 Token": "api.tokenAlreadyCollected",
+  "此 Token 不在你的豆花路線": "api.tokenNotOnRoute",
+  "純粹豆花路線無需掃描配料 Token": "api.pureRouteNoScan",
+  "找不到使用者": "api.userNotFound",
+  "讀取 Ground 失敗": "api.groundReadFailed",
   "送出失敗": "api.submitFailed",
   "暱稱僅能使用中文字、英文字母與空格，不可含數字或標點":
     "validation.invalidChars",
@@ -59,6 +64,11 @@ const enApiExtras: Record<string, string> = {
   "api.liveReadFailed": "Could not load LIVE",
   "api.passportReadFailed": "Could not load passport",
   "api.submitFailed": "Submit failed",
+  "api.tokenAlreadyCollected": "You already collected this Token",
+  "api.tokenNotOnRoute": "This Token is not on your tofu route",
+  "api.pureRouteNoScan": "Plain tofu route — no topping Tokens to scan",
+  "api.userNotFound": "User not found",
+  "api.groundReadFailed": "Could not load Ground board",
 };
 
 export function localizeErrorMessage(

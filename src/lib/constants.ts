@@ -76,7 +76,16 @@ export function formatDouhuaGoal(
 
 export type TofuTypeId = (typeof TOFU_TYPES)[number]["id"];
 
+/** 全員必掃的起點 Token（不計入報名配料三選） */
+export const BASE_TOFU_TOKEN_ID = "tofu" as const;
+
 export const TOKEN_TYPES = [
+  {
+    id: "tofu",
+    label: "豆花 Token",
+    zone: "太陽泉／起點",
+    image: "/tokens/tofu.png",
+  },
   {
     id: "redbean",
     label: "紅豆 Token",
@@ -110,6 +119,16 @@ export const TOKEN_TYPES = [
 ] as const;
 
 export type TokenTypeId = (typeof TOKEN_TYPES)[number]["id"];
+
+/** 豆花圖略大於其他 Token，視覺上較飽滿 */
+const TOFU_ICON_EXTRA_PX = 4;
+
+export function resolveTokenIconSize(
+  id: TokenTypeId | string,
+  base: number
+): number {
+  return id === BASE_TOFU_TOKEN_ID ? base + TOFU_ICON_EXTRA_PX : base;
+}
 
 export const STORAGE_KEY = "tofu-run-player";
 

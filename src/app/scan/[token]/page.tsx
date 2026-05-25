@@ -1,28 +1,48 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
 import { PageShell } from "@/components/PageShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TokenIcon } from "@/components/TokenIcon";
-import { TOKEN_TYPES } from "@/lib/constants";
+import { TOKEN_TYPES, resolveTokenIconSize } from "@/lib/constants";
 import {
   getTokenLabelLocalized,
   getTokenZoneLocalized,
 } from "@/lib/i18n-labels";
 import type { TokenTypeId } from "@/lib/constants";
-import { getCurrentPosition } from "@/lib/geolocation";
+import { getCurrentPositionForScan } from "@/lib/geolocation";
 import { useStoredPlayerSnapshot } from "@/hooks/useStoredPlayer";
+import { publishTokenEarned } from "@/lib/live-realtime";
 
 const VALID = TOKEN_TYPES.map((t) => t.id);
+const LOADING_MIN_MS = 1000;
+const LOADING_MAX_MS = 1500;
+/** 成功畫面停留後自動回 LIVE */
+const REDIRECT_TO_LIVE_MS = 1600;
+
+function randomLoadingMs() {
+  return (
+    LOADING_MIN_MS +
+    Math.floor(Math.random() * (LOADING_MAX_MS - LOADING_MIN_MS + 1))
+  );
+}
+
+function waitMs(ms: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
 
 export default function ScanPage({
   params,
 }: {
   params: Promise<{ token: string }>;
 }) {
+  const router = useRouter();
   const { locale, t, localizeError } = useLocale();
   const { token } = use(params);
   const tokenType = token.toLowerCase();
@@ -30,45 +50,94 @@ export default function ScanPage({
   const { player } = useStoredPlayerSnapshot();
 
   const [status, setStatus] = useState<
-    "idle" | "scanning" | "success" | "error"
+    "idle" | "loading" | "success" | "error"
   >("idle");
+  const [barPercent, setBarPercent] = useState(0);
+  const [barDurationMs, setBarDurationMs] = useState(1250);
   const [error, setError] = useState<string | null>(null);
   const [scannedAt, setScannedAt] = useState<string | null>(null);
+  const scanRef = useRef(false);
 
   useEffect(() => {
     if (player && tokenInfo && status === "idle") {
-      handleScan();
+      void handleScan();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player, tokenInfo]);
 
-  async function handleScan() {
-    if (!player || !tokenInfo) return;
-    setStatus("scanning");
-    setError(null);
+  useEffect(() => {
+    if (status !== "success") return;
+    const id = window.setTimeout(() => {
+      router.push("/live");
+    }, REDIRECT_TO_LIVE_MS);
+    return () => window.clearTimeout(id);
+  }, [status, router]);
 
-    const geo = await getCurrentPosition();
+  async function persistScan(): Promise<string> {
+    if (!player || !tokenInfo) throw new Error(t("common.scanFailed"));
+
+    const geo = await getCurrentPositionForScan();
+
+    const res = await fetch("/api/scan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: player.userId,
+        tokenType,
+        lat: geo?.lat ?? null,
+        lng: geo?.lng ?? null,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    const at =
+      (data.scannedAt as string | undefined) ??
+      (data.token?.scanned_at as string | undefined) ??
+      new Date().toISOString();
+
+    if (data.sessionId && data.token) {
+      publishTokenEarned({
+        sessionId: data.sessionId,
+        tokenId: data.token.id,
+        userId: player.userId,
+        runnerId: player.runnerId,
+        displayName: player.runnerName,
+        tokenType: data.token.token_type,
+        scannedAt: data.token.scanned_at,
+      });
+    }
+
+    return at;
+  }
+
+  async function handleScan() {
+    if (!player || !tokenInfo || scanRef.current) return;
+    scanRef.current = true;
+
+    const duration = randomLoadingMs();
+    setError(null);
+    setScannedAt(null);
+    setBarPercent(0);
+    setBarDurationMs(duration);
+    setStatus("loading");
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setBarPercent(100));
+    });
 
     try {
-      const res = await fetch("/api/scan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: player.userId,
-          tokenType,
-          lat: geo?.lat ?? null,
-          lng: geo?.lng ?? null,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setScannedAt(data.scannedAt);
+      const [at] = await Promise.all([persistScan(), waitMs(duration)]);
+      setScannedAt(at);
       setStatus("success");
     } catch (e) {
+      setBarPercent(0);
       setStatus("error");
       setError(
         e instanceof Error ? localizeError(e.message) : t("common.scanFailed")
       );
+    } finally {
+      scanRef.current = false;
     }
   }
 
@@ -93,7 +162,7 @@ export default function ScanPage({
             <TokenIcon
               src={tokenInfo.image}
               alt={tokenInfo.label}
-              size={80}
+              size={resolveTokenIconSize(tokenInfo.id, 80)}
               className="mx-auto mb-4"
             />
           )}
@@ -118,7 +187,7 @@ export default function ScanPage({
             <TokenIcon
               src={tokenInfo.image}
               alt={tokenInfo.label}
-              size={96}
+              size={resolveTokenIconSize(tokenInfo.id, 100)}
               className="mx-auto"
             />
           </div>
@@ -131,10 +200,28 @@ export default function ScanPage({
           {getTokenLabelLocalized(tokenType, locale)}
         </p>
 
-        {status === "scanning" && (
+        {status === "loading" && (
           <Card className="mt-8 w-full">
-            <p className="animate-pulse-soft">{t("scan.scanning")}</p>
-            <p className="mt-2 text-xs text-brown-sugar/50">{t("scan.gpsHint")}</p>
+            <p className="text-sm font-medium text-brown-sugar">
+              {t("scan.scanning")}
+            </p>
+            <div
+              className="mt-4 h-2 w-full overflow-hidden rounded-full bg-brown-sugar/10"
+              role="progressbar"
+              aria-valuenow={barPercent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div
+                className="h-full rounded-full bg-mung-green ease-out"
+                style={{
+                  width: `${barPercent}%`,
+                  transitionProperty: "width",
+                  transitionDuration: `${barDurationMs}ms`,
+                  transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
+                }}
+              />
+            </div>
           </Card>
         )}
 
@@ -152,8 +239,11 @@ export default function ScanPage({
                 })}
               </p>
             )}
-            <Button href="/passport" className="mt-6 w-full">
-              {t("scan.viewPassport")}
+            <p className="mt-4 text-xs text-brown-sugar/50">
+              {t("scan.redirectingToLive")}
+            </p>
+            <Button href="/live" className="mt-3 w-full">
+              {t("scan.backLive")}
             </Button>
           </Card>
         )}
@@ -161,23 +251,23 @@ export default function ScanPage({
         {status === "error" && (
           <Card className="mt-8 w-full">
             <p className="text-red-bean">{error}</p>
-            <Button className="mt-4 w-full" onClick={handleScan}>
+            <Button className="mt-4 w-full" onClick={() => void handleScan()}>
               {t("common.retry")}
             </Button>
           </Card>
         )}
 
         {status === "idle" && (
-          <Button className="mt-8 w-full" onClick={handleScan}>
+          <Button className="mt-8 w-full" onClick={() => void handleScan()}>
             {t("scan.scanThis")}
           </Button>
         )}
 
         <Link
-          href="/lobby"
+          href="/live"
           className="mt-6 text-xs text-brown-sugar/50 underline"
         >
-          {t("scan.backLobby")}
+          {t("scan.backLive")}
         </Link>
       </div>
     </PageShell>

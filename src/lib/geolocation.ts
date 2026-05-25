@@ -3,10 +3,24 @@ export type GeoPosition = {
   lng: number;
 };
 
-export function getCurrentPosition(): Promise<GeoPosition | null> {
+export type GeoOptions = {
+  enableHighAccuracy?: boolean;
+  timeout?: number;
+  maximumAge?: number;
+};
+
+export function getCurrentPosition(
+  options?: GeoOptions
+): Promise<GeoPosition | null> {
   if (typeof window === "undefined" || !navigator.geolocation) {
     return Promise.resolve(null);
   }
+
+  const {
+    enableHighAccuracy = true,
+    timeout = 10000,
+    maximumAge = 60000,
+  } = options ?? {};
 
   return new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
@@ -17,7 +31,16 @@ export function getCurrentPosition(): Promise<GeoPosition | null> {
         });
       },
       () => resolve(null),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      { enableHighAccuracy, timeout, maximumAge }
     );
+  });
+}
+
+/** 掃描背景同步用：不擋 UI，逾時較短、不強制高精度 */
+export function getCurrentPositionForScan(): Promise<GeoPosition | null> {
+  return getCurrentPosition({
+    enableHighAccuracy: false,
+    timeout: 3500,
+    maximumAge: 120_000,
   });
 }

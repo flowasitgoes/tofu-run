@@ -8,10 +8,13 @@ export function PageShell({
   children,
   showNav = true,
   className = "",
+  mainClassName = "max-w-lg",
 }: {
   children: ReactNode;
   showNav?: boolean;
   className?: string;
+  /** 主內容區最大寬度，例如 Ground 看板用 max-w-2xl */
+  mainClassName?: string;
 }) {
   return (
     <div className={`min-h-dvh pb-24 ${className}`}>
@@ -22,7 +25,9 @@ export function PageShell({
       <div className="pointer-events-auto fixed right-4 top-4 z-[60]">
         <LanguageToggle />
       </div>
-      <main className="relative mx-auto max-w-lg px-5 pt-14">{children}</main>
+      <main className={`relative mx-auto px-5 pt-14 ${mainClassName}`}>
+        {children}
+      </main>
       {showNav && <Nav />}
     </div>
   );

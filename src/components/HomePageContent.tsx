@@ -9,7 +9,7 @@ import { TokenIcon } from "@/components/TokenIcon";
 import { useLocale } from "@/components/LocaleProvider";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { TOKEN_TYPES } from "@/lib/constants";
+import { TOKEN_TYPES, resolveTokenIconSize } from "@/lib/constants";
 import {
   getGatheringSlots,
   getTokenLabelLocalized,
@@ -100,7 +100,7 @@ export function HomePageContent() {
                 <TokenIcon
                   src={token.image}
                   alt={getTokenLabelLocalized(token.id, locale)}
-                  size={28}
+                  size={resolveTokenIconSize(token.id, 28)}
                 />
                 {getTokenZoneLocalized(token.id as TokenTypeId, locale)}
               </span>

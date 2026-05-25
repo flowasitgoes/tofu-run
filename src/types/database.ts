@@ -38,10 +38,42 @@ export type LiveParticipant = {
 export type Token = {
   id: string;
   user_id: string;
+  session_id: string | null;
   token_type: string;
   lat: number | null;
   lng: number | null;
   scanned_at: string;
+};
+
+/** LIVE Ground：單一參與者五格 Token 狀態 */
+export type GroundParticipantRow = {
+  user_id: string;
+  runner_id: string;
+  display_name: string;
+  goal: string | null;
+  joined_at: string;
+  earned: Record<string, string | null>;
+  /** 此人須掃的 Token（豆花 + 報名配料） */
+  requiredTokenIds: string[];
+  isComplete: boolean;
+  completedAt: string | null;
+};
+
+export type GroundFeedItem = {
+  id: string;
+  user_id: string;
+  runner_id: string;
+  display_name: string;
+  token_type: string;
+  scanned_at: string;
+};
+
+export type LiveGroundPayload = {
+  sessionId: string;
+  sessionDate: string;
+  sessionDateLabel: string;
+  participants: GroundParticipantRow[];
+  feed: GroundFeedItem[];
 };
 
 export type LobbyPlayer = {
@@ -102,4 +134,7 @@ export type PassportAccount = {
   }[];
   user: User | null;
   runs: PassportRun[];
+  /** 今日場次（Realtime / LIVE 用） */
+  todaySessionId: string | null;
+  joinedToday: boolean;
 };

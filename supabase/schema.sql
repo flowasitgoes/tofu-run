@@ -36,6 +36,7 @@ create table if not exists user_sessions (
 create table if not exists tokens (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
+  session_id uuid references sessions(id) on delete cascade,
   token_type text not null,
   lat double precision,
   lng double precision,
@@ -45,6 +46,10 @@ create table if not exists tokens (
 create index if not exists idx_user_sessions_session on user_sessions(session_id);
 create index if not exists idx_tokens_user on tokens(user_id);
 create index if not exists idx_tokens_user_type on tokens(user_id, token_type);
+create index if not exists idx_tokens_session on tokens(session_id);
+create unique index if not exists idx_tokens_session_user_type_unique
+  on tokens(session_id, user_id, token_type)
+  where session_id is not null;
 
 -- 首頁「想參加 / 有興趣」預先登記
 create table if not exists going_signups (

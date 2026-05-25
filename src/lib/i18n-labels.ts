@@ -49,11 +49,18 @@ export function getTofuShortLocalized(id: TofuTypeId, locale: Locale): string {
 export function getTokenLabelLocalized(id: string, locale: Locale): string {
   const found = TOKEN_TYPES.find((x) => x.id === id);
   if (!found) return id;
-  return createTranslator(locale)(`tokens.${found.id as TokenTypeId}.label`);
+  const key = `tokens.${found.id as TokenTypeId}.label`;
+  const t = createTranslator(locale);
+  const translated = t(key);
+  return translated === key ? found.label : translated;
 }
 
 export function getTokenZoneLocalized(id: TokenTypeId, locale: Locale): string {
-  return createTranslator(locale)(`tokens.${id}.zone`);
+  const key = `tokens.${id}.zone`;
+  const t = createTranslator(locale);
+  const translated = t(key);
+  const found = TOKEN_TYPES.find((x) => x.id === id);
+  return translated === key && found ? found.zone : translated;
 }
 
 export function getGatheringSlots(locale: Locale) {

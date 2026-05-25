@@ -1,9 +1,17 @@
+import { TOKEN_TYPES } from "@/lib/constants";
 import { createSupabaseClient, createSupabaseServiceClient } from "@/lib/supabase";
 import { getTodayDateString } from "@/lib/session";
+import {
+  computeGroundCompletion,
+  requiredTokenIdsForGoal,
+} from "@/lib/ground-completion";
 import { collectTargetsFromSignup } from "@/lib/toppings";
 import type {
   GoingJoinListEntry,
   GoingSignup,
+  GroundFeedItem,
+  GroundParticipantRow,
+  LiveGroundPayload,
   LiveParticipant,
   LobbyPlayer,
   PassportAccount,
@@ -15,7 +23,8 @@ import type {
 } from "@/types/database";
 
 /** LIVE 在線：最後出現在 /live 的時間在此秒數內 */
-export const LIVE_ONLINE_SECONDS = 120;
+/** 有心跳（/api/live/presence）時可涵蓋掃 Token 離開 LIVE 頁的時間 */
+export const LIVE_ONLINE_SECONDS = 180;
 
 function isRpcNotFound(error: { code?: string } | null): boolean {
   return error?.code === "PGRST202";
@@ -25,9 +34,11 @@ function isMissingColumn(
   error: { code?: string; message?: string } | null,
   column: string
 ): boolean {
+  if (!error?.message?.includes(column)) return false;
   return (
-    error?.code === "PGRST204" &&
-    (error.message?.includes(column) ?? false)
+    error.code === "PGRST204" ||
+    error.code === "42703" ||
+    /does not exist/i.test(error.message)
   );
 }
 
@@ -222,11 +233,29 @@ export async function getPassportAccount(
   );
 
   if (!user) {
-    return { signup, collectTargets, user: null, runs: [] };
+    const session = await getOrCreateTodaySession();
+    return {
+      signup,
+      collectTargets,
+      user: null,
+      runs: [],
+      todaySessionId: session.id,
+      joinedToday: false,
+    };
   }
 
   const { runs } = await getPassportData(user.id);
-  return { signup, collectTargets, user, runs };
+  const session = await getOrCreateTodaySession();
+  const todayMembership = await getUserSessionForToday(user.id, session.id);
+
+  return {
+    signup,
+    collectTargets,
+    user,
+    runs,
+    todaySessionId: session.id,
+    joinedToday: todayMembership !== null,
+  };
 }
 
 /** 依 Runner ID 查詢 300 名額池中的跑者 */
@@ -267,6 +296,52 @@ export async function createUser(
   return data as User;
 }
 
+export async function getUserById(userId: string): Promise<User | null> {
+  const supabase = createSupabaseClient();
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as User) ?? null;
+}
+
+function primaryTofuFromSignup(signup: GoingSignup | null): string | null {
+  return signup?.topping1 ?? null;
+}
+
+/** 進入 LIVE：加入今日場次，並從報名同步 tofu_type（不依賴 /admin） */
+export async function ensureUserSessionForLive(
+  userId: string,
+  sessionId: string,
+  runnerId: string
+): Promise<UserSession> {
+  const supabase = createSupabaseClient();
+  let row = await getUserSessionForToday(userId, sessionId);
+
+  if (!row) {
+    row = await joinSession(userId, sessionId);
+  }
+
+  if (row.tofu_type) return row;
+
+  const signup = await getGoingSignupByRunnerId(runnerId);
+  const primary = primaryTofuFromSignup(signup);
+  if (!primary) return row;
+
+  const { data, error } = await supabase
+    .from("user_sessions")
+    .update({ tofu_type: primary })
+    .eq("id", row.id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as UserSession;
+}
+
 export async function joinSession(
   userId: string,
   sessionId: string
@@ -290,6 +365,42 @@ export async function joinSession(
 
   if (error) throw error;
   return data as UserSession;
+}
+
+export async function hasSessionToken(
+  userId: string,
+  sessionId: string,
+  tokenType: string
+): Promise<boolean> {
+  const supabase = createSupabaseClient();
+
+  let query = supabase
+    .from("tokens")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("token_type", tokenType)
+    .eq("session_id", sessionId)
+    .limit(1);
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error && isMissingColumn(error, "session_id")) {
+    const session = await getOrCreateTodaySession();
+    if (session.id !== sessionId) return false;
+    const { data: legacy, error: legacyError } = await supabase
+      .from("tokens")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("token_type", tokenType)
+      .gte("scanned_at", `${session.date}T00:00:00`)
+      .limit(1)
+      .maybeSingle();
+    if (legacyError) throw legacyError;
+    return legacy !== null;
+  }
+
+  if (error) throw error;
+  return data !== null;
 }
 
 export async function getLobbyPlayers(sessionId: string): Promise<LobbyPlayer[]> {
@@ -367,24 +478,159 @@ export async function completeSession(userSessionId: string): Promise<void> {
 
 export async function recordToken(
   userId: string,
+  sessionId: string,
   tokenType: string,
   lat: number | null,
   lng: number | null
 ): Promise<Token> {
   const supabase = createSupabaseClient();
-  const { data, error } = await supabase
-    .from("tokens")
-    .insert({
-      user_id: userId,
-      token_type: tokenType,
-      lat,
-      lng,
-    })
-    .select()
-    .single();
+  const row: Record<string, unknown> = {
+    user_id: userId,
+    session_id: sessionId,
+    token_type: tokenType,
+    lat,
+    lng,
+  };
 
-  if (error) throw error;
+  let { data, error } = await supabase.from("tokens").insert(row).select().single();
+
+  if (error && isMissingColumn(error, "session_id")) {
+    delete row.session_id;
+    ({ data, error } = await supabase.from("tokens").insert(row).select().single());
+  }
+
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error("你已經收集過此 Token");
+    }
+    throw error;
+  }
   return data as Token;
+}
+
+export async function getLiveGroundData(
+  sessionId: string,
+  sessionDate: string,
+  sessionDateLabel: string
+): Promise<LiveGroundPayload> {
+  const participants = await getLiveParticipants(sessionId);
+  const tokenIds: string[] = TOKEN_TYPES.map((t) => t.id);
+  const emptyEarned = (): Record<string, string | null> =>
+    Object.fromEntries(tokenIds.map((id) => [id, null]));
+
+  if (participants.length === 0) {
+    return {
+      sessionId,
+      sessionDate,
+      sessionDateLabel,
+      participants: [],
+      feed: [],
+    };
+  }
+
+  const supabase = createSupabaseServiceClient();
+  const userIds = participants.map((p) => p.user_id);
+
+  let tokenRows: Token[] = [];
+  const withSession = await supabase
+    .from("tokens")
+    .select("*")
+    .eq("session_id", sessionId)
+    .in("user_id", userIds)
+    .order("scanned_at", { ascending: false });
+
+  if (withSession.error && isMissingColumn(withSession.error, "session_id")) {
+    const { data: legacy, error: legacyError } = await supabase
+      .from("tokens")
+      .select("*")
+      .in("user_id", userIds)
+      .gte("scanned_at", `${sessionDate}T00:00:00`)
+      .order("scanned_at", { ascending: false });
+    if (legacyError) throw legacyError;
+    tokenRows = (legacy ?? []) as Token[];
+  } else {
+    if (withSession.error) throw withSession.error;
+    tokenRows = (withSession.data ?? []) as Token[];
+  }
+
+  const earnedByUser = new Map<string, Record<string, string | null>>();
+  for (const p of participants) {
+    earnedByUser.set(p.user_id, emptyEarned());
+  }
+
+  for (const tok of tokenRows) {
+    const earned = earnedByUser.get(tok.user_id);
+    if (!earned || !tokenIds.includes(tok.token_type)) continue;
+    if (!earned[tok.token_type]) {
+      earned[tok.token_type] = tok.scanned_at;
+    }
+  }
+
+  const runnerIds = participants.map((p) => p.runner_id);
+  const { data: signupRows, error: signupError } = await supabase
+    .from("going_signups")
+    .select("runner_id, goal, topping1, topping2, topping3")
+    .in("runner_id", runnerIds)
+    .eq("intent", "join");
+
+  if (signupError) throw signupError;
+
+  const signupByRunner = new Map(
+    (signupRows ?? []).map((s) => [s.runner_id as string, s])
+  );
+
+  const runnerByUser = new Map(
+    participants.map((p) => [p.user_id, p.runner_id])
+  );
+  const nameByUser = new Map(
+    participants.map((p) => [p.user_id, p.display_name])
+  );
+
+  const rows: GroundParticipantRow[] = participants.map((p) => {
+    const earned = earnedByUser.get(p.user_id) ?? emptyEarned();
+    const signup = signupByRunner.get(p.runner_id);
+    const requiredTokenIds = signup
+      ? requiredTokenIdsForGoal(
+          signup.goal as string | null,
+          signup.topping1 as string | null,
+          signup.topping2 as string | null,
+          signup.topping3 as string | null
+        )
+      : requiredTokenIdsForGoal(p.goal, null, null, null);
+    const { isComplete, completedAt } = computeGroundCompletion(
+      requiredTokenIds,
+      earned
+    );
+
+    return {
+      user_id: p.user_id,
+      runner_id: p.runner_id,
+      display_name: p.display_name,
+      goal: p.goal,
+      joined_at: p.joined_at,
+      earned,
+      requiredTokenIds,
+      isComplete,
+      completedAt,
+    };
+  });
+
+  const feed: GroundFeedItem[] = tokenRows.slice(0, 30).map((tok) => ({
+    id: tok.id,
+    user_id: tok.user_id,
+    runner_id: runnerByUser.get(tok.user_id) ?? "",
+    display_name: nameByUser.get(tok.user_id) ?? "",
+    token_type: tok.token_type,
+    scanned_at: tok.scanned_at,
+  }));
+
+  return {
+    sessionId,
+    sessionDate,
+    sessionDateLabel,
+    participants: rows,
+    feed,
+  };
 }
 
 export async function getUserSessionForToday(
