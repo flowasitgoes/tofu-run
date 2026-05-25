@@ -182,8 +182,9 @@ export const zh = {
     countOnline: "共 {count} 人 · 上線 {online} 人",
     firstIn: "你是第一個進場的 🥣",
     earnedBowls: "獲得 {count} 碗豆花",
+    completionRank: "第 {rank} 名",
     onlineHint:
-      "綠色圓點＝上線、灰色圓點＝下線；圖示右下角數字＝掃描次數；藍字「獲得N碗豆花」＝完成碗數",
+      "綠色圓點＝上線、灰色圓點＝下線；完成時間旁紫框數字＝完成名次；圖示右下角數字＝掃描次數",
     feed: "最新動態",
     feedEarned: "獲得 {token}",
     feedHint: "有人掃描 Token 時會即時更新",

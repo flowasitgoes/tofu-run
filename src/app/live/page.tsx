@@ -1,6 +1,13 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
 import { PageFooterNav } from "@/components/PageFooterNav";
@@ -20,7 +27,9 @@ import { useStoredPlayerSnapshot } from "@/hooks/useStoredPlayer";
 import { getCurrentPosition } from "@/lib/geolocation";
 import { setStoredGoingAccount } from "@/lib/goingAccount";
 import { getStoredPlayer, setStoredPlayer } from "@/lib/player";
+import { LiveCompletedTimeWithRank } from "@/components/LiveCompletedTimeWithRank";
 import { formatTaipeiTime } from "@/lib/format-time";
+import { buildCompletionRanks } from "@/lib/live-completion-rank";
 import { countCompletedBowls } from "@/lib/ground-completion";
 import { normalizeRunnerId } from "@/lib/runner";
 import { LiveActivityFeed } from "@/components/LiveActivityFeed";
@@ -97,6 +106,11 @@ function LivePageContent() {
     reload,
     applyTokenEarned,
   } = useLiveRoom(enteredRunnerId);
+
+  const completionRanks = useMemo(
+    () => buildCompletionRanks(participants),
+    [participants]
+  );
 
   useTokenRealtime({
     userId: player?.runnerId === enteredRunnerId ? player.userId : null,
@@ -333,6 +347,7 @@ function LivePageContent() {
           <ul className="divide-y divide-brown-sugar/8">
             {participants.map((p) => {
               const isMe = enteredRunnerId === p.runner_id;
+              const completionRank = completionRanks.get(p.user_id);
               const bowlsDone = countCompletedBowls(
                 p.required_token_ids ?? [],
                 p.earned_token_ids ?? []
@@ -373,7 +388,16 @@ function LivePageContent() {
                           <OfflineBadge label={t("live.offline")} />
                         )}
                       </div>
-                      {p.is_complete && p.completed_at ? (
+                      {p.is_complete && p.completed_at && completionRank ? (
+                        <LiveCompletedTimeWithRank
+                          completedAt={p.completed_at}
+                          rank={completionRank}
+                          locale={locale}
+                          rankAriaLabel={t("live.completionRank", {
+                            rank: completionRank,
+                          })}
+                        />
+                      ) : p.is_complete && p.completed_at ? (
                         <time
                           dateTime={p.completed_at}
                           className="mr-1.5 text-[10px] text-brown-sugar/60 whitespace-nowrap"

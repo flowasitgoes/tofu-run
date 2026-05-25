@@ -190,8 +190,9 @@ export const en: Messages = {
     countOnline: "{count} people · {online} online",
     firstIn: "You're the first in 🥣",
     earnedBowls: "Earned {count} bowl(s)",
+    completionRank: "Rank {rank}",
     onlineHint:
-      "Green dot = online, gray dot = offline. Badge = scan count. Blue “Earned N bowl(s)” = bowls completed.",
+      "Green dot = online, gray dot = offline. Purple badge by time = finish rank. Corner badge = scan count.",
     feed: "Latest activity",
     feedEarned: "earned {token}",
     feedHint: "Updates live when someone scans a Token",
