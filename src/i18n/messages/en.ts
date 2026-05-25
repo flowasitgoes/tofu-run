@@ -167,6 +167,7 @@ export const en: Messages = {
   },
   live: {
     online: "Online",
+    offline: "Offline",
     enterTitle: "Enter today's room",
     fromQr: "Scan OK! Enter your Runner ID to join.",
     enterHint: "Runner ID required so we know it's you.",
@@ -190,7 +191,7 @@ export const en: Messages = {
     firstIn: "You're the first in 🥣",
     earnedBowls: "Earned {count} bowl(s)",
     onlineHint:
-      "Green dot = online. Badge = scan count. Blue “Earned N bowl(s)” = bowls completed.",
+      "Green dot = online, gray dot = offline. Badge = scan count. Blue “Earned N bowl(s)” = bowls completed.",
     feed: "Latest activity",
     feedEarned: "earned {token}",
     feedHint: "Updates live when someone scans a Token",

@@ -1,4 +1,15 @@
 import { NextResponse } from "next/server";
+
+/** Ground API 暫停使用；原實作見檔案底部註解 */
+export async function GET() {
+  return NextResponse.json(
+    { error: "Ground 看板暫停使用" },
+    { status: 503 }
+  );
+}
+
+/*
+import { NextResponse } from "next/server";
 import {
   getLiveGroundData,
   getOrCreateTodaySession,
@@ -58,3 +69,4 @@ export async function GET(request: Request) {
     );
   }
 }
+*/

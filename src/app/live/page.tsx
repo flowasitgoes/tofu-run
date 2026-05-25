@@ -13,7 +13,6 @@ import { useTokenRealtime } from "@/hooks/useTokenRealtime";
 import {
   consumePendingTokenEarn,
   getStoredLiveRunnerId,
-  prefetchLiveGroundCache,
   setStoredLiveRunnerId,
 } from "@/lib/liveSession";
 import { useStoredGoingAccount } from "@/hooks/useStoredGoingAccount";
@@ -29,7 +28,7 @@ import { LiveCompleteBadge } from "@/components/LiveCompleteBadge";
 import { LiveParticipantTokenIcons } from "@/components/LiveParticipantTokenIcons";
 import { LiveTokenScanner } from "@/components/LiveTokenScanner";
 
-/** 在線：實心綠點（與 Ground 完成用的 ✓ 區隔） */
+/** 上線：實心綠點（與 Ground 完成用的 ✓ 區隔） */
 function OnlineBadge({ label }: { label: string }) {
   return (
     <span
@@ -43,6 +42,26 @@ function OnlineBadge({ label }: { label: string }) {
       />
       <span
         className="relative h-3 w-3 rounded-full bg-mung-green ring-2 ring-cream"
+        aria-hidden
+      />
+    </span>
+  );
+}
+
+/** 下線：灰色圓點（與上線綠點同一位置、同一尺寸） */
+function OfflineBadge({ label }: { label: string }) {
+  return (
+    <span
+      className="relative flex h-6 w-6 shrink-0 items-center justify-center"
+      title={label}
+      aria-label={label}
+    >
+      <span
+        className="absolute h-6 w-6 rounded-full bg-brown-sugar/12"
+        aria-hidden
+      />
+      <span
+        className="relative h-3 w-3 rounded-full bg-brown-sugar/35 ring-2 ring-cream"
         aria-hidden
       />
     </span>
@@ -177,11 +196,6 @@ function LivePageContent() {
     entering,
     enterLive,
   ]);
-
-  useEffect(() => {
-    if (!enteredRunnerId || !sessionId) return;
-    prefetchLiveGroundCache(enteredRunnerId);
-  }, [enteredRunnerId, sessionId, participants.length]);
 
   if (!mounted || !storageReady) {
     return (
@@ -356,10 +370,7 @@ function LivePageContent() {
                         {p.is_online ? (
                           <OnlineBadge label={t("live.online")} />
                         ) : (
-                          <span
-                            className="h-6 w-6 shrink-0 rounded-full border border-brown-sugar/15 bg-cream/80"
-                            aria-hidden
-                          />
+                          <OfflineBadge label={t("live.offline")} />
                         )}
                       </div>
                       {p.is_complete && p.completed_at ? (
@@ -387,9 +398,6 @@ function LivePageContent() {
       <p className="mt-4 text-center text-[11px] text-brown-sugar/50">{t("live.onlineHint")}</p>
       {enteredRunnerId ? <LiveActivityFeed feed={feed} /> : null}
       <div className="mt-5 space-y-3">
-        <Button href="/live/ground" className="w-full">
-          {t("live.viewGround")}
-        </Button>
         <Button href="/passport" variant="secondary" className="w-full">{t("live.myPassport")}</Button>
         <PageFooterNav />
       </div>

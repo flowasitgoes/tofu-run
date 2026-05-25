@@ -158,7 +158,8 @@ export const zh = {
     logout: "登出護照",
   },
   live: {
-    online: "在線",
+    online: "上線",
+    offline: "下線",
     enterTitle: "進入今日房間",
     fromQr: "掃碼成功！請輸入你的 Runner ID 進場。",
     enterHint: "須輸入 Runner ID 才能進入，我們才知道你是誰。",
@@ -178,11 +179,11 @@ export const zh = {
     scanInvalidQr: "無法辨識此 QR Code，請對準檢查點",
     scanCameraDenied: "無法開啟相機，請允許相機權限後再試",
     scanBackToLive: "返回 LIVE",
-    countOnline: "共 {count} 人 · 在線 {online} 人",
+    countOnline: "共 {count} 人 · 上線 {online} 人",
     firstIn: "你是第一個進場的 🥣",
     earnedBowls: "獲得 {count} 碗豆花",
     onlineHint:
-      "綠色圓點＝在線；圖示右下角數字＝掃描次數；藍字「獲得N碗豆花」＝完成碗數",
+      "綠色圓點＝上線、灰色圓點＝下線；圖示右下角數字＝掃描次數；藍字「獲得N碗豆花」＝完成碗數",
     feed: "最新動態",
     feedEarned: "獲得 {token}",
     feedHint: "有人掃描 Token 時會即時更新",

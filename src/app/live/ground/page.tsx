@@ -1,6 +1,29 @@
 "use client";
 
 import Link from "next/link";
+import { PageShell } from "@/components/PageShell";
+
+/** Ground 看板暫停使用；原實作見檔案底部註解 */
+export default function LiveGroundPage() {
+  return (
+    <PageShell mainClassName="max-w-2xl">
+      <p className="py-16 text-center text-sm text-brown-sugar/60">
+        Ground 看板暫停使用
+      </p>
+      <Link
+        href="/live"
+        className="block text-center text-sm text-brown-sugar/70 underline"
+      >
+        返回 LIVE
+      </Link>
+    </PageShell>
+  );
+}
+
+/*
+"use client";
+
+import Link from "next/link";
 import { useLocale } from "@/components/LocaleProvider";
 import { LiveGroundBoard } from "@/components/LiveGroundBoard";
 import { PageShell } from "@/components/PageShell";
@@ -77,3 +100,4 @@ export default function LiveGroundPage() {
     </PageShell>
   );
 }
+*/

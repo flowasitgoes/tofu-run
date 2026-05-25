@@ -316,11 +316,13 @@ export default function PassportPage() {
               {t("passport.enterLive")}
             </Button>
           )}
+          {/* Ground 看板暫停使用
           {hasJoinedToday && siteConfig.showLiveEntry && (
             <Button href="/live/ground" variant="secondary" className="w-full">
               {t("live.viewGround")}
             </Button>
           )}
+          */}
           <Button href="/lobby" variant="secondary" className="w-full">
             {t("passport.viewLobby")}
           </Button>
