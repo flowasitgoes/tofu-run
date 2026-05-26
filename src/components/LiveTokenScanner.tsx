@@ -35,6 +35,29 @@ function ScanGlyph({ className = "h-6 w-6" }: { className?: string }) {
   );
 }
 
+function ScanRecoveryPanel({
+  message,
+  backLabel,
+  onBack,
+}: {
+  message: string;
+  backLabel: string;
+  onBack: () => void;
+}) {
+  return (
+    <div className="mx-auto flex w-full max-w-sm flex-1 flex-col items-center justify-center gap-6 px-4 pb-8">
+      <p className="text-base leading-relaxed text-cream">{message}</p>
+      <button
+        type="button"
+        onClick={onBack}
+        className="w-full max-w-xs shrink-0 rounded-2xl bg-[#fc8e0b] px-6 py-3.5 text-base font-semibold text-white shadow-md active:scale-[0.98]"
+      >
+        {backLabel}
+      </button>
+    </div>
+  );
+}
+
 export function LiveTokenScanner({
   userId,
   runnerId,
@@ -54,6 +77,8 @@ export function LiveTokenScanner({
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const handlingRef = useRef(false);
   const lastActivateAtRef = useRef(0);
+  const onScannedRef = useRef(onScanned);
+  onScannedRef.current = onScanned;
 
   const stopScanner = useCallback(async () => {
     const scanner = scannerRef.current;
@@ -71,15 +96,25 @@ export function LiveTokenScanner({
     }
   }, []);
 
+  const enterRecovery = useCallback(
+    (message: string) => {
+      void stopScanner();
+      setCameraBlocked(false);
+      setScanFailed(true);
+      setError(message);
+      setBusy(false);
+      handlingRef.current = false;
+    },
+    [stopScanner]
+  );
+
   const handleDecode = useCallback(
     async (text: string) => {
       if (handlingRef.current) return;
 
       const tokenType = parseTokenTypeFromScanText(text);
       if (!tokenType) {
-        void stopScanner();
-        setScanFailed(true);
-        setError(t("live.scanInvalidQr"));
+        enterRecovery(t("live.scanInvalidQr"));
         return;
       }
 
@@ -98,10 +133,10 @@ export function LiveTokenScanner({
           tokenType,
         });
         setOpen(false);
-        if (result.broadcast) {
-          onScanned(result.broadcast);
-        } else {
-          onScanned({
+        setScanFailed(false);
+        const broadcast =
+          result.broadcast ??
+          ({
             sessionId: result.sessionId,
             tokenId: `local-${Date.now()}`,
             userId,
@@ -109,26 +144,23 @@ export function LiveTokenScanner({
             displayName: runnerName,
             tokenType: result.tokenType,
             scannedAt: result.scannedAt,
-          });
-        }
+          } satisfies TokenEarnedBroadcast);
+        onScannedRef.current(broadcast);
       } catch (e) {
         const raw = e instanceof Error ? e.message : "";
-        setScanFailed(true);
-        setError(
+        enterRecovery(
           raw === "SCAN_TIMEOUT"
             ? t("common.scanFailed")
             : localizeError(raw) || t("common.scanFailed")
         );
-        handlingRef.current = false;
-        setBusy(false);
       }
     },
     [
       userId,
       runnerId,
       runnerName,
-      onScanned,
       stopScanner,
+      enterRecovery,
       t,
       localizeError,
     ]
@@ -166,6 +198,8 @@ export function LiveTokenScanner({
     setOpen(true);
   }, [disabled, busy, open]);
 
+  const showRecovery = cameraBlocked || scanFailed;
+
   useEffect(() => {
     if (!open) {
       handlingRef.current = false;
@@ -176,18 +210,24 @@ export function LiveTokenScanner({
       return;
     }
 
+    if (showRecovery) {
+      void stopScanner();
+      return;
+    }
+
     let cancelled = false;
     void startScanner().catch(() => {
       if (cancelled) return;
       setCameraBlocked(true);
       setError(t("live.scanCameraDenied"));
+      setBusy(false);
     });
 
     return () => {
       cancelled = true;
       void stopScanner();
     };
-  }, [open, startScanner, stopScanner, t]);
+  }, [open, showRecovery, startScanner, stopScanner, t]);
 
   const close = () => {
     if (busy) return;
@@ -197,7 +237,10 @@ export function LiveTokenScanner({
     setScanFailed(false);
   };
 
-  const showRecovery = cameraBlocked || scanFailed;
+  const recoveryMessage =
+    error ??
+    (cameraBlocked ? t("live.scanCameraDenied") : t("common.scanFailed"));
+
   const isHeader = placement === "header";
 
   const headerButtonClass = isHeader
@@ -241,54 +284,54 @@ export function LiveTokenScanner({
 
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex flex-col bg-brown-sugar/92 p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]"
+          className="fixed inset-0 z-[100] flex flex-col bg-brown-sugar/95 p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(5.5rem,env(safe-area-inset-bottom))]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="live-scan-title"
         >
-          <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="mb-3 flex shrink-0 items-center justify-between gap-3">
             <h3
               id="live-scan-title"
               className="text-base font-semibold text-cream"
             >
-              {t("live.scanToken")}
+              {showRecovery ? t("live.scanBackToLive") : t("live.scanToken")}
             </h3>
-            <button
-              type="button"
-              onClick={close}
-              disabled={busy}
-              className="rounded-lg px-3 py-1.5 text-sm text-cream/90 underline disabled:opacity-40"
-            >
-              {t("live.scanClose")}
-            </button>
-          </div>
-
-          {showRecovery ? (
-            <div className="mx-auto flex w-full max-w-sm flex-1 flex-col items-center justify-center gap-5 px-4 text-center">
-              <p className="text-sm leading-relaxed text-cream/90">
-                {error ??
-                  (cameraBlocked
-                    ? t("live.scanCameraDenied")
-                    : t("common.scanFailed"))}
-              </p>
+            {showRecovery ? (
               <button
                 type="button"
                 onClick={close}
-                className="w-full max-w-xs rounded-2xl bg-[#fc8e0b] px-6 py-3 text-sm font-semibold text-white shadow-md active:scale-[0.98]"
+                className="shrink-0 rounded-xl bg-[#fc8e0b] px-4 py-2 text-sm font-semibold text-white active:scale-[0.98]"
               >
                 {t("live.scanBackToLive")}
               </button>
-            </div>
+            ) : (
+              <button
+                type="button"
+                onClick={close}
+                disabled={busy}
+                className="rounded-lg px-3 py-1.5 text-sm text-cream/90 underline disabled:opacity-40"
+              >
+                {t("live.scanClose")}
+              </button>
+            )}
+          </div>
+
+          {showRecovery ? (
+            <ScanRecoveryPanel
+              message={recoveryMessage}
+              backLabel={t("live.scanBackToLive")}
+              onBack={close}
+            />
           ) : (
             <>
-              <p className="mb-3 text-center text-xs text-cream/75">
+              <p className="mb-3 shrink-0 text-center text-xs text-cream/75">
                 {t("live.scanHint")}
               </p>
 
-              <div className="relative mx-auto w-full max-w-sm min-h-[240px] flex-1">
+              <div className="relative mx-auto w-full max-w-sm min-h-[200px] flex-1 max-h-[min(52dvh,420px)]">
                 <div
                   id={readerId}
-                  className="h-full min-h-[240px] overflow-hidden rounded-2xl bg-black [&_video]:rounded-2xl"
+                  className="h-full min-h-[200px] overflow-hidden rounded-2xl bg-black [&_video]:rounded-2xl"
                 />
                 {busy ? (
                   <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/60">

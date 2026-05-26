@@ -112,6 +112,14 @@ function LivePageContent() {
     [participants]
   );
 
+  const handleTokenScanned = useCallback(
+    (event: Parameters<typeof applyTokenEarned>[0]) => {
+      setEarnedTokenType(event.tokenType);
+      applyTokenEarned(event);
+    },
+    [applyTokenEarned]
+  );
+
   useTokenRealtime({
     userId: player?.runnerId === enteredRunnerId ? player.userId : null,
     sessionId: sessionId ?? null,
@@ -288,10 +296,7 @@ function LivePageContent() {
               runnerId={player.runnerId}
               runnerName={player.runnerName}
               disabled={refreshing}
-              onScanned={(event) => {
-                setEarnedTokenType(event.tokenType);
-                applyTokenEarned(event);
-              }}
+              onScanned={handleTokenScanned}
             />
           ) : null}
         </div>
