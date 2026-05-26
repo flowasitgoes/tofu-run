@@ -67,14 +67,14 @@ function TokenIconCell({
   const showBadge = variant === "live" && count != null && count > 0;
 
   if (variant === "live") {
-    if (!isTofu && showBadge) {
+    if (showBadge) {
       return (
         <div className="flex flex-col items-center justify-center gap-0.5">
           <div className="flex h-8 w-11 items-center justify-center">
             <TokenIcon
               src={tok.image}
               alt=""
-              size={iconPx}
+              size={LIVE_OTHER_ICON_PX}
               className="h-8 w-8 drop-shadow-none"
             />
           </div>
@@ -130,7 +130,6 @@ export function LiveTofuProgressRow({
   tokenIds: string[];
   className?: string;
 }) {
-  const completedTofu = countCompletedTofuSets(tokenIds);
   const filledSlots = tofuProgressFilledSlots(tokenIds);
 
   return (
@@ -138,7 +137,7 @@ export function LiveTofuProgressRow({
       className={`flex min-w-0 items-center gap-1.5 overflow-visible ${className}`.trim()}
       aria-label="豆花進度"
     >
-      <div className="grid w-22 shrink-0 grid-cols-6 gap-px">
+      <div className="grid w-full max-w-[5.5rem] shrink-0 grid-cols-6 gap-px">
         {Array.from({ length: TOFU_PROGRESS_COUNT }, (_, i) => (
           <span
             key={i}
@@ -151,11 +150,6 @@ export function LiveTofuProgressRow({
           />
         ))}
       </div>
-      <TokenIconCell
-        id={BASE_TOFU_TOKEN_ID}
-        variant="live"
-        count={completedTofu > 0 ? completedTofu : undefined}
-      />
     </div>
   );
 }
@@ -189,19 +183,27 @@ export function LiveParticipantTokenIcons({
   const gridEntries = aggregated ?? ordered.map((id) => ({ id, count: 1 }));
 
   if (showScanCounts && aggregated) {
+    const completedTofu = countCompletedTofuSets(tokenIds);
     const toppingEntries = aggregated.slice(0, MAX_TOPPING_SLOTS);
 
     return (
       <div
-        className={`grid h-11 grid-cols-3 place-items-center gap-x-1 overflow-visible ${className}`.trim()}
+        className={`grid h-11 grid-cols-4 place-items-center gap-x-1 overflow-visible ${className}`.trim()}
         aria-hidden={false}
       >
+        <div className="flex h-11 w-full items-center justify-center">
+          <TokenIconCell
+            id={BASE_TOFU_TOKEN_ID}
+            variant="live"
+            count={completedTofu > 0 ? completedTofu : undefined}
+          />
+        </div>
         {Array.from({ length: MAX_TOPPING_SLOTS }, (_, i) => {
           const entry = toppingEntries[i];
           const id = entry?.id;
           const tok = id ? tokenById.get(id) : undefined;
           return (
-            <div key={i} className="flex h-11 w-full items-center justify-center">
+            <div key={`topping-${i}`} className="flex h-11 w-full items-center justify-center">
               {tok && id ? (
                 <TokenIconCell id={id} variant="live" count={entry.count} />
               ) : (
