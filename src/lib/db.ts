@@ -1,8 +1,10 @@
 import { TOKEN_TYPES } from "@/lib/constants";
 import { createSupabaseClient, createSupabaseServiceClient } from "@/lib/supabase";
+import { resolveEventSchedule } from "@/lib/event-schedule";
 import { getTodayDateString } from "@/lib/session";
 import {
-  completionTimeForBowls,
+  activityDurationMinutes,
+  lastBowlCompletedAt,
   computeGroundCompletion,
   countCompletedBowls,
   requiredTokenIdsForGoal,
@@ -934,19 +936,29 @@ export async function getPassportData(
       .filter((id) => tokenTypeSet.has(id));
 
     const bowlsCompleted = countCompletedBowls(requiredIds, earnedIds);
-    const completedAt =
+    const schedule = resolveEventSchedule(meta.sessionDate);
+    const lastBowlAt =
       bowlsCompleted > 0
-        ? completionTimeForBowls(requiredIds, tokenRows, bowlsCompleted)
-        : meta.completedAt;
+        ? lastBowlCompletedAt(requiredIds, tokenRows, bowlsCompleted)
+        : null;
+    const durationMinutes = activityDurationMinutes(
+      requiredIds,
+      tokenRows,
+      bowlsCompleted,
+      schedule?.startAt ?? null
+    );
 
     runs.push({
       session_date: meta.sessionDate,
       tofu_type: meta.tofuType,
-      completed_at: completedAt,
+      completed_at: lastBowlAt ?? meta.completedAt,
       joined_at: meta.joinedAt,
       tokens: tokenRows,
       bowls_completed: bowlsCompleted,
       required_token_ids: requiredIds,
+      event_start_at: schedule?.startAt ?? null,
+      event_end_at: schedule?.endAt ?? null,
+      activity_duration_minutes: durationMinutes,
     });
   }
 

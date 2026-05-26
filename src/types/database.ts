@@ -106,12 +106,19 @@ export type GoingJoinListEntry = {
 export type PassportRun = {
   session_date: string;
   tofu_type: string | null;
+  /** 最後一碗豆花集齊時間（ISO） */
   completed_at: string | null;
   joined_at: string;
   tokens: Token[];
   /** 與 LIVE 相同：各所需 Token 掃描次數取最小值 */
   bowls_completed: number;
   required_token_ids: string[];
+  /** 官方活動開始（有設定時） */
+  event_start_at: string | null;
+  /** 官方活動結束（有設定時） */
+  event_end_at: string | null;
+  /** 活動開始（或過渡：首顆豆花）→ 最後一碗（分鐘） */
+  activity_duration_minutes: number | null;
 };
 
 export type StoredPlayer = {

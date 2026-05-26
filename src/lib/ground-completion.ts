@@ -1,3 +1,4 @@
+import { BASE_TOFU_TOKEN_ID } from "@/lib/constants";
 import { collectTargetsFromSignup } from "@/lib/toppings";
 
 export function requiredTokenIdsForGoal(
@@ -90,4 +91,60 @@ export function completionTimeForBowls(
     if (min >= bowlCount) return scan.scanned_at;
   }
   return null;
+}
+
+/**
+ * 活動時長（分鐘）：最後一碗集齊 − 起算點
+ * - 有官方活動開始時間 → 從活動開始算
+ * - 否則（過渡）→ 第一顆豆花 Token
+ */
+export function activityDurationMinutes(
+  requiredIds: string[],
+  scans: { token_type: string; scanned_at: string }[],
+  bowlCount: number,
+  eventStartAt?: string | null
+): number | null {
+  if (bowlCount <= 0) return null;
+
+  const lastBowlAt = completionTimeForBowls(requiredIds, scans, bowlCount);
+  if (!lastBowlAt) return null;
+
+  let startIso: string | null = eventStartAt?.trim() || null;
+  if (!startIso) {
+    const ordered = [...scans].sort(
+      (a, b) =>
+        new Date(a.scanned_at).getTime() - new Date(b.scanned_at).getTime()
+    );
+    startIso =
+      ordered.find((s) => s.token_type === BASE_TOFU_TOKEN_ID)?.scanned_at ??
+      null;
+  }
+  if (!startIso) return null;
+
+  const start = new Date(startIso).getTime();
+  const end = new Date(lastBowlAt).getTime();
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return null;
+
+  return Math.round((end - start) / 60000);
+}
+
+export function firstTofuScanAt(
+  scans: { token_type: string; scanned_at: string }[]
+): string | null {
+  const ordered = [...scans].sort(
+    (a, b) =>
+      new Date(a.scanned_at).getTime() - new Date(b.scanned_at).getTime()
+  );
+  return (
+    ordered.find((s) => s.token_type === BASE_TOFU_TOKEN_ID)?.scanned_at ?? null
+  );
+}
+
+export function lastBowlCompletedAt(
+  requiredIds: string[],
+  scans: { token_type: string; scanned_at: string }[],
+  bowlCount: number
+): string | null {
+  if (bowlCount <= 0) return null;
+  return completionTimeForBowls(requiredIds, scans, bowlCount);
 }

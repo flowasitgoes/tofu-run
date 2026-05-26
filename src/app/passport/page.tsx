@@ -7,16 +7,11 @@ import { MadeByCredit } from "@/components/MadeByCredit";
 import { PageShell } from "@/components/PageShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import {
-  PURE_DOUHUA_GOAL,
-  TOFU_TYPES,
-  getTokenLabel,
-} from "@/lib/constants";
+import { PURE_DOUHUA_GOAL } from "@/lib/constants";
 import type { TokenTypeId } from "@/lib/constants";
 import {
   getTokenLabelLocalized,
   getTokenZoneLocalized,
-  getTofuLabelLocalized,
 } from "@/lib/i18n-labels";
 import {
   clearStoredGoingAccount,
@@ -32,11 +27,18 @@ import { TokenEarnedToast } from "@/components/TokenEarnedToast";
 import { useTokenRealtime } from "@/hooks/useTokenRealtime";
 import { useStoredPlayerSnapshot } from "@/hooks/useStoredPlayer";
 import { clearStoredPlayer } from "@/lib/player";
-import { tokenScanCounts } from "@/lib/ground-completion";
 import {
-  formatDurationMinutes,
-  getTodayDateString,
-} from "@/lib/session";
+  eventEndAtFromStart,
+  hasExplicitEventEnd,
+  resolveEventSchedule,
+} from "@/lib/event-schedule";
+import {
+  activityDurationMinutes,
+  firstTofuScanAt,
+  lastBowlCompletedAt,
+  tokenScanCounts,
+} from "@/lib/ground-completion";
+import { formatTaipeiDateTime } from "@/lib/session";
 import { siteConfig } from "@/lib/site";
 import type { PassportAccount, PassportRun } from "@/types/database";
 
@@ -206,34 +208,8 @@ export default function PassportPage() {
   const signup = account?.signup;
   const displayNickname = signup?.nickname ?? signup?.runner_name ?? "—";
 
-  const tofuEmoji = (id: string | null) =>
-    TOFU_TYPES.find((t) => t.id === id)?.emoji ?? "🥣";
-
-  const todayDate = getTodayDateString();
   const activityRuns: PassportRun[] =
-    !signup || loading
-      ? []
-      : account && account.runs.length > 0
-        ? account.runs
-        : [
-            {
-              session_date: todayDate,
-              tofu_type: null,
-              completed_at: null,
-              joined_at: "",
-              tokens: [],
-              bowls_completed: 0,
-              required_token_ids: (account?.collectTargets ?? []).map(
-                (t) => t.id
-              ),
-            },
-          ];
-
-  const todayRun = activityRuns.find((r) => r.session_date === todayDate);
-  const todayTokenCounts = tokenScanCounts(
-    todayRun?.required_token_ids ?? [],
-    todayRun?.tokens.map((tok) => tok.token_type) ?? []
-  );
+    !signup || loading ? [] : (account?.runs ?? []);
 
   function tokenGroupsForRun(run: PassportRun) {
     const counts = tokenScanCounts(
@@ -302,55 +278,39 @@ export default function PassportPage() {
           <p className="mt-1 text-lg font-bold text-mung-green">
             {signup.goal ?? "—"}
           </p>
+          <p className="mt-2 text-xs leading-relaxed text-brown-sugar/55">
+            {t("passport.goalHint")}
+          </p>
           {(account?.collectTargets ?? []).length > 0 && (
             <div className="mt-4">
-              <div className="mb-2 flex items-baseline justify-between gap-2">
-                <p className="text-xs font-medium text-brown-sugar/60">
-                  {t("passport.collectTokens")}
-                </p>
-                {(todayRun?.bowls_completed ?? 0) > 0 && (
-                  <p className="text-xs font-semibold text-mung-green">
-                    {t("passport.bowlsToday", {
-                      count: todayRun!.bowls_completed,
-                    })}
-                  </p>
-                )}
-              </div>
+              <p className="mb-2 text-xs font-medium text-brown-sugar/60">
+                {t("passport.collectTokens")}
+              </p>
               <ul className="space-y-2">
-                {(account?.collectTargets ?? []).map((target) => {
-                  const scanCount = todayTokenCounts.get(target.id) ?? 0;
-                  return (
-                    <li
-                      key={target.id}
-                      className="flex items-center justify-between rounded-xl bg-cream/80 px-3 py-2 text-sm"
-                    >
-                      <span className="flex items-center gap-2 font-medium text-brown-sugar">
-                        {getTokenLabelLocalized(
-                          target.id as TokenTypeId,
-                          locale
-                        )}
-                        {target.id === "tofu" && (
-                          <span className="rounded-full bg-sunset/25 px-1.5 py-0.5 text-[10px] font-medium text-brown-sugar/80">
-                            {t("passport.baseTofuRequired")}
-                          </span>
-                        )}
-                      </span>
-                      <span className="text-right text-xs text-brown-sugar/55">
-                        <span className="block">
-                          {getTokenZoneLocalized(
-                            target.id as TokenTypeId,
-                            locale
-                          )}
+                {(account?.collectTargets ?? []).map((target) => (
+                  <li
+                    key={target.id}
+                    className="flex items-center justify-between rounded-xl bg-cream/80 px-3 py-2 text-sm"
+                  >
+                    <span className="flex items-center gap-2 font-medium text-brown-sugar">
+                      {getTokenLabelLocalized(
+                        target.id as TokenTypeId,
+                        locale
+                      )}
+                      {target.id === "tofu" && (
+                        <span className="rounded-full bg-sunset/25 px-1.5 py-0.5 text-[10px] font-medium text-brown-sugar/80">
+                          {t("passport.baseTofuRequired")}
                         </span>
-                        {scanCount > 0 ? (
-                          <span className="mt-0.5 block font-medium text-mung-green">
-                            {t("passport.tokenScanned", { count: scanCount })}
-                          </span>
-                        ) : null}
-                      </span>
-                    </li>
-                  );
-                })}
+                      )}
+                    </span>
+                    <span className="text-xs text-brown-sugar/55">
+                      {getTokenZoneLocalized(
+                        target.id as TokenTypeId,
+                        locale
+                      )}
+                    </span>
+                  </li>
+                ))}
               </ul>
             </div>
           )}
@@ -389,11 +349,16 @@ export default function PassportPage() {
       )}
 
       {signup && !loading && (
-        <section className="space-y-4">
+        <section className="mt-2 space-y-4">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold leading-none text-brown-sugar/70">
-              {t("passport.activityLog")}
-            </h2>
+            <div>
+              <h2 className="text-sm font-semibold leading-none text-brown-sugar/70">
+                {t("passport.activityLog")}
+              </h2>
+              <p className="mt-1.5 text-xs leading-relaxed text-brown-sugar/50">
+                {t("passport.activityLogHint")}
+              </p>
+            </div>
             <button
               type="button"
               onClick={handleLogout}
@@ -402,11 +367,48 @@ export default function PassportPage() {
               {t("passport.logout")}
             </button>
           </div>
-          {activityRuns.length > 0 &&
+          {activityRuns.length === 0 ? (
+            <p className="rounded-xl border border-brown-sugar/15 bg-cream px-4 py-6 text-center text-sm leading-relaxed whitespace-pre-line text-brown-sugar/85">
+              {t("passport.noActivityYet")}
+            </p>
+          ) : (
             activityRuns.map((run) => {
+            const requiredIds =
+              run.required_token_ids.length > 0
+                ? run.required_token_ids
+                : (account?.collectTargets ?? []).map((t) => t.id);
+            const scheduled = resolveEventSchedule(run.session_date);
+            const interimStart = firstTofuScanAt(run.tokens);
+            const eventStartAt =
+              scheduled?.startAt ??
+              run.event_start_at ??
+              interimStart ??
+              null;
+            const eventEndAt = eventStartAt
+              ? eventEndAtFromStart(
+                  eventStartAt,
+                  scheduled?.endAt ?? run.event_end_at
+                )
+              : null;
+            const lastBowlAt =
+              run.completed_at ??
+              (run.bowls_completed > 0
+                ? lastBowlCompletedAt(
+                    requiredIds,
+                    run.tokens,
+                    run.bowls_completed
+                  )
+                : null);
             const duration =
-              run.completed_at &&
-              formatDurationMinutes(run.joined_at, run.completed_at);
+              run.bowls_completed > 0
+                ? (run.activity_duration_minutes ??
+                  activityDurationMinutes(
+                    requiredIds,
+                    run.tokens,
+                    run.bowls_completed,
+                    eventStartAt
+                  ))
+                : null;
             const tokenGroups = tokenGroupsForRun(run);
 
             return (
@@ -414,18 +416,11 @@ export default function PassportPage() {
                 key={run.session_date}
                 className="border-l-4 border-sunset/50"
               >
+                <p className="text-xs font-medium text-brown-sugar/55">
+                  {t("passport.activityDay")}
+                </p>
                 <p className="text-lg font-semibold text-brown-sugar">
-                  {t("passport.earned")}
-                  {signup?.goal ? (
-                    signup.goal
-                  ) : run.tofu_type ? (
-                    <>
-                      {tofuEmoji(run.tofu_type)}{" "}
-                      {getTofuLabelLocalized(run.tofu_type, locale)}
-                    </>
-                  ) : (
-                    <span className="text-brown-sugar/50">{recordEmpty}</span>
-                  )}
+                  {run.session_date}
                 </p>
                 {run.bowls_completed > 0 ? (
                   <p className="mt-1 text-sm font-medium text-mung-green">
@@ -434,9 +429,6 @@ export default function PassportPage() {
                     })}
                   </p>
                 ) : null}
-                <p className="mt-0.5 text-xs text-brown-sugar/50">
-                  {run.session_date}
-                </p>
                 <div className="mt-2 text-sm text-brown-sugar">
                   <span className="text-brown-sugar/60">Token</span>
                   {tokenGroups.length > 0 ? (
@@ -455,17 +447,71 @@ export default function PassportPage() {
                     </span>
                   )}
                 </div>
-                <p className="mt-2 text-sm text-mung-green">
-                  {t("passport.completionTime")}
+                <div className="mt-3 space-y-1.5 border-t border-brown-sugar/10 pt-3 text-sm">
+                  <p>
+                    <span className="text-brown-sugar/60">
+                      {t("passport.eventStart")}
+                    </span>
+                    {eventStartAt ? (
+                      formatTaipeiDateTime(eventStartAt, locale)
+                    ) : (
+                      <span className="text-brown-sugar/50">
+                        {t("passport.scheduleTbd")}
+                      </span>
+                    )}
+                  </p>
+                  <p>
+                    <span className="text-brown-sugar/60">
+                      {t("passport.bowlCompletedAt")}
+                    </span>
+                    {lastBowlAt ? (
+                      <span className="font-medium text-mung-green">
+                        {formatTaipeiDateTime(lastBowlAt, locale)}
+                      </span>
+                    ) : (
+                      <span className="text-brown-sugar/50">{recordEmpty}</span>
+                    )}
+                    {lastBowlAt ? (
+                      <span className="ml-1 text-[10px] text-brown-sugar/45">
+                        {t("passport.completionTimeHint")}
+                      </span>
+                    ) : null}
+                  </p>
+                  <p>
+                    <span className="text-brown-sugar/60">
+                      {t("passport.eventEnd")}
+                    </span>
+                    {eventEndAt ? (
+                      <>
+                        {formatTaipeiDateTime(eventEndAt, locale)}
+                        {eventStartAt &&
+                        !hasExplicitEventEnd(run.session_date) ? (
+                          <span className="ml-1 text-[10px] text-brown-sugar/45">
+                            {t("passport.eventEndDefault")}
+                          </span>
+                        ) : null}
+                      </>
+                    ) : (
+                      <span className="text-brown-sugar/50">
+                        {t("passport.scheduleTbd")}
+                      </span>
+                    )}
+                  </p>
                   {duration != null ? (
-                    `${duration} ${t("common.minutes")}`
-                  ) : (
-                    <span className="text-brown-sugar/50">{recordEmpty}</span>
-                  )}
-                </p>
+                    <p>
+                      <span className="text-brown-sugar/60">
+                        {t("passport.activityDuration")}
+                      </span>
+                      <span className="font-medium text-mung-green">
+                        {duration} {t("common.minutes")}
+                      </span>
+                    </p>
+                  ) : null}
+                </div>
               </Card>
             );
-          })}
+          })
+          )}
         </section>
       )}
 
