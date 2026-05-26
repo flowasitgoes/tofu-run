@@ -35,7 +35,7 @@ export async function GET(request: Request) {
       return NextResponse.json(
         {
           error:
-            "找不到此 Runner ID 的「想參加」報名。請確認已送出成功，或 Table 是否為 going_signups。",
+            "找不到此 Runner ID 的「想參加」報名。請前往首頁報名且成功，或聯繫豆仔 ~",
         },
         { status: 404 }
       );

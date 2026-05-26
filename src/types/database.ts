@@ -109,6 +109,9 @@ export type PassportRun = {
   completed_at: string | null;
   joined_at: string;
   tokens: Token[];
+  /** 與 LIVE 相同：各所需 Token 掃描次數取最小值 */
+  bowls_completed: number;
+  required_token_ids: string[];
 };
 
 export type StoredPlayer = {

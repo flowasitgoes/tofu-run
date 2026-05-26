@@ -2,7 +2,9 @@ import { TOKEN_TYPES } from "@/lib/constants";
 import { createSupabaseClient, createSupabaseServiceClient } from "@/lib/supabase";
 import { getTodayDateString } from "@/lib/session";
 import {
+  completionTimeForBowls,
   computeGroundCompletion,
+  countCompletedBowls,
   requiredTokenIdsForGoal,
 } from "@/lib/ground-completion";
 import { collectTargetsFromSignup } from "@/lib/toppings";
@@ -128,6 +130,26 @@ export async function hasGoingJoinSignup(runnerId: string): Promise<boolean> {
   return row !== null;
 }
 
+/** 已完成想參加報名（有 Email）的 Runner ID，供首頁護照登入快取（不含 Email） */
+export async function getPassportRegisteredRunnerIds(): Promise<string[]> {
+  const supabase = createSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("going_signups")
+    .select("runner_id, email")
+    .eq("intent", "join")
+    .not("runner_id", "is", null);
+
+  if (error) throw error;
+
+  const ids = new Set<string>();
+  for (const row of data ?? []) {
+    if (!row.email?.trim()) continue;
+    const id = (row.runner_id as string).trim().toUpperCase();
+    if (id) ids.add(id);
+  }
+  return [...ids];
+}
+
 /** Lobby：列出所有「想參加」報名（活動日前預熱用） */
 export async function getGoingJoinList(): Promise<GoingJoinListEntry[]> {
   const supabase = createSupabaseServiceClient();
@@ -244,7 +266,7 @@ export async function getPassportAccount(
     };
   }
 
-  const { runs } = await getPassportData(user.id);
+  const { runs } = await getPassportData(user.id, signup);
   const session = await getOrCreateTodaySession();
   const todayMembership = await getUserSessionForToday(user.id, session.id);
 
@@ -809,7 +831,10 @@ export async function getUserSessionForToday(
   return data as UserSession | null;
 }
 
-export async function getPassportData(userId: string): Promise<{
+export async function getPassportData(
+  userId: string,
+  signup: GoingSignup | null = null
+): Promise<{
   user: User;
   runs: PassportRun[];
 }> {
@@ -823,10 +848,11 @@ export async function getPassportData(userId: string): Promise<{
 
   if (userError) throw userError;
 
-  const { data: sessions, error: sessionsError } = await supabase
+  const { data: sessionRows, error: sessionsError } = await supabase
     .from("user_sessions")
     .select(
       `
+      session_id,
       tofu_type,
       completed_at,
       joined_at,
@@ -834,42 +860,97 @@ export async function getPassportData(userId: string): Promise<{
     `
     )
     .eq("user_id", userId)
-    .order("joined_at", { ascending: false });
+    .order("joined_at", { ascending: true });
 
   if (sessionsError) throw sessionsError;
 
-  const { data: tokens, error: tokensError } = await supabase
-    .from("tokens")
-    .select("*")
-    .eq("user_id", userId)
-    .order("scanned_at", { ascending: true });
+  const requiredIds = signup
+    ? requiredTokenIdsForGoal(
+        signup.goal,
+        signup.topping1,
+        signup.topping2,
+        signup.topping3
+      )
+    : [];
 
-  if (tokensError) throw tokensError;
+  const tokenTypeSet = new Set<string>(TOKEN_TYPES.map((t) => t.id));
 
-  const allTokens = (tokens ?? []) as Token[];
+  const bySession = new Map<
+    string,
+    {
+      sessionId: string;
+      sessionDate: string;
+      joinedAt: string;
+      completedAt: string | null;
+      tofuType: string | null;
+    }
+  >();
 
-  const runs: PassportRun[] = (sessions ?? []).map((s) => {
-    const session = s.sessions as unknown as { date: string };
-    const joinedAt = s.joined_at as string;
-    const completedAt = s.completed_at as string | null;
+  for (const row of sessionRows ?? []) {
+    const session = row.sessions as unknown as { date: string };
+    const sessionId = row.session_id as string;
+    const joinedAt = row.joined_at as string;
+    const existing = bySession.get(sessionId);
+    if (!existing) {
+      bySession.set(sessionId, {
+        sessionId,
+        sessionDate: session.date,
+        joinedAt,
+        completedAt: row.completed_at as string | null,
+        tofuType: row.tofu_type as string | null,
+      });
+      continue;
+    }
+    if (joinedAt < existing.joinedAt) existing.joinedAt = joinedAt;
+    const completedAt = row.completed_at as string | null;
+    if (
+      completedAt &&
+      (!existing.completedAt ||
+        new Date(completedAt) > new Date(existing.completedAt))
+    ) {
+      existing.completedAt = completedAt;
+    }
+    if (!existing.tofuType && row.tofu_type) {
+      existing.tofuType = row.tofu_type as string;
+    }
+  }
 
-    const runTokens = allTokens.filter((t) => {
-      const scanned = new Date(t.scanned_at).getTime();
-      const start = new Date(joinedAt).getTime();
-      const end = completedAt
-        ? new Date(completedAt).getTime()
-        : scanned + 86400000;
-      return scanned >= start && scanned <= end;
-    });
+  const runs: PassportRun[] = [];
 
-    return {
-      session_date: session.date,
-      tofu_type: s.tofu_type as string | null,
+  for (const meta of bySession.values()) {
+    const tokenRows = await fetchSessionTokenScans(
+      meta.sessionId,
+      meta.sessionDate,
+      [userId],
+      meta.joinedAt
+    );
+
+    const earnedIds = [...tokenRows]
+      .sort(
+        (a, b) =>
+          new Date(a.scanned_at).getTime() - new Date(b.scanned_at).getTime()
+      )
+      .map((t) => String(t.token_type))
+      .filter((id) => tokenTypeSet.has(id));
+
+    const bowlsCompleted = countCompletedBowls(requiredIds, earnedIds);
+    const completedAt =
+      bowlsCompleted > 0
+        ? completionTimeForBowls(requiredIds, tokenRows, bowlsCompleted)
+        : meta.completedAt;
+
+    runs.push({
+      session_date: meta.sessionDate,
+      tofu_type: meta.tofuType,
       completed_at: completedAt,
-      joined_at: joinedAt,
-      tokens: runTokens,
-    };
-  });
+      joined_at: meta.joinedAt,
+      tokens: tokenRows,
+      bowls_completed: bowlsCompleted,
+      required_token_ids: requiredIds,
+    });
+  }
+
+  runs.sort((a, b) => b.session_date.localeCompare(a.session_date));
 
   return { user: user as User, runs };
 }

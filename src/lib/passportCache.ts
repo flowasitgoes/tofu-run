@@ -1,6 +1,6 @@
 import type { PassportAccount } from "@/types/database";
 
-const CACHE_KEY = "tofu-run-passport-cache";
+const CACHE_KEY = "tofu-run-passport-cache-v2";
 
 /** 報名資料很少變，快取 15 分鐘；背景仍會更新 */
 const TTL_MS = 15 * 60 * 1000;

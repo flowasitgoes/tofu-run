@@ -42,14 +42,52 @@ export function countCompletedBowls(
 ): number {
   if (requiredIds.length === 0) return 0;
 
-  const counts = new Map<string, number>();
-  for (const id of earnedTokenIds) {
-    counts.set(id, (counts.get(id) ?? 0) + 1);
-  }
-
+  const counts = tokenScanCounts(requiredIds, earnedTokenIds);
   let min = Infinity;
   for (const id of requiredIds) {
     min = Math.min(min, counts.get(id) ?? 0);
   }
   return min === Infinity ? 0 : min;
+}
+
+export function tokenScanCounts(
+  requiredIds: string[],
+  earnedTokenIds: string[]
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const id of requiredIds) counts.set(id, 0);
+  for (const id of earnedTokenIds) {
+    if (!counts.has(id)) continue;
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/** 第 N 碗完成當下最後掃到的那顆所需 Token 時間（與 LIVE 碗數邏輯一致） */
+export function completionTimeForBowls(
+  requiredIds: string[],
+  scans: { token_type: string; scanned_at: string }[],
+  bowlCount: number
+): string | null {
+  if (bowlCount <= 0 || requiredIds.length === 0) return null;
+
+  const counts = new Map<string, number>();
+  for (const id of requiredIds) counts.set(id, 0);
+
+  const ordered = [...scans].sort(
+    (a, b) =>
+      new Date(a.scanned_at).getTime() - new Date(b.scanned_at).getTime()
+  );
+
+  for (const scan of ordered) {
+    const id = scan.token_type;
+    if (!counts.has(id)) continue;
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+    let min = Infinity;
+    for (const rid of requiredIds) {
+      min = Math.min(min, counts.get(rid) ?? 0);
+    }
+    if (min >= bowlCount) return scan.scanned_at;
+  }
+  return null;
 }

@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
-import { getPoolUserByRunnerId } from "@/lib/db";
+import { getGoingSignupByRunnerId, getPoolUserByRunnerId } from "@/lib/db";
 import { normalizeRunnerId, RUNNER_ID_PATTERN } from "@/lib/runner";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import {
+  isSupabaseConfigured,
+  isSupabaseServiceConfigured,
+} from "@/lib/supabase";
+
+export type RunnerJoinStatus = "none" | "pending" | "complete";
 
 export async function GET(request: Request) {
   if (!isSupabaseConfigured()) {
@@ -40,12 +45,24 @@ export async function GET(request: Request) {
       );
     }
 
+    let joinStatus: RunnerJoinStatus = "none";
+    if (isSupabaseServiceConfigured()) {
+      const signup = await getGoingSignupByRunnerId(trimmedRunnerId);
+      if (signup) {
+        joinStatus = signup.email?.trim() ? "complete" : "pending";
+      }
+    }
+
     return NextResponse.json({
       runnerId: poolUser.runner_id,
       runnerName: poolUser.runner_name,
+      joinStatus,
     });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: "查詢失敗" }, { status: 500 });
+    return NextResponse.json(
+      { error: "無法查詢名額資料，請稍後再試" },
+      { status: 500 }
+    );
   }
 }

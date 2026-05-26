@@ -32,6 +32,7 @@ import { TokenEarnedToast } from "@/components/TokenEarnedToast";
 import { useTokenRealtime } from "@/hooks/useTokenRealtime";
 import { useStoredPlayerSnapshot } from "@/hooks/useStoredPlayer";
 import { clearStoredPlayer } from "@/lib/player";
+import { tokenScanCounts } from "@/lib/ground-completion";
 import {
   formatDurationMinutes,
   getTodayDateString,
@@ -101,13 +102,19 @@ export default function PassportPage() {
   );
 
   useEffect(() => {
-    const stored = getStoredGoingAccount();
-    if (stored?.runnerId) {
-      loadAccount(stored.runnerId);
+    const prefill = consumePassportPrefill();
+    if (prefill) {
+      const id = prefill.trim().toUpperCase();
+      setRunnerIdInput(id);
+      setStoredGoingAccount({ runnerId: id });
+      void loadAccount(id);
       return;
     }
-    const prefill = consumePassportPrefill();
-    if (prefill) setRunnerIdInput(prefill);
+    const stored = getStoredGoingAccount();
+    if (stored?.runnerId) {
+      void loadAccount(stored.runnerId);
+      return;
+    }
     setLoading(false);
   }, [loadAccount]);
 
@@ -202,6 +209,7 @@ export default function PassportPage() {
   const tofuEmoji = (id: string | null) =>
     TOFU_TYPES.find((t) => t.id === id)?.emoji ?? "🥣";
 
+  const todayDate = getTodayDateString();
   const activityRuns: PassportRun[] =
     !signup || loading
       ? []
@@ -209,13 +217,36 @@ export default function PassportPage() {
         ? account.runs
         : [
             {
-              session_date: getTodayDateString(),
+              session_date: todayDate,
               tofu_type: null,
               completed_at: null,
               joined_at: "",
               tokens: [],
+              bowls_completed: 0,
+              required_token_ids: (account?.collectTargets ?? []).map(
+                (t) => t.id
+              ),
             },
           ];
+
+  const todayRun = activityRuns.find((r) => r.session_date === todayDate);
+  const todayTokenCounts = tokenScanCounts(
+    todayRun?.required_token_ids ?? [],
+    todayRun?.tokens.map((tok) => tok.token_type) ?? []
+  );
+
+  function tokenGroupsForRun(run: PassportRun) {
+    const counts = tokenScanCounts(
+      run.required_token_ids,
+      run.tokens.map((tok) => tok.token_type)
+    );
+    return run.required_token_ids
+      .map((id) => ({
+        id,
+        count: counts.get(id) ?? 0,
+      }))
+      .filter((row) => row.count > 0);
+  }
 
   return (
     <PageShell>
@@ -273,34 +304,53 @@ export default function PassportPage() {
           </p>
           {(account?.collectTargets ?? []).length > 0 && (
             <div className="mt-4">
-              <p className="text-xs font-medium text-brown-sugar/60 mb-2">
-                {t("passport.collectTokens")}
-              </p>
+              <div className="mb-2 flex items-baseline justify-between gap-2">
+                <p className="text-xs font-medium text-brown-sugar/60">
+                  {t("passport.collectTokens")}
+                </p>
+                {(todayRun?.bowls_completed ?? 0) > 0 && (
+                  <p className="text-xs font-semibold text-mung-green">
+                    {t("passport.bowlsToday", {
+                      count: todayRun!.bowls_completed,
+                    })}
+                  </p>
+                )}
+              </div>
               <ul className="space-y-2">
-                {(account?.collectTargets ?? []).map((target) => (
-                  <li
-                    key={target.id}
-                    className="flex items-center justify-between rounded-xl bg-cream/80 px-3 py-2 text-sm"
-                  >
-                    <span className="flex items-center gap-2 font-medium text-brown-sugar">
-                      {getTokenLabelLocalized(
-                        target.id as TokenTypeId,
-                        locale
-                      )}
-                      {target.id === "tofu" && (
-                        <span className="rounded-full bg-sunset/25 px-1.5 py-0.5 text-[10px] font-medium text-brown-sugar/80">
-                          {t("passport.baseTofuRequired")}
+                {(account?.collectTargets ?? []).map((target) => {
+                  const scanCount = todayTokenCounts.get(target.id) ?? 0;
+                  return (
+                    <li
+                      key={target.id}
+                      className="flex items-center justify-between rounded-xl bg-cream/80 px-3 py-2 text-sm"
+                    >
+                      <span className="flex items-center gap-2 font-medium text-brown-sugar">
+                        {getTokenLabelLocalized(
+                          target.id as TokenTypeId,
+                          locale
+                        )}
+                        {target.id === "tofu" && (
+                          <span className="rounded-full bg-sunset/25 px-1.5 py-0.5 text-[10px] font-medium text-brown-sugar/80">
+                            {t("passport.baseTofuRequired")}
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-right text-xs text-brown-sugar/55">
+                        <span className="block">
+                          {getTokenZoneLocalized(
+                            target.id as TokenTypeId,
+                            locale
+                          )}
                         </span>
-                      )}
-                    </span>
-                    <span className="text-xs text-brown-sugar/55">
-                      {getTokenZoneLocalized(
-                        target.id as TokenTypeId,
-                        locale
-                      )}
-                    </span>
-                  </li>
-                ))}
+                        {scanCount > 0 ? (
+                          <span className="mt-0.5 block font-medium text-mung-green">
+                            {t("passport.tokenScanned", { count: scanCount })}
+                          </span>
+                        ) : null}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -338,24 +388,37 @@ export default function PassportPage() {
         </p>
       )}
 
-      {signup && !loading && activityRuns.length > 0 && (
+      {signup && !loading && (
         <section className="space-y-4">
-          <h2 className="text-sm font-semibold text-brown-sugar/70">
-            {t("passport.activityLog")}
-          </h2>
-          {activityRuns.map((run) => {
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold leading-none text-brown-sugar/70">
+              {t("passport.activityLog")}
+            </h2>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="shrink-0 cursor-pointer text-xs font-medium leading-none text-brown-sugar/55 underline underline-offset-2 hover:text-brown-sugar/80"
+            >
+              {t("passport.logout")}
+            </button>
+          </div>
+          {activityRuns.length > 0 &&
+            activityRuns.map((run) => {
             const duration =
               run.completed_at &&
               formatDurationMinutes(run.joined_at, run.completed_at);
+            const tokenGroups = tokenGroupsForRun(run);
 
             return (
               <Card
-                key={run.session_date + (run.joined_at || "placeholder")}
+                key={run.session_date}
                 className="border-l-4 border-sunset/50"
               >
                 <p className="text-lg font-semibold text-brown-sugar">
                   {t("passport.earned")}
-                  {run.tofu_type ? (
+                  {signup?.goal ? (
+                    signup.goal
+                  ) : run.tofu_type ? (
                     <>
                       {tofuEmoji(run.tofu_type)}{" "}
                       {getTofuLabelLocalized(run.tofu_type, locale)}
@@ -364,13 +427,25 @@ export default function PassportPage() {
                     <span className="text-brown-sugar/50">{recordEmpty}</span>
                   )}
                 </p>
+                {run.bowls_completed > 0 ? (
+                  <p className="mt-1 text-sm font-medium text-mung-green">
+                    {t("passport.bowlsCompleted", {
+                      count: run.bowls_completed,
+                    })}
+                  </p>
+                ) : null}
+                <p className="mt-0.5 text-xs text-brown-sugar/50">
+                  {run.session_date}
+                </p>
                 <div className="mt-2 text-sm text-brown-sugar">
                   <span className="text-brown-sugar/60">Token</span>
-                  {run.tokens.length > 0 ? (
+                  {tokenGroups.length > 0 ? (
                     <ul className="mt-1 space-y-1">
-                      {run.tokens.map((t) => (
-                        <li key={t.id}>
-                          · {getTokenLabelLocalized(t.token_type, locale)}
+                      {tokenGroups.map((row) => (
+                        <li key={row.id}>
+                          ·{" "}
+                          {getTokenLabelLocalized(row.id as TokenTypeId, locale)}{" "}
+                          ×{row.count}
                         </li>
                       ))}
                     </ul>
@@ -394,20 +469,13 @@ export default function PassportPage() {
         </section>
       )}
 
-      <div className="mt-6 space-y-2 pb-4">
-        {hasJoinedToday && (
+      {hasJoinedToday && (
+        <div className="mt-6 pb-4">
           <Button href="/lobby" variant="secondary" className="w-full">
             {t("passport.goLobby")}
           </Button>
-        )}
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="block w-full cursor-pointer text-center text-xs text-brown-sugar/50 underline hover:text-brown-sugar/70"
-        >
-          {t("passport.logout")}
-        </button>
-      </div>
+        </div>
+      )}
     </PageShell>
   );
 }

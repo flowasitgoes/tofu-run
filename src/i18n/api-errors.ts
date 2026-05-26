@@ -17,6 +17,10 @@ const API_ERROR_KEYS: Record<string, string> = {
   "請填寫 Runner ID": "api.runnerIdRequired",
   "Runner ID 格式不正確（例：DOG-214）": "api.runnerIdFormat",
   "找不到此 Runner ID，請確認名額編號": "api.runnerNotFound",
+  "找不到此 Runner ID 的「想參加」報名。請確認已送出成功，或 Table 是否為 going_signups。":
+    "api.passportSignupNotFound",
+  "找不到此 Runner ID 的「想參加」報名。請前往首頁報名且成功，或聯繫豆仔 ~":
+    "api.passportSignupNotFound",
   "此 Runner ID 已登記過想參加": "api.runnerAlreadySigned",
   "「都不選」不可與配料同時選擇": "api.noneWithToppings",
   "配料選項無效": "api.toppingsInvalid",
@@ -67,6 +71,8 @@ const enApiExtras: Record<string, string> = {
   "api.liveEnterFirst": "Enter LIVE with your Runner ID first",
   "api.liveReadFailed": "Could not load LIVE",
   "api.passportReadFailed": "Could not load passport",
+  "api.passportSignupNotFound":
+    "No Join signup found for this Runner ID. Please sign up on the home page first, or contact the bean team~",
   "api.submitFailed": "Submit failed",
   "api.tokenAlreadyCollected": "You already collected this Token",
   "api.tokenNotOnRoute": "This Token is not on your tofu route",

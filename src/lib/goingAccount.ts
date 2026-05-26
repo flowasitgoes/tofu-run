@@ -1,3 +1,5 @@
+import { clearPassportCache } from "@/lib/passportCache";
+
 /** 已「想參加」報名者的本機登入（護照） */
 export const GOING_ACCOUNT_KEY = "tofu-run-going-account";
 
@@ -17,7 +19,15 @@ export function getStoredGoingAccount(): StoredGoingAccount | null {
 }
 
 export function setStoredGoingAccount(account: StoredGoingAccount): void {
-  localStorage.setItem(GOING_ACCOUNT_KEY, JSON.stringify(account));
+  const nextId = account.runnerId.trim().toUpperCase();
+  const prev = getStoredGoingAccount();
+  if (prev?.runnerId && prev.runnerId.trim().toUpperCase() !== nextId) {
+    clearPassportCache();
+  }
+  localStorage.setItem(
+    GOING_ACCOUNT_KEY,
+    JSON.stringify({ runnerId: nextId })
+  );
 }
 
 const PASSPORT_PREFILL_KEY = "tofu-run-passport-prefill";
@@ -40,6 +50,7 @@ export function clearStoredGoingAccount(): void {
   // 與護照快取一併清除（避免登出後仍顯示舊資料）
   try {
     localStorage.removeItem("tofu-run-passport-cache");
+    localStorage.removeItem("tofu-run-passport-cache-v2");
   } catch {
     /* ignore */
   }

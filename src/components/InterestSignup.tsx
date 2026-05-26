@@ -14,6 +14,7 @@ import {
   setStoredGoingAccount,
 } from "@/lib/goingAccount";
 import { formatDouhuaGoalLocalized } from "@/lib/i18n-labels";
+import { usePassportRegistry } from "@/hooks/usePassportRegistry";
 import {
   CUSTOM_NAME_MAX_GRAPHEMES,
   countGraphemes,
@@ -23,12 +24,16 @@ import {
 
 type Intent = "join" | "interested";
 
+/** 已報名豆友：依按鈕區分引導文案（想參加 vs 登入護照） */
+type ExistingMemberView = "join-blocked" | "passport-ready";
+
 export function InterestSignup() {
   const router = useRouter();
   const { locale, t, localizeError } = useLocale();
+  const { hasRegistered, addRegisteredRunnerId } = usePassportRegistry();
   const [intent, setIntent] = useState<Intent | null>(null);
-  const [passportAlreadyRegistered, setPassportAlreadyRegistered] =
-    useState(false);
+  const [existingMemberView, setExistingMemberView] =
+    useState<ExistingMemberView | null>(null);
   const [passportEntryLoading, setPassportEntryLoading] = useState(false);
   const [runnerId, setRunnerId] = useState("");
   const [runnerName, setRunnerName] = useState<string | null>(null);
@@ -107,6 +112,25 @@ export function InterestSignup() {
         if (!res.ok) throw new Error(data.error ?? t("signup.lookupFailed"));
         setRunnerId(data.runnerId);
         setRunnerName(data.runnerName);
+
+        if (data.joinStatus === "complete" || hasRegistered(data.runnerId)) {
+          showExistingMember("join-blocked", data.runnerId, data.runnerName);
+          return;
+        }
+        if (data.joinStatus === "pending") {
+          throw new Error("此 Runner ID 已登記過想參加");
+        }
+
+        const entry = await fetchPassportEntry(data.runnerId);
+        if (entry.registered) {
+          showExistingMember(
+            "join-blocked",
+            entry.runnerId,
+            entry.runnerName
+          );
+          return;
+        }
+
         setIntent("join");
         setStatus("idle");
       } catch (err) {
@@ -127,10 +151,39 @@ export function InterestSignup() {
     setPickNone(false);
   }
 
-  function goToPassport() {
-    const id = runnerId.trim().toUpperCase();
-    if (id) setStoredGoingAccount({ runnerId: id });
+  function navigateToPassport(id: string) {
+    const normalized = id.trim().toUpperCase();
+    if (!normalized) return;
+    setStoredGoingAccount({ runnerId: normalized });
     router.push("/passport");
+  }
+
+  function goToPassport() {
+    navigateToPassport(runnerId);
+  }
+
+  async function fetchPassportEntry(id: string) {
+    const res = await fetch(
+      `/api/going/passport-entry?runnerId=${encodeURIComponent(id)}`
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error ?? t("signup.lookupFailed"));
+    return data as {
+      runnerId: string;
+      runnerName: string | null;
+      registered: boolean;
+    };
+  }
+
+  function showExistingMember(
+    from: ExistingMemberView,
+    id: string,
+    name: string | null
+  ) {
+    setRunnerId(id);
+    setRunnerName(name);
+    addRegisteredRunnerId(id);
+    setExistingMemberView(from);
   }
 
   async function handlePassportLogin() {
@@ -142,21 +195,33 @@ export function InterestSignup() {
     }
 
     setPassportEntryLoading(true);
-    setPassportAlreadyRegistered(false);
+    setExistingMemberView(null);
     try {
-      const res = await fetch(
-        `/api/going/passport-entry?runnerId=${encodeURIComponent(id)}`
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? t("signup.lookupFailed"));
-      setRunnerId(data.runnerId);
-      setRunnerName(data.runnerName ?? null);
-      if (data.registered) {
-        setPassportAlreadyRegistered(true);
+      if (hasRegistered(id)) {
+        if (!runnerName) {
+          const res = await fetch(
+            `/api/runner?runnerId=${encodeURIComponent(id)}`
+          );
+          const lookup = await res.json();
+          showExistingMember(
+            "passport-ready",
+            id,
+            res.ok ? (lookup.runnerName ?? null) : null
+          );
+        } else {
+          showExistingMember("passport-ready", id, runnerName);
+        }
         return;
       }
-      setPassportPrefill(data.runnerId);
-      router.push("/passport");
+
+      const data = await fetchPassportEntry(id);
+      if (data.registered) {
+        showExistingMember("passport-ready", data.runnerId, data.runnerName);
+        return;
+      }
+      setRunnerId(data.runnerId);
+      setRunnerName(data.runnerName ?? null);
+      navigateToPassport(data.runnerId);
     } catch (err) {
       setError(
         err instanceof Error
@@ -170,7 +235,7 @@ export function InterestSignup() {
 
   function closeForm() {
     setIntent(null);
-    setPassportAlreadyRegistered(false);
+    setExistingMemberView(null);
     setRunnerId("");
     setRunnerName(null);
     setCustomName("");
@@ -223,7 +288,9 @@ export function InterestSignup() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? t("signup.submitFailed"));
       if (intent === "join" && runnerId.trim()) {
-        setStoredGoingAccount({ runnerId: runnerId.trim().toUpperCase() });
+        const id = runnerId.trim().toUpperCase();
+        setStoredGoingAccount({ runnerId: id });
+        addRegisteredRunnerId(id);
       }
       setStatus("success");
     } catch (err) {
@@ -237,6 +304,8 @@ export function InterestSignup() {
   }
 
   const displayName = resolveDisplayName(customName, runnerName);
+
+  const useWarmupBanner = existingMemberView !== null;
 
   const successGoal =
     intent === "join" && (pickNone || toppings.length > 0)
@@ -316,21 +385,38 @@ export function InterestSignup() {
     <div id="interest-signup" ref={rootRef} className="mb-5 scroll-mt-6">
       <Card className="overflow-hidden border-2 border-brown-sugar/10 bg-gradient-to-br from-cream to-tofu-white">
         <p className="text-center text-xs font-medium tracking-wide text-sunset">
-          {t("signup.preview")}
+          {t(useWarmupBanner ? "signup.warmupPreview" : "signup.preview")}
         </p>
         <h2 className="mt-1 text-center text-lg font-semibold text-brown-sugar">
-          {t("signup.heading")}
+          {t(useWarmupBanner ? "signup.warmupHeading" : "signup.heading")}
         </h2>
         <p className="mt-2 whitespace-pre-line text-center text-sm leading-relaxed text-brown-sugar/70">
-          {t("signup.subheading")}
+          {t(
+            useWarmupBanner ? "signup.warmupSubheading" : "signup.subheading"
+          )}
         </p>
 
         {!intent ? (
-          passportAlreadyRegistered ? (
+          existingMemberView ? (
             <div className="mt-5 space-y-4 text-center">
-              <p className="text-4xl">📔</p>
+              <p className="text-4xl">
+                {existingMemberView === "join-blocked" ? "🥣" : "📔"}
+              </p>
               <p className="text-base font-semibold text-brown-sugar">
-                {t("signup.alreadyRegistered")}
+                {existingMemberView === "join-blocked"
+                  ? t("signup.alreadySignedUpTitle")
+                  : t("signup.alreadyRegisteredTitle")}
+              </p>
+              <p
+                className={`text-sm leading-relaxed text-brown-sugar/70${
+                  existingMemberView === "join-blocked"
+                    ? " whitespace-pre-line"
+                    : ""
+                }`}
+              >
+                {existingMemberView === "join-blocked"
+                  ? t("signup.alreadySignedUpHint")
+                  : t("signup.alreadyRegisteredHint")}
               </p>
               <div className="rounded-2xl bg-cream/90 px-4 py-3">
                 <p className="font-mono text-base font-semibold text-twilight">
@@ -347,12 +433,14 @@ export function InterestSignup() {
                 onClick={goToPassport}
                 className="w-full rounded-2xl bg-brown-sugar px-4 py-3.5 text-sm font-medium text-cream shadow-md shadow-brown-sugar/15 transition-transform active:scale-[0.98]"
               >
-                {t("signup.viewMyPassport")}
+                {existingMemberView === "join-blocked"
+                  ? t("signup.goPassportLogin")
+                  : t("signup.viewMyPassport")}
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  setPassportAlreadyRegistered(false);
+                  setExistingMemberView(null);
                   setError(null);
                 }}
                 className="text-xs text-brown-sugar/45 underline-offset-2 hover:text-brown-sugar/65 hover:underline"
@@ -377,7 +465,7 @@ export function InterestSignup() {
                 placeholder={t("common.exampleRunnerId")}
                 className="w-full rounded-xl border border-brown-sugar/15 bg-cream px-4 py-3 font-mono text-sm tracking-wide text-brown-sugar outline-none transition-colors placeholder:font-sans placeholder:text-brown-sugar/35 focus:border-sunset/60 focus:ring-2 focus:ring-sunset/20"
               />
-              <p className="mt-1 text-[10px] text-brown-sugar/45">
+              <p className="mt-1 whitespace-pre-line text-[10px] leading-relaxed text-brown-sugar/45">
                 {t("signup.runnerIdHint")}
               </p>
             </label>
