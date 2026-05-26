@@ -233,13 +233,15 @@ export function LiveTokenScanner({
     };
   }, [open, showRecovery, startScanner, stopScanner, t]);
 
-  const close = () => {
-    if (busy) return;
+  const backToLive = useCallback(() => {
+    handlingRef.current = false;
+    setBusy(false);
     setOpen(false);
     setError(null);
     setCameraBlocked(false);
     setScanFailed(false);
-  };
+    void stopScanner();
+  }, [stopScanner]);
 
   const recoveryMessage =
     error ??
@@ -303,7 +305,7 @@ export function LiveTokenScanner({
             {showRecovery ? (
               <button
                 type="button"
-                onClick={close}
+                onClick={backToLive}
                 className="shrink-0 rounded-xl bg-[#fc8e0b] px-4 py-2 text-sm font-semibold text-white active:scale-[0.98]"
               >
                 {t("live.scanBackToLive")}
@@ -311,9 +313,8 @@ export function LiveTokenScanner({
             ) : (
               <button
                 type="button"
-                onClick={close}
-                disabled={busy}
-                className="rounded-lg px-3 py-1.5 text-sm text-cream/90 underline disabled:opacity-40"
+                onClick={backToLive}
+                className="rounded-lg px-3 py-1.5 text-sm text-cream/90 underline"
               >
                 {t("live.scanClose")}
               </button>
@@ -324,13 +325,20 @@ export function LiveTokenScanner({
             <ScanRecoveryPanel
               message={recoveryMessage}
               backLabel={t("live.scanBackToLive")}
-              onBack={close}
+              onBack={backToLive}
             />
           ) : (
             <>
-              <p className="mb-3 shrink-0 text-center text-xs text-cream/75">
-                {t("live.scanHint")}
-              </p>
+              <div className="mb-3 shrink-0 text-center">
+                <p className="text-xs text-cream/75">{t("live.scanHint")}</p>
+                <button
+                  type="button"
+                  onClick={backToLive}
+                  className="mt-2 text-sm font-semibold text-[#fc8e0b] underline underline-offset-2 active:opacity-80"
+                >
+                  {t("live.scanBackToLive")}
+                </button>
+              </div>
 
               <div className="flex min-h-0 flex-1 items-center justify-center px-1">
                 <div className="relative h-[min(68dvh,22rem,92vw)] w-[min(68dvh,22rem,92vw)] shrink-0">

@@ -734,7 +734,8 @@ async function fetchSessionTokenScans(
   sessionId: string,
   sessionDate: string,
   userIds: string[],
-  sinceIso?: string | null
+  sinceIso?: string | null,
+  untilIso?: string | null
 ): Promise<Token[]> {
   if (!userIds.length) return [];
 
@@ -750,11 +751,15 @@ async function fetchSessionTokenScans(
     .in("user_id", userIds);
 
   if (withSession.error && isMissingColumn(withSession.error, "session_id")) {
-    const { data: legacy, error: legacyError } = await supabase
+    let legacyQuery = supabase
       .from("tokens")
       .select(TOKEN_SCAN_SELECT)
       .in("user_id", userIds)
       .gte("scanned_at", anchor);
+    if (untilIso) {
+      legacyQuery = legacyQuery.lt("scanned_at", untilIso);
+    }
+    const { data: legacy, error: legacyError } = await legacyQuery;
     if (legacyError) throw legacyError;
     return (legacy ?? []) as Token[];
   }
@@ -762,12 +767,17 @@ async function fetchSessionTokenScans(
   if (withSession.error) throw withSession.error;
   mergeTokenRows(byId, (withSession.data ?? []) as Token[]);
 
+  let bySinceQuery = supabase
+    .from("tokens")
+    .select(TOKEN_SCAN_SELECT)
+    .in("user_id", userIds)
+    .gte("scanned_at", anchor);
+  if (untilIso) {
+    bySinceQuery = bySinceQuery.lt("scanned_at", untilIso);
+  }
+
   const [bySince, byDay] = await Promise.all([
-    supabase
-      .from("tokens")
-      .select(TOKEN_SCAN_SELECT)
-      .in("user_id", userIds)
-      .gte("scanned_at", anchor),
+    bySinceQuery,
     supabase
       .from("tokens")
       .select(TOKEN_SCAN_SELECT)
@@ -1003,7 +1013,7 @@ export async function getPassportData(
       tofu_type,
       completed_at,
       joined_at,
-      sessions!inner (date)
+      sessions!inner (date, ended_at)
     `
     )
     .eq("user_id", userId)
@@ -1027,6 +1037,7 @@ export async function getPassportData(
     {
       sessionId: string;
       sessionDate: string;
+      sessionEndedAt: string | null;
       joinedAt: string;
       completedAt: string | null;
       tofuType: string | null;
@@ -1034,7 +1045,10 @@ export async function getPassportData(
   >();
 
   for (const row of sessionRows ?? []) {
-    const session = row.sessions as unknown as { date: string };
+    const session = row.sessions as unknown as {
+      date: string;
+      ended_at?: string | null;
+    };
     const sessionId = row.session_id as string;
     const joinedAt = row.joined_at as string;
     const existing = bySession.get(sessionId);
@@ -1042,6 +1056,7 @@ export async function getPassportData(
       bySession.set(sessionId, {
         sessionId,
         sessionDate: session.date,
+        sessionEndedAt: session.ended_at ?? null,
         joinedAt,
         completedAt: row.completed_at as string | null,
         tofuType: row.tofu_type as string | null,
@@ -1064,12 +1079,28 @@ export async function getPassportData(
 
   const runs: PassportRun[] = [];
 
-  for (const meta of bySession.values()) {
+  const sessionTimeline = [...bySession.values()].sort(
+    (a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime()
+  );
+
+  function sessionScanUntilIso(index: number): string | null {
+    const meta = sessionTimeline[index];
+    const nextJoin = sessionTimeline[index + 1]?.joinedAt ?? null;
+    const endedAt = meta.sessionEndedAt;
+    if (nextJoin && endedAt) {
+      return new Date(nextJoin) < new Date(endedAt) ? nextJoin : endedAt;
+    }
+    return nextJoin ?? endedAt;
+  }
+
+  for (let i = 0; i < sessionTimeline.length; i++) {
+    const meta = sessionTimeline[i];
     const tokenRows = await fetchSessionTokenScans(
       meta.sessionId,
       meta.sessionDate,
       [userId],
-      meta.joinedAt
+      meta.joinedAt,
+      sessionScanUntilIso(i)
     );
 
     const earnedIds = [...tokenRows]
