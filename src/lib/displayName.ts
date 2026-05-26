@@ -11,22 +11,17 @@ export function resolveDisplayName(
 
 type SignupNameFields = {
   custom_name?: string | null;
-  nickname?: string | null;
   runner_name?: string | null;
 };
 
-/** 護照／LIVE／Lobby：優先 custom_name（報名自訂），再 nickname，最後名額原名 */
+/**
+ * 護照／LIVE 顯示名：有自訂名稱用 custom_name，否則用名額原名 runner_name。
+ * （與報名寫入 nickname 的規則一致，不依賴 nickname 欄位讀取。）
+ */
 export function signupDisplayName(
   signup: SignupNameFields | null | undefined
 ): string {
-  if (!signup) return "—";
-  const custom = signup.custom_name?.trim();
-  if (custom) return custom;
-  const nick = signup.nickname?.trim();
-  if (nick) return nick;
-  const pool = signup.runner_name?.trim();
-  if (pool) return pool;
-  return "—";
+  return resolveDisplayName(signup?.custom_name, signup?.runner_name) ?? "—";
 }
 
 export function signupPoolRunnerName(

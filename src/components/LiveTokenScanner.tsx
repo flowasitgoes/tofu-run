@@ -177,8 +177,12 @@ export function LiveTokenScanner({
       { facingMode: "environment" },
       {
         fps: 10,
-        qrbox: { width: 220, height: 220 },
         aspectRatio: 1,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const edge = Math.min(viewfinderWidth, viewfinderHeight);
+          const size = Math.floor(edge * 0.82);
+          return { width: size, height: size };
+        },
       },
       (decoded) => {
         void handleDecode(decoded);
@@ -328,18 +332,20 @@ export function LiveTokenScanner({
                 {t("live.scanHint")}
               </p>
 
-              <div className="relative mx-auto w-full max-w-sm min-h-[200px] flex-1 max-h-[min(52dvh,420px)]">
-                <div
-                  id={readerId}
-                  className="h-full min-h-[200px] overflow-hidden rounded-2xl bg-black [&_video]:rounded-2xl"
-                />
-                {busy ? (
-                  <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/60">
-                    <p className="text-sm font-medium text-cream">
-                      {t("scan.scanning")}
-                    </p>
-                  </div>
-                ) : null}
+              <div className="flex min-h-0 flex-1 items-center justify-center px-1">
+                <div className="relative h-[min(68dvh,22rem,92vw)] w-[min(68dvh,22rem,92vw)] shrink-0">
+                  <div
+                    id={readerId}
+                    className="absolute inset-0 overflow-hidden rounded-2xl bg-black [&_canvas]:!hidden [&_video]:!h-full [&_video]:!w-full [&_video]:!object-cover [&_video]:rounded-2xl"
+                  />
+                  {busy ? (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-black/60">
+                      <p className="text-sm font-medium text-cream">
+                        {t("scan.scanning")}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </>
           )}
