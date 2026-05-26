@@ -196,11 +196,28 @@ export function LiveParticipantTokenIcons({
       >
         <div className="flex h-11 w-full items-center justify-center">
           {completedTofu > 0 ? (
-            <TokenIconCell
-              id={BASE_TOFU_TOKEN_ID}
-              variant="live"
-              count={completedTofu}
-            />
+            <div className="relative flex flex-col items-center justify-center gap-0.5">
+              {currentRoundStations > 0 ? (
+                <div className="-mb-0.5 flex items-center justify-center">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-cream ring-1 ring-brown-sugar/15">
+                    <TokenIcon
+                      src="/spoon-64px.png"
+                      alt=""
+                      size={18}
+                      className="h-[18px] w-[18px] drop-shadow-none"
+                    />
+                  </div>
+                  <span className="-ml-1">
+                    <CountCircleBadge count={currentRoundStations} />
+                  </span>
+                </div>
+              ) : null}
+              <TokenIconCell
+                id={BASE_TOFU_TOKEN_ID}
+                variant="live"
+                count={completedTofu}
+              />
+            </div>
           ) : currentRoundStations > 0 ? (
             <div className="flex flex-col items-center justify-center gap-0.5">
               <div className="flex h-8 w-11 items-center justify-center">
