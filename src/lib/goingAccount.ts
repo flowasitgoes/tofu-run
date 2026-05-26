@@ -20,6 +20,21 @@ export function setStoredGoingAccount(account: StoredGoingAccount): void {
   localStorage.setItem(GOING_ACCOUNT_KEY, JSON.stringify(account));
 }
 
+const PASSPORT_PREFILL_KEY = "tofu-run-passport-prefill";
+
+/** 從首頁帶入護照登入欄位（尚未寫入 going-account） */
+export function setPassportPrefill(runnerId: string): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(PASSPORT_PREFILL_KEY, runnerId);
+}
+
+export function consumePassportPrefill(): string | null {
+  if (typeof window === "undefined") return null;
+  const value = sessionStorage.getItem(PASSPORT_PREFILL_KEY);
+  if (value) sessionStorage.removeItem(PASSPORT_PREFILL_KEY);
+  return value;
+}
+
 export function clearStoredGoingAccount(): void {
   localStorage.removeItem(GOING_ACCOUNT_KEY);
   // 與護照快取一併清除（避免登出後仍顯示舊資料）

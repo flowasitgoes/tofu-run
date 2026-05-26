@@ -56,8 +56,12 @@ export const en: Messages = {
     heading: "Want to join us?",
     subheading:
       "Leave your contact for now.\nWe'll notify you before we gather.",
-    runnerIdHint: "Enter your Runner ID, then tap Join",
+    runnerIdHint: "Enter Runner ID to join, or sign in to passport",
     intentJoin: "Join",
+    passportLogin: "Passport sign-in",
+    alreadyRegistered: "Hey bean friend — you're already signed up!",
+    viewMyPassport: "View my passport",
+    backToSignupForm: "Back",
     intentInterested: "Interested",
     interestedDisabled: "Coming soon",
     lookingUp: "Looking up…",

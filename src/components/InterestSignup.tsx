@@ -2,13 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ToppingPicker } from "@/components/ToppingPicker";
 import { formatDouhuaGoal, type TofuTypeId } from "@/lib/constants";
 import { resolveDisplayName } from "@/lib/displayName";
-import { setStoredGoingAccount } from "@/lib/goingAccount";
+import {
+  setPassportPrefill,
+  setStoredGoingAccount,
+} from "@/lib/goingAccount";
 import { formatDouhuaGoalLocalized } from "@/lib/i18n-labels";
 import {
   CUSTOM_NAME_MAX_GRAPHEMES,
@@ -20,8 +24,12 @@ import {
 type Intent = "join" | "interested";
 
 export function InterestSignup() {
+  const router = useRouter();
   const { locale, t, localizeError } = useLocale();
   const [intent, setIntent] = useState<Intent | null>(null);
+  const [passportAlreadyRegistered, setPassportAlreadyRegistered] =
+    useState(false);
+  const [passportEntryLoading, setPassportEntryLoading] = useState(false);
   const [runnerId, setRunnerId] = useState("");
   const [runnerName, setRunnerName] = useState<string | null>(null);
   const [runnerLookup, setRunnerLookup] = useState(false);
@@ -119,8 +127,50 @@ export function InterestSignup() {
     setPickNone(false);
   }
 
+  function goToPassport() {
+    const id = runnerId.trim().toUpperCase();
+    if (id) setStoredGoingAccount({ runnerId: id });
+    router.push("/passport");
+  }
+
+  async function handlePassportLogin() {
+    setError(null);
+    const id = runnerId.trim().toUpperCase();
+    if (!id) {
+      setError(t("signup.enterRunnerId"));
+      return;
+    }
+
+    setPassportEntryLoading(true);
+    setPassportAlreadyRegistered(false);
+    try {
+      const res = await fetch(
+        `/api/going/passport-entry?runnerId=${encodeURIComponent(id)}`
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? t("signup.lookupFailed"));
+      setRunnerId(data.runnerId);
+      setRunnerName(data.runnerName ?? null);
+      if (data.registered) {
+        setPassportAlreadyRegistered(true);
+        return;
+      }
+      setPassportPrefill(data.runnerId);
+      router.push("/passport");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? localizeError(err.message)
+          : t("signup.lookupFailed")
+      );
+    } finally {
+      setPassportEntryLoading(false);
+    }
+  }
+
   function closeForm() {
     setIntent(null);
+    setPassportAlreadyRegistered(false);
     setRunnerId("");
     setRunnerName(null);
     setCustomName("");
@@ -276,6 +326,41 @@ export function InterestSignup() {
         </p>
 
         {!intent ? (
+          passportAlreadyRegistered ? (
+            <div className="mt-5 space-y-4 text-center">
+              <p className="text-4xl">📔</p>
+              <p className="text-base font-semibold text-brown-sugar">
+                {t("signup.alreadyRegistered")}
+              </p>
+              <div className="rounded-2xl bg-cream/90 px-4 py-3">
+                <p className="font-mono text-base font-semibold text-twilight">
+                  {runnerId.trim().toUpperCase()}
+                </p>
+                {displayName && (
+                  <p className="mt-1 text-sm font-medium text-brown-sugar">
+                    {displayName}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={goToPassport}
+                className="w-full rounded-2xl bg-brown-sugar px-4 py-3.5 text-sm font-medium text-cream shadow-md shadow-brown-sugar/15 transition-transform active:scale-[0.98]"
+              >
+                {t("signup.viewMyPassport")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPassportAlreadyRegistered(false);
+                  setError(null);
+                }}
+                className="text-xs text-brown-sugar/45 underline-offset-2 hover:text-brown-sugar/65 hover:underline"
+              >
+                {t("signup.backToSignupForm")}
+              </button>
+            </div>
+          ) : (
           <div className="mt-5 space-y-3">
             <label className="block">
               <span className="mb-1.5 block text-xs font-medium text-brown-sugar/70">
@@ -307,7 +392,7 @@ export function InterestSignup() {
               <button
                 type="button"
                 onClick={() => openForm("join")}
-                disabled={runnerLookup}
+                disabled={runnerLookup || passportEntryLoading}
                 className="flex-1 rounded-2xl bg-brown-sugar px-4 py-3.5 text-sm font-medium text-cream shadow-md shadow-brown-sugar/15 transition-transform active:scale-[0.98] disabled:opacity-60"
               >
                 {runnerLookup
@@ -316,17 +401,17 @@ export function InterestSignup() {
               </button>
               <button
                 type="button"
-                disabled
-                aria-disabled="true"
-                title={t("signup.interestedDisabled")}
-                className="flex-1 cursor-not-allowed rounded-2xl border-2 border-brown-sugar/15 bg-cream/70 px-4 py-3.5 text-sm font-medium text-brown-sugar/40 opacity-60"
+                onClick={() => void handlePassportLogin()}
+                disabled={runnerLookup || passportEntryLoading}
+                className="flex-1 rounded-2xl border-2 border-brown-sugar/25 bg-cream px-4 py-3.5 text-sm font-medium text-brown-sugar transition-colors hover:border-brown-sugar/40 active:scale-[0.98] disabled:opacity-60"
               >
-                <span className="line-through decoration-brown-sugar/50">
-                  {t("signup.intentInterested")}
-                </span>
+                {passportEntryLoading
+                  ? t("signup.lookingUp")
+                  : t("signup.passportLogin")}
               </button>
             </div>
           </div>
+          )
         ) : (
           <form onSubmit={handleSubmit} className="mt-5 space-y-4">
             <div className="relative flex min-h-[5.5rem] flex-col rounded-xl bg-sunset/10 px-3 py-2 pb-7 text-xs text-brown-sugar">

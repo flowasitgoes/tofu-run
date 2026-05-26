@@ -20,6 +20,7 @@ import {
 } from "@/lib/i18n-labels";
 import {
   clearStoredGoingAccount,
+  consumePassportPrefill,
   getStoredGoingAccount,
   setStoredGoingAccount,
 } from "@/lib/goingAccount";
@@ -103,9 +104,11 @@ export default function PassportPage() {
     const stored = getStoredGoingAccount();
     if (stored?.runnerId) {
       loadAccount(stored.runnerId);
-    } else {
-      setLoading(false);
+      return;
     }
+    const prefill = consumePassportPrefill();
+    if (prefill) setRunnerIdInput(prefill);
+    setLoading(false);
   }, [loadAccount]);
 
   async function handleLogin(e: React.FormEvent) {
