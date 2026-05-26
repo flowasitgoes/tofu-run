@@ -32,7 +32,7 @@ const API_ERROR_KEYS: Record<string, string> = {
   "掃描失敗": "common.scanFailed",
   "你已經收集過此 Token": "api.tokenAlreadyCollected",
   "此 Token 不在你的豆花路線": "api.tokenNotOnRoute",
-  "同一配料不能連續掃描，請先掃其他配料": "api.scanSameToppingConsecutive",
+  "您才剛領過豆花噎ㄝ , 客人!": "api.scanTofuCooldown",
   "豆花 Token 需間隔 40 秒後才能再掃": "api.scanTofuCooldown",
   "豆花 Token 需間隔 1 分鐘後才能再掃": "api.scanTofuCooldown",
   "配料 Token 需間隔 1 分鐘後才能再掃": "api.scanToppingCooldown",
@@ -71,8 +71,9 @@ const enApiExtras: Record<string, string> = {
   "api.tokenAlreadyCollected": "You already collected this Token",
   "api.tokenNotOnRoute": "This Token is not on your tofu route",
   "api.scanSameToppingConsecutive":
-    "Cannot scan the same topping twice in a row — scan another topping first",
-  "api.scanTofuCooldown": "Wait 40 seconds before scanning the tofu Token again",
+    "You just picked up this topping — scan another one first!",
+  "api.scanTofuCooldown":
+    "You just picked up tofu — give it a moment before scanning again!",
   "api.scanToppingCooldown":
     "Wait 1 minute before scanning another topping Token",
   "api.pureRouteNoScan": "Plain tofu route — no topping Tokens to scan",
@@ -104,6 +105,20 @@ export function localizeErrorMessage(
     return createTranslator("en")("validation.tooLong", {
       max: maxMatch[1],
     });
+  }
+
+  const sameTopping = message.match(/^您已經剛領過(.+?)配料了!$/);
+  if (sameTopping) {
+    const zh = sameTopping[1];
+    const enName: Record<string, string> = {
+      紅豆: "red bean",
+      綠豆: "mung bean",
+      芋圓: "taro ball",
+      珍珠: "tapioca",
+      花生: "peanut",
+    };
+    const label = enName[zh] ?? zh;
+    return `You just picked up ${label} — scan another topping first!`;
   }
 
   const maxToppings = message.match(/^最多選擇 (\d+) 種配料$/);

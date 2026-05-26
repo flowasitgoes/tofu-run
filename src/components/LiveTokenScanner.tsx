@@ -48,6 +48,8 @@ export function LiveTokenScanner({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cameraBlocked, setCameraBlocked] = useState(false);
+  /** 掃描失敗（冷卻、重複等）：全螢幕提示 + 返回 LIVE，不留在黑畫面 */
+  const [scanFailed, setScanFailed] = useState(false);
   const readerId = `live-qr-${useId().replace(/:/g, "")}`;
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const handlingRef = useRef(false);
@@ -75,6 +77,8 @@ export function LiveTokenScanner({
 
       const tokenType = parseTokenTypeFromScanText(text);
       if (!tokenType) {
+        void stopScanner();
+        setScanFailed(true);
         setError(t("live.scanInvalidQr"));
         return;
       }
@@ -83,6 +87,7 @@ export function LiveTokenScanner({
       setBusy(true);
       setError(null);
       setCameraBlocked(false);
+      setScanFailed(false);
       await stopScanner();
 
       try {
@@ -108,6 +113,7 @@ export function LiveTokenScanner({
         }
       } catch (e) {
         const raw = e instanceof Error ? e.message : "";
+        setScanFailed(true);
         setError(
           raw === "SCAN_TIMEOUT"
             ? t("common.scanFailed")
@@ -156,6 +162,7 @@ export function LiveTokenScanner({
     lastActivateAtRef.current = now;
     setError(null);
     setCameraBlocked(false);
+    setScanFailed(false);
     setOpen(true);
   }, [disabled, busy, open]);
 
@@ -164,6 +171,7 @@ export function LiveTokenScanner({
       handlingRef.current = false;
       setBusy(false);
       setCameraBlocked(false);
+      setScanFailed(false);
       void stopScanner();
       return;
     }
@@ -186,8 +194,10 @@ export function LiveTokenScanner({
     setOpen(false);
     setError(null);
     setCameraBlocked(false);
+    setScanFailed(false);
   };
 
+  const showRecovery = cameraBlocked || scanFailed;
   const isHeader = placement === "header";
 
   const headerButtonClass = isHeader
@@ -253,10 +263,13 @@ export function LiveTokenScanner({
             </button>
           </div>
 
-          {cameraBlocked ? (
+          {showRecovery ? (
             <div className="mx-auto flex w-full max-w-sm flex-1 flex-col items-center justify-center gap-5 px-4 text-center">
               <p className="text-sm leading-relaxed text-cream/90">
-                {error ?? t("live.scanCameraDenied")}
+                {error ??
+                  (cameraBlocked
+                    ? t("live.scanCameraDenied")
+                    : t("common.scanFailed"))}
               </p>
               <button
                 type="button"
@@ -285,19 +298,6 @@ export function LiveTokenScanner({
                   </div>
                 ) : null}
               </div>
-
-              {error ? (
-                <div className="mt-4 space-y-3 text-center">
-                  <p className="text-sm text-red-bean/90">{error}</p>
-                  <button
-                    type="button"
-                    onClick={close}
-                    className="w-full max-w-xs rounded-2xl border border-cream/30 px-6 py-2.5 text-sm font-medium text-cream"
-                  >
-                    {t("live.scanBackToLive")}
-                  </button>
-                </div>
-              ) : null}
             </>
           )}
         </div>

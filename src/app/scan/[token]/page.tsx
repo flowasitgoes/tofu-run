@@ -267,12 +267,23 @@ export default function ScanPage({
 
         {status === "error" && (
           <Card className="mt-8 w-full">
-            <p className="text-red-bean">{error}</p>
-            <div className="mt-4 flex flex-col gap-2">
-              <Button href="/live" variant="secondary" className="w-full">
+            <p className="text-sm leading-relaxed text-red-bean">{error}</p>
+            <div className="mt-5 flex flex-col gap-2">
+              <Button
+                className="w-full"
+                onClick={() => router.replace("/live")}
+              >
                 {t("scan.backLive")}
               </Button>
-              <Button className="w-full" onClick={() => void handleScan()}>
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() => {
+                  scanRef.current = false;
+                  setStatus("idle");
+                  setError(null);
+                }}
+              >
                 {t("common.retry")}
               </Button>
             </div>

@@ -8,6 +8,23 @@ const TOPPING_TOKEN_IDS = new Set([
   "taro",
 ]);
 
+/** 配料中文簡稱（與活動文案一致；tapioca 對外稱珍珠） */
+const TOPPING_ZH_SHORT: Record<string, string> = {
+  redbean: "紅豆",
+  mungbean: "綠豆",
+  taro: "芋圓",
+  tapioca: "珍珠",
+  peanut: "花生",
+};
+
+export function toppingZhShortName(tokenType: string): string {
+  return TOPPING_ZH_SHORT[tokenType] ?? tokenType;
+}
+
+export function sameToppingConsecutiveMessage(tokenType: string): string {
+  return `您已經剛領過${toppingZhShortName(tokenType)}配料了!`;
+}
+
 export const SCAN_TOFU_COOLDOWN_MS = 40_000;
 export const SCAN_TOPPING_COOLDOWN_MS = 60_000;
 
@@ -41,7 +58,7 @@ export function validateScanRules(
     if (lastTofu) {
       const elapsed = now - new Date(lastTofu.scanned_at).getTime();
       if (elapsed < SCAN_TOFU_COOLDOWN_MS) {
-        return "豆花 Token 需間隔 40 秒後才能再掃";
+        return "您才剛領過豆花噎ㄝ , 客人!";
       }
     }
     return null;
@@ -54,7 +71,7 @@ export function validateScanRules(
       isToppingToken(lastScan.token_type) &&
       lastScan.token_type === nextTokenType
     ) {
-      return "同一配料不能連續掃描，請先掃其他配料";
+      return sameToppingConsecutiveMessage(nextTokenType);
     }
 
     const lastTopping = scansNewestFirst.find((s) => isToppingToken(s.token_type));
