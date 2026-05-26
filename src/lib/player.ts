@@ -2,6 +2,7 @@ import { STORAGE_KEY } from "@/lib/constants";
 import type { StoredPlayer } from "@/types/database";
 
 export type { StoredPlayer };
+export const PLAYER_UPDATED_EVENT = "tofu-run-player-updated";
 
 export function getStoredPlayer(): StoredPlayer | null {
   if (typeof window === "undefined") return null;
@@ -16,10 +17,12 @@ export function getStoredPlayer(): StoredPlayer | null {
 
 export function setStoredPlayer(player: StoredPlayer): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(player));
+  window.dispatchEvent(new Event(PLAYER_UPDATED_EVENT));
 }
 
 export function clearStoredPlayer(): void {
   localStorage.removeItem(STORAGE_KEY);
+  window.dispatchEvent(new Event(PLAYER_UPDATED_EVENT));
 }
 
 export function generateRunnerId(): string {
