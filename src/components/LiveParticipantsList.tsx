@@ -150,18 +150,20 @@ export function LiveParticipantsList({
                     </p>
                   ) : null}
                 </div>
-                <div className="flex min-w-0 flex-1 items-center gap-1 overflow-visible">
+                <div className="flex min-w-0 flex-1 flex-col gap-1 overflow-visible">
                   <LiveParticipantTokenIcons
                     tokenIds={p.earned_token_ids ?? []}
-                    className="min-w-0 flex-1 overflow-visible"
+                    className="min-w-0 w-full overflow-visible"
                     showScanCounts
                   />
                   {bowlsDone > 0 ? (
-                    <LiveCompleteBadge
-                      variant="earned"
-                      earnedLabel={t("live.earnedBowls", { count: bowlsDone })}
-                      label={t("ground.completeDone")}
-                    />
+                    <div className="flex justify-center">
+                      <LiveCompleteBadge
+                        variant="earned"
+                        earnedLabel={t("live.earnedBowls", { count: bowlsDone })}
+                        label={t("ground.completeDone")}
+                      />
+                    </div>
                   ) : null}
                 </div>
                 <div className="flex shrink-0 flex-col items-center gap-0 pl-0.5">
