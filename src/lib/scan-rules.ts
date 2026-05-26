@@ -8,12 +8,12 @@ const TOPPING_TOKEN_IDS = new Set([
   "taro",
 ]);
 
-/** 配料中文簡稱（與活動文案一致；tapioca 對外稱珍珠） */
+/** 配料中文簡稱（與活動文案一致） */
 const TOPPING_ZH_SHORT: Record<string, string> = {
   redbean: "紅豆",
   mungbean: "綠豆",
   taro: "芋圓",
-  tapioca: "珍珠",
+  tapioca: "粉圓",
   peanut: "花生",
 };
 

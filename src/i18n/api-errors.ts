@@ -114,7 +114,7 @@ export function localizeErrorMessage(
       紅豆: "red bean",
       綠豆: "mung bean",
       芋圓: "taro ball",
-      珍珠: "tapioca",
+      粉圓: "tapioca",
       花生: "peanut",
     };
     const label = enName[zh] ?? zh;
