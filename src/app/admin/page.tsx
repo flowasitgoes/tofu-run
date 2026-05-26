@@ -271,6 +271,7 @@ export default function AdminPage() {
             participants={participants}
             count={count}
             onlineCount={onlineCount}
+            dateLabel={sessionDate ? formatDisplayDate(sessionDate) : null}
             loading={loading}
             onRefresh={() => void load()}
           />

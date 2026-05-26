@@ -51,6 +51,7 @@ type LiveParticipantsListProps = {
   participants: LiveParticipant[];
   count: number;
   onlineCount: number;
+  dateLabel?: string | null;
   loading?: boolean;
   refreshing?: boolean;
   error?: string | null;
@@ -62,6 +63,7 @@ export function LiveParticipantsList({
   participants,
   count,
   onlineCount,
+  dateLabel = null,
   loading = false,
   refreshing = false,
   error = null,
@@ -77,6 +79,9 @@ export function LiveParticipantsList({
     <>
       <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-start gap-2">
         <div className="min-w-0">
+          {dateLabel ? (
+            <p className="mb-0.5 text-[11px] text-brown-sugar/55">{dateLabel}</p>
+          ) : null}
           <h2 className="font-semibold text-brown-sugar">
             {t("live.participants")}
           </h2>
