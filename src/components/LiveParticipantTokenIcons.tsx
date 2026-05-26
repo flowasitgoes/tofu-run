@@ -143,7 +143,7 @@ export function LiveTofuProgressRow({
         variant="live"
         count={completedTofu > 0 ? completedTofu : undefined}
       />
-      <div className="grid w-14 shrink-0 grid-cols-6 gap-px">
+      <div className="grid w-22 shrink-0 grid-cols-6 gap-px">
         {Array.from({ length: TOFU_PROGRESS_COUNT }, (_, i) => (
           <span
             key={i}

@@ -140,7 +140,7 @@ export function LiveParticipantsList({
                   isHighlight ? "bg-sunset/10 -mx-1 rounded-xl px-1" : ""
                 }`}
               >
-                <div className="w-[9rem] min-w-0 shrink-0">
+                <div className="min-w-0 shrink-0">
                   <p className="truncate font-mono text-sm font-semibold text-twilight">
                     {p.runner_id}
                   </p>
