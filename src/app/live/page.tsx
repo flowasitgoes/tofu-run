@@ -424,7 +424,9 @@ function LivePageContent() {
           </ul>
         )}
       </Card>
-      <p className="mt-4 text-center text-[11px] text-brown-sugar/50">{t("live.onlineHint")}</p>
+      <p className="mt-4 whitespace-pre-line text-center text-[11px] leading-relaxed text-brown-sugar/50">
+        {t("live.onlineHint")}
+      </p>
       {enteredRunnerId ? <LiveActivityFeed feed={feed} /> : null}
       <div className="mt-5 space-y-3">
         <Button href="/passport" variant="secondary" className="w-full">{t("live.myPassport")}</Button>

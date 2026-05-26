@@ -184,10 +184,10 @@ export const zh = {
     earnedBowls: "獲得 {count} 碗豆花",
     completionRank: "第 {rank} 名",
     onlineHint:
-      "綠色圓點＝上線、灰色圓點＝下線；完成時間旁紫框數字＝完成名次；圖示右下角數字＝掃描次數",
+      "綠色圓點＝上線、灰色圓點＝下線；完成時間旁紫框數字＝完成名次；\n圓角標右下角數字＝獲得的配料!",
     feed: "最新動態",
     feedEarned: "獲得 {token}",
-    feedHint: "有人掃描 Token 時會即時更新",
+    feedHint: "--- 有人獲得了美味的配料 !!! ---",
     myPassport: "我的豆花護照",
     viewGround: "Ground 看板（全员 Token）",
   },
