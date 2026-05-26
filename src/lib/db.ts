@@ -1,4 +1,11 @@
-import { TOKEN_TYPES } from "@/lib/constants";
+import { BASE_TOFU_TOKEN_ID, SCANNABLE_TOKEN_IDS, TOKEN_TYPES } from "@/lib/constants";
+import {
+  computeRouteCompletionFromScans,
+  countCompletedBowls,
+  lastBowlCompletedAt,
+  requiredTokenIdsForGoal,
+  activityDurationMinutes,
+} from "@/lib/ground-completion";
 import { createSupabaseClient, createSupabaseServiceClient } from "@/lib/supabase";
 import { resolveEventSchedule } from "@/lib/event-schedule";
 import { LiveNotActiveError } from "@/lib/live-gate";
@@ -11,13 +18,6 @@ import {
 import { signupDisplayNameOrFallback } from "@/lib/displayName";
 import { ensureSessionsLiveSchema } from "@/lib/sessions-schema-setup";
 import { formatDisplayDate, getTodayDateString } from "@/lib/session";
-import {
-  activityDurationMinutes,
-  lastBowlCompletedAt,
-  computeGroundCompletion,
-  countCompletedBowls,
-  requiredTokenIdsForGoal,
-} from "@/lib/ground-completion";
 import { collectTargetsFromSignup } from "@/lib/toppings";
 import type {
   GoingJoinListEntry,
@@ -38,6 +38,11 @@ import type {
 /** LIVE 在線：最後出現在 /live 的時間在此秒數內 */
 /** 有心跳（/api/live/presence）時可涵蓋掃 Token 離開 LIVE 頁的時間 */
 export const LIVE_ONLINE_SECONDS = 180;
+
+/** 場次內計入的掃描類型（含舊版單一 tofu QR） */
+function sessionTokenTypeSet(): Set<string> {
+  return new Set([...SCANNABLE_TOKEN_IDS, BASE_TOFU_TOKEN_ID]);
+}
 
 function isRpcNotFound(error: { code?: string } | null): boolean {
   return error?.code === "PGRST202";
@@ -928,9 +933,12 @@ export async function getLiveGroundData(
           signup.topping3 as string | null
         )
       : requiredTokenIdsForGoal(null, null, null, null);
-    const { isComplete, completedAt } = computeGroundCompletion(
+    const earnedTokenIds = earnedOrderByUser.get(row.user_id) ?? [];
+    const userScans = tokenRows.filter((t) => t.user_id === row.user_id);
+    const { isComplete, completedAt } = computeRouteCompletionFromScans(
       requiredTokenIds,
-      earned
+      earnedTokenIds,
+      userScans
     );
 
     return {
@@ -940,7 +948,7 @@ export async function getLiveGroundData(
       goal,
       joined_at: row.joined_at,
       earned,
-      earned_token_ids: earnedOrderByUser.get(row.user_id) ?? [],
+      earned_token_ids: earnedTokenIds,
       requiredTokenIds,
       isComplete,
       completedAt,
@@ -1030,7 +1038,7 @@ export async function getPassportData(
       )
     : [];
 
-  const tokenTypeSet = new Set<string>(TOKEN_TYPES.map((t) => t.id));
+  const tokenTypeSet = sessionTokenTypeSet();
 
   const bySession = new Map<
     string,
@@ -1273,7 +1281,7 @@ async function loadSessionTokenData(
     return { earnedByUser, tokenRows: [] };
   }
 
-  const tokenTypeSet = new Set<string>(TOKEN_TYPES.map((t) => t.id));
+  const tokenTypeSet = sessionTokenTypeSet();
   const earnedLists = new Map<string, string[]>();
   for (const id of userIds) earnedLists.set(id, []);
 
@@ -1468,9 +1476,12 @@ async function fetchLiveParticipantRows(
           signup.topping3 as string | null
         )
       : requiredTokenIdsForGoal(null, null, null, null);
-    const { isComplete, completedAt } = computeGroundCompletion(
+    const earnedTokenIds = earnedByUser.get(row.user_id as string) ?? [];
+    const userScans = tokenRows.filter((t) => t.user_id === row.user_id);
+    const { isComplete, completedAt } = computeRouteCompletionFromScans(
       requiredTokenIds,
-      earned
+      earnedTokenIds,
+      userScans
     );
 
     return {
@@ -1480,7 +1491,7 @@ async function fetchLiveParticipantRows(
       goal,
       joined_at: row.joined_at as string,
       is_online: isOnline,
-      earned_token_ids: earnedByUser.get(row.user_id as string) ?? [],
+      earned_token_ids: earnedTokenIds,
       required_token_ids: requiredTokenIds,
       is_complete: isComplete,
       completed_at: completedAt,

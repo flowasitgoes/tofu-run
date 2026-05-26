@@ -1,5 +1,11 @@
 import { BASE_TOFU_TOKEN_ID } from "@/lib/constants";
 import { collectTargetsFromSignup } from "@/lib/toppings";
+import {
+  countCompletedTofuSets,
+  firstTofuRelatedScanAt,
+  isTofuProgressToken,
+  TOFU_PROGRESS_TOKEN_IDS,
+} from "@/lib/tofu-progress";
 
 export function requiredTokenIdsForGoal(
   goal: string | null,
@@ -12,7 +18,18 @@ export function requiredTokenIdsForGoal(
   );
 }
 
-/** 集齊豆花 + 個人配料後視為完成；完成時間 = 最後一顆所需 Token 的掃描時間 */
+function effectiveCountForRequired(
+  requiredId: string,
+  toppingCounts: Map<string, number>,
+  earnedTokenIds: string[]
+): number {
+  if (requiredId === BASE_TOFU_TOKEN_ID) {
+    return countCompletedTofuSets(earnedTokenIds);
+  }
+  return toppingCounts.get(requiredId) ?? 0;
+}
+
+/** 集齊豆花（六站一輪）+ 個人配料後視為完成 */
 export function computeGroundCompletion(
   requiredIds: string[],
   earned: Record<string, string | null>
@@ -36,19 +53,38 @@ export function computeGroundCompletion(
   return { isComplete: true, completedAt };
 }
 
-/** 已完成幾碗：路線上每種 Token 各掃滿 N 次算 N 碗（取各類掃描次數最小值） */
+export function routeMeetsCompletion(
+  requiredIds: string[],
+  earnedTokenIds: string[]
+): boolean {
+  return countCompletedBowls(requiredIds, earnedTokenIds) >= 1;
+}
+
+/** 已完成幾碗：豆花 = 六站各滿一輪；配料 = 各掃 N 次取最小 */
 export function countCompletedBowls(
   requiredIds: string[],
   earnedTokenIds: string[]
 ): number {
   if (requiredIds.length === 0) return 0;
 
-  const counts = tokenScanCounts(requiredIds, earnedTokenIds);
+  const toppingCounts = countToppingScans(earnedTokenIds);
   let min = Infinity;
   for (const id of requiredIds) {
-    min = Math.min(min, counts.get(id) ?? 0);
+    min = Math.min(
+      min,
+      effectiveCountForRequired(id, toppingCounts, earnedTokenIds)
+    );
   }
   return min === Infinity ? 0 : min;
+}
+
+function countToppingScans(earnedTokenIds: string[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const id of earnedTokenIds) {
+    if (isTofuProgressToken(id) || id === BASE_TOFU_TOKEN_ID) continue;
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  return counts;
 }
 
 export function tokenScanCounts(
@@ -56,15 +92,39 @@ export function tokenScanCounts(
   earnedTokenIds: string[]
 ): Map<string, number> {
   const counts = new Map<string, number>();
-  for (const id of requiredIds) counts.set(id, 0);
-  for (const id of earnedTokenIds) {
-    if (!counts.has(id)) continue;
-    counts.set(id, (counts.get(id) ?? 0) + 1);
+  const toppingCounts = countToppingScans(earnedTokenIds);
+  for (const id of requiredIds) {
+    counts.set(
+      id,
+      effectiveCountForRequired(id, toppingCounts, earnedTokenIds)
+    );
   }
   return counts;
 }
 
-/** 第 N 碗完成當下最後掃到的那顆所需 Token 時間（與 LIVE 碗數邏輯一致） */
+function minBowlsFromMaps(
+  requiredIds: string[],
+  toppingCounts: Map<string, number>,
+  progressCounts: Map<string, number>
+): number {
+  let min = Infinity;
+  for (const rid of requiredIds) {
+    let c: number;
+    if (rid === BASE_TOFU_TOKEN_ID) {
+      c = Infinity;
+      for (const pid of TOFU_PROGRESS_TOKEN_IDS) {
+        c = Math.min(c, progressCounts.get(pid) ?? 0);
+      }
+      if (c === Infinity) c = 0;
+    } else {
+      c = toppingCounts.get(rid) ?? 0;
+    }
+    min = Math.min(min, c);
+  }
+  return min === Infinity ? 0 : min;
+}
+
+/** 第 N 碗完成當下最後掃到的那顆所需 Token 時間 */
 export function completionTimeForBowls(
   requiredIds: string[],
   scans: { token_type: string; scanned_at: string }[],
@@ -72,8 +132,9 @@ export function completionTimeForBowls(
 ): string | null {
   if (bowlCount <= 0 || requiredIds.length === 0) return null;
 
-  const counts = new Map<string, number>();
-  for (const id of requiredIds) counts.set(id, 0);
+  const toppingCounts = new Map<string, number>();
+  const progressCounts = new Map<string, number>();
+  for (const id of TOFU_PROGRESS_TOKEN_IDS) progressCounts.set(id, 0);
 
   const ordered = [...scans].sort(
     (a, b) =>
@@ -82,22 +143,18 @@ export function completionTimeForBowls(
 
   for (const scan of ordered) {
     const id = scan.token_type;
-    if (!counts.has(id)) continue;
-    counts.set(id, (counts.get(id) ?? 0) + 1);
-    let min = Infinity;
-    for (const rid of requiredIds) {
-      min = Math.min(min, counts.get(rid) ?? 0);
+    if (isTofuProgressToken(id)) {
+      progressCounts.set(id, (progressCounts.get(id) ?? 0) + 1);
+    } else if (id !== BASE_TOFU_TOKEN_ID) {
+      toppingCounts.set(id, (toppingCounts.get(id) ?? 0) + 1);
     }
-    if (min >= bowlCount) return scan.scanned_at;
+    if (minBowlsFromMaps(requiredIds, toppingCounts, progressCounts) >= bowlCount) {
+      return scan.scanned_at;
+    }
   }
   return null;
 }
 
-/**
- * 活動時長（分鐘）：最後一碗集齊 − 起算點
- * - 有官方活動開始時間 → 從活動開始算
- * - 否則（過渡）→ 第一顆豆花 Token
- */
 export function activityDurationMinutes(
   requiredIds: string[],
   scans: { token_type: string; scanned_at: string }[],
@@ -111,13 +168,7 @@ export function activityDurationMinutes(
 
   let startIso: string | null = eventStartAt?.trim() || null;
   if (!startIso) {
-    const ordered = [...scans].sort(
-      (a, b) =>
-        new Date(a.scanned_at).getTime() - new Date(b.scanned_at).getTime()
-    );
-    startIso =
-      ordered.find((s) => s.token_type === BASE_TOFU_TOKEN_ID)?.scanned_at ??
-      null;
+    startIso = firstTofuRelatedScanAt(scans);
   }
   if (!startIso) return null;
 
@@ -131,13 +182,7 @@ export function activityDurationMinutes(
 export function firstTofuScanAt(
   scans: { token_type: string; scanned_at: string }[]
 ): string | null {
-  const ordered = [...scans].sort(
-    (a, b) =>
-      new Date(a.scanned_at).getTime() - new Date(b.scanned_at).getTime()
-  );
-  return (
-    ordered.find((s) => s.token_type === BASE_TOFU_TOKEN_ID)?.scanned_at ?? null
-  );
+  return firstTofuRelatedScanAt(scans);
 }
 
 export function lastBowlCompletedAt(
@@ -147,4 +192,16 @@ export function lastBowlCompletedAt(
 ): string | null {
   if (bowlCount <= 0) return null;
   return completionTimeForBowls(requiredIds, scans, bowlCount);
+}
+
+export function computeRouteCompletionFromScans(
+  requiredIds: string[],
+  earnedTokenIds: string[],
+  scans: { token_type: string; scanned_at: string }[]
+): { isComplete: boolean; completedAt: string | null } {
+  if (!routeMeetsCompletion(requiredIds, earnedTokenIds)) {
+    return { isComplete: false, completedAt: null };
+  }
+  const completedAt = completionTimeForBowls(requiredIds, scans, 1);
+  return { isComplete: true, completedAt };
 }

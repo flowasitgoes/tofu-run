@@ -2,7 +2,10 @@
 
 import { useLocale } from "@/components/LocaleProvider";
 import { LiveCompleteBadge } from "@/components/LiveCompleteBadge";
-import { LiveParticipantTokenIcons } from "@/components/LiveParticipantTokenIcons";
+import {
+  LiveParticipantTokenIcons,
+  LiveTofuProgressRow,
+} from "@/components/LiveParticipantTokenIcons";
 import { countCompletedBowls } from "@/lib/ground-completion";
 import type { LiveParticipant } from "@/types/database";
 
@@ -133,11 +136,11 @@ export function LiveParticipantsList({
             return (
               <li
                 key={p.user_id}
-                className={`flex items-center gap-2 py-3 ${
+                className={`flex items-start gap-2 py-3 ${
                   isHighlight ? "bg-sunset/10 -mx-1 rounded-xl px-1" : ""
                 }`}
               >
-                <div className="w-[6.75rem] min-w-0 shrink-0">
+                <div className="w-[10rem] min-w-0 shrink-0">
                   <p className="truncate font-mono text-sm font-semibold text-twilight">
                     {p.runner_id}
                   </p>
@@ -149,6 +152,10 @@ export function LiveParticipantsList({
                       {p.goal}
                     </p>
                   ) : null}
+                  <LiveTofuProgressRow
+                    tokenIds={p.earned_token_ids ?? []}
+                    className="mt-1.5"
+                  />
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-1 overflow-visible">
                   <LiveParticipantTokenIcons
@@ -166,7 +173,7 @@ export function LiveParticipantsList({
                     </div>
                   ) : null}
                 </div>
-                <div className="flex shrink-0 flex-col items-center gap-0 pl-0.5">
+                <div className="flex shrink-0 flex-col items-center gap-0 self-center pl-0.5">
                   {isHighlight ? (
                     <span className="-mt-1 mb-0.5 rounded-full bg-sunset/20 px-2 py-0.5 text-[10px] font-medium leading-none text-brown-sugar">
                       {t("common.you")}

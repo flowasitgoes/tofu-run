@@ -1,8 +1,8 @@
-import { TOKEN_TYPES } from "@/lib/constants";
-import { computeGroundCompletion } from "@/lib/ground-completion";
+import { SCANNABLE_TOKEN_IDS } from "@/lib/constants";
+import { routeMeetsCompletion } from "@/lib/ground-completion";
 import type { GroundFeedItem, LiveGroundPayload } from "@/types/database";
 
-const TOKEN_IDS = new Set<string>(TOKEN_TYPES.map((t) => t.id));
+const TOKEN_IDS = new Set<string>(SCANNABLE_TOKEN_IDS);
 
 export type TokenEarnedBroadcast = {
   sessionId: string;
@@ -30,10 +30,12 @@ export function mergeTokenIntoGround(
       earned[event.tokenType] = event.scannedAt;
     }
     earned_token_ids = [...earned_token_ids, event.tokenType];
-    const { isComplete, completedAt } = computeGroundCompletion(
+    const isComplete = routeMeetsCompletion(
       row.requiredTokenIds,
-      earned
+      earned_token_ids
     );
+    const completedAt =
+      isComplete && !row.completedAt ? event.scannedAt : row.completedAt;
     return { ...row, earned, earned_token_ids, isComplete, completedAt };
   });
 

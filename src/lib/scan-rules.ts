@@ -1,4 +1,10 @@
-import { BASE_TOFU_TOKEN_ID } from "@/lib/constants";
+import {
+  countCompletedTofuSets,
+  countTofuProgressScans,
+  isLegacyTofuScan,
+  isTofuProgressToken,
+  tofuProgressScanBlockMessage,
+} from "@/lib/tofu-progress";
 
 const TOPPING_TOKEN_IDS = new Set([
   "redbean",
@@ -21,12 +27,10 @@ export function toppingZhShortName(tokenType: string): string {
   return TOPPING_ZH_SHORT[tokenType] ?? tokenType;
 }
 
-/** 同一種配料 1 分鐘內重掃 */
 export function sameToppingCooldownMessage(tokenType: string): string {
   return `您剛剛才領過${toppingZhShortName(tokenType)}配料呢客人!`;
 }
 
-export const SCAN_TOFU_COOLDOWN_MS = 40_000;
 export const SCAN_TOPPING_COOLDOWN_MS = 60_000;
 
 export type ScanHistoryRow = {
@@ -34,18 +38,28 @@ export type ScanHistoryRow = {
   scanned_at: string;
 };
 
-function isTofuToken(tokenType: string): boolean {
-  return tokenType === BASE_TOFU_TOKEN_ID;
-}
-
 function isToppingToken(tokenType: string): boolean {
   return TOPPING_TOKEN_IDS.has(tokenType);
 }
 
+function validateTofuProgressScan(
+  scansNewestFirst: ScanHistoryRow[],
+  nextTokenType: string
+): string | null {
+  const earnedTypes = scansNewestFirst.map((s) => s.token_type);
+  const completeSets = countCompletedTofuSets(earnedTypes);
+  const perStep = countTofuProgressScans(earnedTypes);
+  const alreadyInCurrentRound = (perStep.get(nextTokenType) ?? 0) > completeSets;
+  if (alreadyInCurrentRound) {
+    return tofuProgressScanBlockMessage(nextTokenType);
+  }
+  return null;
+}
+
 /**
  * 掃描防刷規則（回傳中文錯誤訊息；通過則回傳 null）
- * 1. 豆花：距上次豆花掃描須滿 40 秒
- * 2. 配料：距上次「同一種」配料掃描須滿 1 分鐘（不同配料可連續掃）
+ * - 豆花：tofu-01…06 各站本輪僅能掃一次；可連續掃不同站
+ * - 配料：同一種 1 分鐘內不可重掃
  */
 export function validateScanRules(
   scansNewestFirst: ScanHistoryRow[],
@@ -53,15 +67,12 @@ export function validateScanRules(
 ): string | null {
   const now = Date.now();
 
-  if (isTofuToken(nextTokenType)) {
-    const lastTofu = scansNewestFirst.find((s) => isTofuToken(s.token_type));
-    if (lastTofu) {
-      const elapsed = now - new Date(lastTofu.scanned_at).getTime();
-      if (elapsed < SCAN_TOFU_COOLDOWN_MS) {
-        return "您才剛領過豆花噎ㄝ , 客人!";
-      }
-    }
-    return null;
+  if (isLegacyTofuScan(nextTokenType)) {
+    return "請改掃豆花起點 QR（tofu-01 至 tofu-06）";
+  }
+
+  if (isTofuProgressToken(nextTokenType)) {
+    return validateTofuProgressScan(scansNewestFirst, nextTokenType);
   }
 
   if (isToppingToken(nextTokenType)) {

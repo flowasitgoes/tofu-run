@@ -4,12 +4,19 @@ import {
   LIVE_TOKEN_ICON_SLOTS,
   TOKEN_TYPES,
 } from "@/lib/constants";
+import {
+  countCompletedTofuSets,
+  isTofuProgressToken,
+  tofuProgressFilledSlots,
+  TOFU_PROGRESS_COUNT,
+} from "@/lib/tofu-progress";
 import { TokenIcon } from "@/components/TokenIcon";
 
 const OTHER_ICON_PX = 24;
 const LIVE_OTHER_ICON_PX = 32;
 const TOFU_ICON_PX = 44;
 const MAX_SLOTS = LIVE_TOKEN_ICON_SLOTS;
+const MAX_TOPPING_SLOTS = MAX_SLOTS - 1;
 /** LIVE 格線統一尺寸，角標對齊右下 */
 const LIVE_CELL_CLASS =
   "relative flex h-11 w-11 shrink-0 items-center justify-center overflow-visible";
@@ -30,6 +37,7 @@ function aggregateScans(
   const order: string[] = [];
   const counts = new Map<string, number>();
   for (const id of tokenIds) {
+    if (isTofuProgressToken(id) || id === BASE_TOFU_TOKEN_ID) continue;
     if (!TOKEN_TYPES.some((t) => t.id === id)) continue;
     counts.set(id, (counts.get(id) ?? 0) + 1);
     if (!order.includes(id)) order.push(id);
@@ -50,7 +58,7 @@ function TokenIconCell({
 }) {
   const tok = TOKEN_TYPES.find((t) => t.id === id);
   if (!tok) return null;
-  const isTofu = id === BASE_TOFU_TOKEN_ID;
+  const isTofu = id === BASE_TOFU_TOKEN_ID || id.startsWith("tofu-");
   const iconPx = isTofu
     ? TOFU_ICON_PX
     : variant === "live"
@@ -59,6 +67,22 @@ function TokenIconCell({
   const showBadge = variant === "live" && count != null && count > 0;
 
   if (variant === "live") {
+    if (!isTofu && showBadge) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-0.5">
+          <div className="flex h-8 w-11 items-center justify-center">
+            <TokenIcon
+              src={tok.image}
+              alt=""
+              size={iconPx}
+              className="h-8 w-8 drop-shadow-none"
+            />
+          </div>
+          <CountCircleBadge count={count!} placement="below" />
+        </div>
+      );
+    }
+
     return (
       <div className={LIVE_CELL_CLASS}>
         <TokenIcon
@@ -98,6 +122,44 @@ function TokenIconCell({
   );
 }
 
+/** LIVE 名單：豆花圖示 + 六格進度（放在 goal 下方） */
+export function LiveTofuProgressRow({
+  tokenIds,
+  className = "",
+}: {
+  tokenIds: string[];
+  className?: string;
+}) {
+  const completedTofu = countCompletedTofuSets(tokenIds);
+  const filledSlots = tofuProgressFilledSlots(tokenIds);
+
+  return (
+    <div
+      className={`flex min-w-0 items-center gap-1.5 overflow-visible ${className}`.trim()}
+      aria-label="豆花進度"
+    >
+      <TokenIconCell
+        id={BASE_TOFU_TOKEN_ID}
+        variant="live"
+        count={completedTofu > 0 ? completedTofu : undefined}
+      />
+      <div className="grid min-w-0 flex-1 grid-cols-6 gap-0.5">
+        {Array.from({ length: TOFU_PROGRESS_COUNT }, (_, i) => (
+          <span
+            key={i}
+            className={`h-3.5 rounded-[3px] border ${
+              filledSlots[i]
+                ? "border-sky-400 bg-sky-300"
+                : "border-brown-sugar/20 bg-brown-sugar/10"
+            }`}
+            aria-hidden
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** 依掃描順序顯示 Token 圖示（可合併同類型並顯示次數） */
 export function LiveParticipantTokenIcons({
   tokenIds,
@@ -125,6 +187,32 @@ export function LiveParticipantTokenIcons({
   }
 
   const gridEntries = aggregated ?? ordered.map((id) => ({ id, count: 1 }));
+
+  if (showScanCounts && aggregated) {
+    const toppingEntries = aggregated.slice(0, MAX_TOPPING_SLOTS);
+
+    return (
+      <div
+        className={`grid h-11 grid-cols-3 place-items-center gap-x-1 overflow-visible ${className}`.trim()}
+        aria-hidden={false}
+      >
+        {Array.from({ length: MAX_TOPPING_SLOTS }, (_, i) => {
+          const entry = toppingEntries[i];
+          const id = entry?.id;
+          const tok = id ? tokenById.get(id) : undefined;
+          return (
+            <div key={i} className="flex h-11 w-full items-center justify-center">
+              {tok && id ? (
+                <TokenIconCell id={id} variant="live" count={entry.count} />
+              ) : (
+                <span className="h-11 w-11 shrink-0" aria-hidden />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div

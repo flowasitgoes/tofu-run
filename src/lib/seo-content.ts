@@ -68,8 +68,8 @@ export const seoContent = {
   checkpoints: [
     {
       id: "tofu",
-      zoneZh: "太陽泉／起點",
-      zoneEn: "Sun fountain / Start",
+      zoneZh: "純白豆花底",
+      zoneEn: "Plain white tofu base",
       tokenZh: "豆花 Token",
       tokenEn: "Tofu Token",
     },

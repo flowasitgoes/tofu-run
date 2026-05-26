@@ -9,11 +9,12 @@ import {
 } from "@/lib/db";
 import { LiveNotActiveError, LIVE_NOT_ACTIVE_ERROR } from "@/lib/live-gate";
 import { validateScanRules } from "@/lib/scan-rules";
-import { TOKEN_TYPES } from "@/lib/constants";
+import { SCANNABLE_TOKEN_IDS } from "@/lib/constants";
 import { collectTargetsFromSignup } from "@/lib/toppings";
+import { isTokenAllowedOnRoute } from "@/lib/tofu-progress";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
-const VALID_TOKENS = TOKEN_TYPES.map((t) => t.id);
+const VALID_TOKENS = SCANNABLE_TOKEN_IDS;
 
 export async function POST(request: Request) {
   if (!isSupabaseConfigured()) {
@@ -63,7 +64,8 @@ export async function POST(request: Request) {
       signup?.topping3 ?? null
     );
 
-    if (!targets.some((t) => t.id === tokenType)) {
+    const requiredIds = targets.map((t) => t.id);
+    if (!isTokenAllowedOnRoute(tokenType, requiredIds)) {
       return NextResponse.json(
         { error: "此 Token 不在你的豆花路線" },
         { status: 403 }

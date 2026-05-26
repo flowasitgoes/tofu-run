@@ -76,9 +76,9 @@
 </head>
 <body>
   <div class="no-print">
-    <h1>Checkpoint QR Code（豆花 + 5 配料）</h1>
+    <h1>Checkpoint QR Code（豆花 6 站 + 5 配料）</h1>
     <p class="hint">
-      掃碼會開啟 <code>/scan/{token}</code>。正式活動請用正式網域；列印前請確認下方網址正確。
+      掃碼會開啟 <code>/scan/{token}</code>。豆花需依序掃 <code>tofu-01</code>…<code>tofu-06</code>（各站本輪僅一次）；集滿 6 站 = 1 顆豆花 Token。正式活動請用正式網域。
     </p>
     <div class="base">
       <label>網站根網址
@@ -91,14 +91,24 @@
   <div class="grid" id="grid"></div>
 
   <script>
-    const CHECKPOINTS = [
-      { id: "tofu", zone: "太陽泉／起點", label: "豆花 Token" },
+    const TOFU_STATIONS = [
+      { id: "tofu-01", zone: "純白豆花底", label: "豆花 Token 01" },
+      { id: "tofu-02", zone: "純白豆花底", label: "豆花 Token 02" },
+      { id: "tofu-03", zone: "純白豆花底", label: "豆花 Token 03" },
+      { id: "tofu-04", zone: "純白豆花底", label: "豆花 Token 04" },
+      { id: "tofu-05", zone: "純白豆花底", label: "豆花 Token 05" },
+      { id: "tofu-06", zone: "純白豆花底", label: "豆花 Token 06" },
+    ];
+
+    const TOPPINGS = [
       { id: "redbean", zone: "水池區", label: "紅豆 Token" },
       { id: "mungbean", zone: "樹林區", label: "綠豆 Token" },
       { id: "peanut", zone: "城市光廊區", label: "花生 Token" },
       { id: "tapioca", zone: "草地區", label: "粉圓 Token" },
       { id: "taro", zone: "捷運出口區", label: "芋圓 Token" },
     ];
+
+    const CHECKPOINTS = TOFU_STATIONS.concat(TOPPINGS);
 
     function qrImageUrl(scanUrl) {
       const data = encodeURIComponent(scanUrl);

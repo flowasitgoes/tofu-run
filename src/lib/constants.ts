@@ -78,16 +78,36 @@ export function formatDouhuaGoal(
 
 export type TofuTypeId = (typeof TOFU_TYPES)[number]["id"];
 
-/** 全員必掃的起點 Token（不計入報名配料三選） */
+/** 全員必掃的起點 Token（邏輯用；實際掃描為 tofu-01…06） */
 export const BASE_TOFU_TOKEN_ID = "tofu" as const;
 
-export const TOKEN_TYPES = [
-  {
-    id: "tofu",
-    label: "豆花 Token",
-    zone: "太陽泉／起點",
-    image: "/tokens/tofu.png",
-  },
+/** 豆花起點 6 站 QR，集滿一輪 = 1 顆豆花 Token */
+export const TOFU_PROGRESS_TOKEN_IDS = [
+  "tofu-01",
+  "tofu-02",
+  "tofu-03",
+  "tofu-04",
+  "tofu-05",
+  "tofu-06",
+] as const;
+
+export type TofuProgressTokenId = (typeof TOFU_PROGRESS_TOKEN_IDS)[number];
+
+export const TOFU_PROGRESS_COUNT = TOFU_PROGRESS_TOKEN_IDS.length;
+
+const TOFU_CHECKPOINT_ZONE = "純白豆花底";
+const TOFU_CHECKPOINT_IMAGE = "/tokens/tofu.png";
+
+export const TOFU_PROGRESS_CHECKPOINTS = TOFU_PROGRESS_TOKEN_IDS.map(
+  (id, index) => ({
+    id,
+    label: `豆花 Token ${String(index + 1).padStart(2, "0")}`,
+    zone: TOFU_CHECKPOINT_ZONE,
+    image: TOFU_CHECKPOINT_IMAGE,
+  })
+);
+
+const TOPPING_CHECKPOINTS = [
   {
     id: "redbean",
     label: "紅豆 Token",
@@ -120,7 +140,25 @@ export const TOKEN_TYPES = [
   },
 ] as const;
 
+/** 護照／路線顯示 + 掃描站定義（含 6 站豆花 QR） */
+export const TOKEN_TYPES = [
+  {
+    id: BASE_TOFU_TOKEN_ID,
+    label: "豆花 Token",
+    zone: TOFU_CHECKPOINT_ZONE,
+    image: TOFU_CHECKPOINT_IMAGE,
+  },
+  ...TOFU_PROGRESS_CHECKPOINTS,
+  ...TOPPING_CHECKPOINTS,
+] as const;
+
 export type TokenTypeId = (typeof TOKEN_TYPES)[number]["id"];
+
+/** 可掃描的 checkpoint（不含邏輯用 tofu） */
+export const SCANNABLE_TOKEN_IDS: string[] = [
+  ...TOFU_PROGRESS_TOKEN_IDS,
+  ...TOPPING_CHECKPOINTS.map((t) => t.id),
+];
 
 /** 豆花圖略大於其他 Token，視覺上較飽滿 */
 const TOFU_ICON_EXTRA_PX = 4;
@@ -129,7 +167,9 @@ export function resolveTokenIconSize(
   id: TokenTypeId | string,
   base: number
 ): number {
-  return id === BASE_TOFU_TOKEN_ID ? base + TOFU_ICON_EXTRA_PX : base;
+  return id === BASE_TOFU_TOKEN_ID || id.startsWith("tofu-")
+    ? base + TOFU_ICON_EXTRA_PX
+    : base;
 }
 
 export const STORAGE_KEY = "tofu-run-player";

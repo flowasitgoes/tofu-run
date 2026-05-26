@@ -136,6 +136,15 @@ export function localizeErrorMessage(
     });
   }
 
+  const tofuStation = message.match(/^您已經掃過豆花第 (\d+) 站了!$/);
+  if (tofuStation) {
+    return `You already scanned tofu station ${tofuStation[1]} this round!`;
+  }
+
+  if (message.includes("tofu-01 至 tofu-06")) {
+    return "Please scan the tofu checkpoints (tofu-01 through tofu-06)";
+  }
+
   const toppingCooldown =
     message.match(/^您剛剛才領過(.+?)配料呢客人!$/) ??
     message.match(/^您已經剛領過(.+?)配料了!$/);

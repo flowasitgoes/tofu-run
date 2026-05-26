@@ -12,8 +12,16 @@ import {
   getTokenZoneLocalized,
 } from "@/lib/i18n-labels";
 
+const TOFU_PIN = "left-[3%] top-[38%]";
+
 const PIN_POSITIONS: Record<TokenTypeId, string> = {
-  tofu: "left-[3%] top-[38%]",
+  tofu: TOFU_PIN,
+  "tofu-01": TOFU_PIN,
+  "tofu-02": TOFU_PIN,
+  "tofu-03": TOFU_PIN,
+  "tofu-04": TOFU_PIN,
+  "tofu-05": TOFU_PIN,
+  "tofu-06": TOFU_PIN,
   redbean: "left-[12%] top-[11%]",
   mungbean: "right-[4%] top-[14%]",
   peanut: "left-[8%] bottom-[4%]",

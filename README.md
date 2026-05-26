@@ -66,7 +66,7 @@ npm run dev
 在各區域張貼 QR code，連結格式：
 
 ```
-{SITE_URL}/scan/tofu      → 太陽泉／起點（全員必掃豆花）
+{SITE_URL}/scan/tofu-01…06 → 純白豆花底（全員必掃豆花，6 站 QR）
 {SITE_URL}/scan/redbean   → 水池區
 {SITE_URL}/scan/mungbean  → 樹林區
 {SITE_URL}/scan/peanut    → 城市光廊區

@@ -1,9 +1,10 @@
-import { TOKEN_TYPES } from "@/lib/constants";
+import { SCANNABLE_TOKEN_IDS } from "@/lib/constants";
+import { routeMeetsCompletion } from "@/lib/ground-completion";
 import type { GroundFeedItem, LiveParticipant } from "@/types/database";
 import type { TokenEarnedBroadcast } from "@/lib/ground-merge";
 
 const FEED_MAX = 30;
-const TOKEN_IDS = new Set<string>(TOKEN_TYPES.map((t) => t.id));
+const TOKEN_IDS = new Set<string>(SCANNABLE_TOKEN_IDS);
 
 /** 最新動態：掃描時間愈晚愈上面 */
 export function sortFeedNewestFirst(feed: GroundFeedItem[]): GroundFeedItem[] {
@@ -24,8 +25,7 @@ export function mergeTokenIntoLiveParticipants(
     const earned_token_ids = [...(p.earned_token_ids ?? []), event.tokenType];
     const required = p.required_token_ids ?? [];
     const is_complete =
-      required.length > 0 &&
-      required.every((id) => earned_token_ids.includes(id));
+      required.length > 0 && routeMeetsCompletion(required, earned_token_ids);
     const completed_at =
       is_complete && !p.is_complete
         ? event.scannedAt
