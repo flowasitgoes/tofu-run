@@ -127,6 +127,37 @@ export async function listUsedSessionDates(): Promise<string[]> {
   return (data ?? []).map((r) => r.date as string);
 }
 
+/** 管理後台：列出所有活動場次（可含 active） */
+export async function listAdminSessions(options?: {
+  includeActive?: boolean;
+}): Promise<Session[]> {
+  const includeActive = options?.includeActive ?? false;
+  const supabase = createSupabaseClient();
+  let query = supabase
+    .from("sessions")
+    .select("*")
+    .order("date", { ascending: false });
+  if (!includeActive) {
+    query = query.eq("status", "closed");
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map((row) => rowToSession(row as Record<string, unknown>));
+}
+
+/** 管理後台：依 session id 取得場次 */
+export async function getSessionById(sessionId: string): Promise<Session | null> {
+  const supabase = createSupabaseClient();
+  const { data, error } = await supabase
+    .from("sessions")
+    .select("*")
+    .eq("id", sessionId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return rowToSession(data as Record<string, unknown>);
+}
+
 export async function getLiveStatusPayload(): Promise<{
   phase: "idle" | "active";
   sessionId: string | null;

@@ -11,6 +11,25 @@ import type { LiveParticipant } from "@/types/database";
 
 const ADMIN_KEY = "tofu-run-admin-secret";
 
+function getStoredAdminSecret(): string | null {
+  if (typeof window === "undefined") return null;
+  return (
+    sessionStorage.getItem(ADMIN_KEY) || localStorage.getItem(ADMIN_KEY) || null
+  );
+}
+
+function setStoredAdminSecret(secret: string) {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(ADMIN_KEY, secret);
+  localStorage.setItem(ADMIN_KEY, secret);
+}
+
+function clearStoredAdminSecret() {
+  if (typeof window === "undefined") return;
+  sessionStorage.removeItem(ADMIN_KEY);
+  localStorage.removeItem(ADMIN_KEY);
+}
+
 export default function AdminPage() {
   const { t, localizeError } = useLocale();
   const [secret, setSecret] = useState("");
@@ -47,7 +66,7 @@ export default function AdminPage() {
   );
 
   useEffect(() => {
-    const saved = sessionStorage.getItem(ADMIN_KEY);
+    const saved = getStoredAdminSecret();
     if (!saved) return;
     setSecret(saved);
     void (async () => {
@@ -55,7 +74,7 @@ export default function AdminPage() {
       if (ok) {
         setAuthed(true);
       } else {
-        sessionStorage.removeItem(ADMIN_KEY);
+        clearStoredAdminSecret();
       }
     })();
   }, [verifySecret]);
@@ -116,7 +135,7 @@ export default function AdminPage() {
     const ok = await verifySecret(trimmed);
     setLoading(false);
     if (!ok) return;
-    sessionStorage.setItem(ADMIN_KEY, trimmed);
+    setStoredAdminSecret(trimmed);
     setSecret(trimmed);
     setAuthed(true);
   }
@@ -290,8 +309,16 @@ export default function AdminPage() {
       <Button
         variant="ghost"
         className="mt-6 w-full"
+        href="/admin/events"
+      >
+        活動快照列表
+      </Button>
+
+      <Button
+        variant="ghost"
+        className="mt-2 w-full"
         onClick={() => {
-          sessionStorage.removeItem(ADMIN_KEY);
+          clearStoredAdminSecret();
           setAuthed(false);
         }}
       >
