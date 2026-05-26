@@ -110,6 +110,7 @@ export type GoingJoinListEntry = {
   runner_id: string;
   nickname: string | null;
   runner_name: string | null;
+  custom_name: string | null;
   goal: string | null;
   created_at: string;
 };

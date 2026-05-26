@@ -8,6 +8,7 @@ import {
   touchLiveSeen,
 } from "@/lib/db";
 import { LiveNotActiveError, LIVE_NOT_ACTIVE_ERROR } from "@/lib/live-gate";
+import { signupDisplayName } from "@/lib/displayName";
 import { normalizeRunnerId, RUNNER_ID_PATTERN } from "@/lib/runner";
 import {
   isSupabaseConfigured,
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         userId,
         runnerId: poolUser.runner_id,
-        runnerName: signup.nickname ?? poolUser.runner_name,
+        runnerName: signupDisplayName(signup),
         sessionId: session.id,
         sessionDate: session.date,
       });
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       userId: user.id,
       runnerId: user.runner_id,
-      runnerName: signup.nickname ?? user.runner_name,
+      runnerName: signupDisplayName(signup),
       slotNo: user.slot_no,
       sessionId: session.id,
       sessionDate: session.date,

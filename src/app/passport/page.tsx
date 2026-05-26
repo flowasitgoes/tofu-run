@@ -38,6 +38,10 @@ import {
   lastBowlCompletedAt,
   tokenScanCounts,
 } from "@/lib/ground-completion";
+import {
+  signupDisplayName,
+  signupPoolRunnerName,
+} from "@/lib/displayName";
 import { formatTaipeiDateTime } from "@/lib/session";
 import { siteConfig } from "@/lib/site";
 import type { PassportAccount, PassportRun } from "@/types/database";
@@ -206,7 +210,8 @@ export default function PassportPage() {
   }
 
   const signup = account?.signup;
-  const displayNickname = signup?.nickname ?? signup?.runner_name ?? "—";
+  const displayNickname = signupDisplayName(signup);
+  const poolRunnerName = signupPoolRunnerName(signup);
 
   const activityRuns: PassportRun[] =
     !signup || loading ? [] : (account?.runs ?? []);
@@ -242,12 +247,10 @@ export default function PassportPage() {
         <p className="mt-1 text-base font-medium text-brown-sugar">
           {displayNickname}
         </p>
-        {signup?.runner_name &&
-          signup.custom_name &&
-          signup.runner_name !== signup.nickname && (
+        {poolRunnerName && poolRunnerName !== displayNickname && (
             <p className="mt-0.5 text-xs text-brown-sugar/50">
               {t("passport.originalName")}
-              {signup.runner_name}
+              {poolRunnerName}
             </p>
           )}
       </header>

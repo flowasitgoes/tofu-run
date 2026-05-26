@@ -8,6 +8,7 @@ import {
   minSelectableSessionDate,
   parseLivePhase,
 } from "@/lib/live-control";
+import { signupDisplayNameOrFallback } from "@/lib/displayName";
 import { ensureSessionsLiveSchema } from "@/lib/sessions-schema-setup";
 import { formatDisplayDate, getTodayDateString } from "@/lib/session";
 import {
@@ -302,7 +303,7 @@ export async function getGoingJoinList(): Promise<GoingJoinListEntry[]> {
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
     .from("going_signups")
-    .select("id, runner_id, nickname, runner_name, goal, created_at")
+    .select("id, runner_id, nickname, runner_name, custom_name, goal, created_at")
     .eq("intent", "join")
     .not("runner_id", "is", null)
     .order("created_at", { ascending: true });
@@ -860,7 +861,7 @@ export async function getLiveGroundData(
     supabase
       .from("going_signups")
       .select(
-        "runner_id, nickname, runner_name, goal, topping1, topping2, topping3"
+        "runner_id, nickname, runner_name, custom_name, goal, topping1, topping2, topping3"
       )
       .in("runner_id", runnerIds)
       .eq("intent", "join"),
@@ -904,10 +905,7 @@ export async function getLiveGroundData(
 
   const rows: GroundParticipantRow[] = sessionRows.map((row) => {
     const signup = signupByRunner.get(row.runner_id);
-    const displayName =
-      (signup?.nickname as string | undefined)?.trim() ||
-      (signup?.runner_name as string | undefined)?.trim() ||
-      row.runner_name;
+    const displayName = signupDisplayNameOrFallback(signup, row.runner_name);
     nameByUser.set(row.user_id, displayName);
 
     const goal = (signup?.goal as string | null) ?? null;
@@ -1400,7 +1398,7 @@ async function fetchLiveParticipantRows(
   const { data: signups, error: signupError } = await supabase
     .from("going_signups")
     .select(
-      "runner_id, nickname, runner_name, goal, topping1, topping2, topping3"
+      "runner_id, nickname, runner_name, custom_name, goal, topping1, topping2, topping3"
     )
     .in("runner_id", runnerIds)
     .eq("intent", "join");
@@ -1419,10 +1417,7 @@ async function fetchLiveParticipantRows(
       runner_name: string;
     };
     const signup = signupByRunner.get(user.runner_id);
-    const displayName =
-      (signup?.nickname as string | undefined)?.trim() ||
-      (signup?.runner_name as string | undefined)?.trim() ||
-      user.runner_name;
+    const displayName = signupDisplayNameOrFallback(signup, user.runner_name);
     const liveSeen = trackLiveSeen
       ? (row.live_seen_at as string | null)
       : null;

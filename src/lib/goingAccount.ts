@@ -53,6 +53,7 @@ export function clearStoredGoingAccount(): void {
     localStorage.removeItem("tofu-run-passport-cache-v2");
     localStorage.removeItem("tofu-run-passport-cache-v3");
     localStorage.removeItem("tofu-run-passport-cache-v4");
+    localStorage.removeItem("tofu-run-passport-cache-v5");
   } catch {
     /* ignore */
   }

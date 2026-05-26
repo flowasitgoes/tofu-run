@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useLobbyList } from "@/hooks/useLobbyList";
 import { useStoredGoingAccount } from "@/hooks/useStoredGoingAccount";
+import { signupDisplayName } from "@/lib/displayName";
 import { formatSignupDateTime } from "@/lib/formatSignupTime";
 
 export default function LobbyPage() {
@@ -104,8 +105,7 @@ export default function LobbyPage() {
           <ul className="divide-y divide-brown-sugar/8">
             {signups.map((s) => {
               const isMe = me?.runnerId === s.runner_id;
-              const displayName =
-                s.nickname?.trim() || s.runner_name?.trim() || "—";
+              const displayName = signupDisplayName(s);
               const signedUpAt = s.created_at
                 ? formatSignupDateTime(s.created_at)
                 : null;
