@@ -76,7 +76,7 @@ export default function AdminEventsPage() {
               <li key={s.id} className="py-3">
                 <Link
                   href={`/admin/events/${s.id}`}
-                  className="flex items-center justify-between rounded-xl px-2 py-2 hover:bg-cream/70"
+                  className="flex items-center justify-between rounded-xl border border-transparent px-3 py-2.5 transition-all duration-150 hover:-translate-y-[1px] hover:border-brown-sugar/15 hover:bg-cream/80 hover:shadow-sm hover:shadow-brown-sugar/10"
                 >
                   <span className="font-medium text-brown-sugar">
                     {prettyDate(s.date)}
@@ -91,7 +91,11 @@ export default function AdminEventsPage() {
         )}
       </Card>
 
-      <Button href="/admin" variant="ghost" className="mt-4 w-full">
+      <Button
+        href="/admin"
+        variant="ghost"
+        className="mt-4 w-full py-1.5 text-xs font-normal underline underline-offset-2 decoration-brown-sugar/45 hover:bg-transparent hover:decoration-brown-sugar"
+      >
         返回管理頁
       </Button>
     </PageShell>

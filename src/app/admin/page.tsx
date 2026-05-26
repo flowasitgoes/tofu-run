@@ -45,6 +45,7 @@ export default function AdminPage() {
   const [liveBusy, setLiveBusy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [endConfirmOpen, setEndConfirmOpen] = useState(false);
 
   const verifySecret = useCallback(
     async (candidate: string): Promise<boolean> => {
@@ -162,7 +163,7 @@ export default function AdminPage() {
     }
   }
 
-  async function endLive() {
+  async function endLive(): Promise<boolean> {
     setLiveBusy(true);
     setMessage(null);
     try {
@@ -174,10 +175,12 @@ export default function AdminPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       await load();
+      return true;
     } catch (e) {
       setMessage(
         e instanceof Error ? localizeError(e.message) : t("admin.liveEndFailed")
       );
+      return false;
     } finally {
       setLiveBusy(false);
     }
@@ -246,8 +249,8 @@ export default function AdminPage() {
           <Button
             type="button"
             className="mt-4 w-full"
-            disabled={liveBusy}
-            onClick={() => void endLive()}
+            disabled={liveBusy || endConfirmOpen}
+            onClick={() => setEndConfirmOpen(true)}
           >
             {liveBusy ? t("common.loading") : t("admin.endLive")}
           </Button>
@@ -306,17 +309,13 @@ export default function AdminPage() {
         )
       )}
 
-      <Button
-        variant="ghost"
-        className="mt-6 w-full"
-        href="/admin/events"
-      >
+      <Button variant="secondary" className="mt-6 w-full" href="/admin/events">
         活動快照列表
       </Button>
 
       <Button
         variant="ghost"
-        className="mt-2 w-full"
+        className="mt-2 w-full py-1.5 text-xs font-normal underline underline-offset-2 decoration-brown-sugar/45 hover:bg-transparent hover:decoration-brown-sugar"
         onClick={() => {
           clearStoredAdminSecret();
           setAuthed(false);
@@ -324,6 +323,58 @@ export default function AdminPage() {
       >
         {t("admin.logout")}
       </Button>
+
+      {endConfirmOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-brown-sugar/40 p-4 backdrop-blur-[2px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="end-live-confirm-title"
+          onClick={() => !liveBusy && setEndConfirmOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+          <Card className="shadow-xl">
+            <h2
+              id="end-live-confirm-title"
+              className="text-lg font-semibold text-brown-sugar"
+            >
+              {t("admin.endLiveConfirmTitle")}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-brown-sugar/70">
+              {t("admin.endLiveConfirmMessage", {
+                date: sessionDate ? formatDisplayDate(sessionDate) : "—",
+              })}
+            </p>
+            <div className="mt-5 flex gap-2">
+              <Button
+                type="button"
+                className="flex-1"
+                disabled={liveBusy}
+                onClick={() => {
+                  void endLive().then((ok) => {
+                    if (ok) setEndConfirmOpen(false);
+                  });
+                }}
+              >
+                {liveBusy ? t("common.loading") : t("admin.endLiveConfirmAction")}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="flex-1"
+                disabled={liveBusy}
+                onClick={() => setEndConfirmOpen(false)}
+              >
+                {t("common.cancel")}
+              </Button>
+            </div>
+          </Card>
+          </div>
+        </div>
+      ) : null}
     </PageShell>
   );
 }

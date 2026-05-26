@@ -6,6 +6,7 @@ export const en: Messages = {
     loading: "Loading…",
     retry: "Retry",
     cancel: "Cancel",
+    confirm: "Confirm",
     submit: "Submit",
     submitting: "Submitting…",
     refresh: "Refresh",
@@ -275,7 +276,7 @@ export const en: Messages = {
     markComplete: "Mark complete",
     clearTofu: "Clear tofu",
     assignFailed: "Assign failed",
-    logout: "Sign out",
+    logout: "Sign out Admin",
     liveControl: "LIVE session",
     liveIdleHint:
       "Players can enter /live only while a session is open. One active session at a time.",
@@ -284,6 +285,10 @@ export const en: Messages = {
     pickEventDate: "Event date",
     startLive: "Start event",
     endLive: "End event",
+    endLiveConfirmTitle: "End this event?",
+    endLiveConfirmMessage:
+      "Players will no longer be able to enter LIVE. Data for {date} stays in the database and you can review it under Event snapshots.",
+    endLiveConfirmAction: "End event",
     usedDates: "Dates already used:",
     assignWhenLiveOpen:
       "Start an event to view the same roster and Token progress as LIVE.",
