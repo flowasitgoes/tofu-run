@@ -449,7 +449,7 @@ function LivePageContent() {
                     ) : null}
                     <LiveParticipantTokenIcons
                       tokenIds={p.earned_token_ids ?? []}
-                      className="min-w-0 w-full overflow-visible"
+                      className="min-w-0 w-full max-w-[128px] overflow-visible"
                       showScanCounts
                     />
                   </div>
