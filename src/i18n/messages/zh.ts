@@ -35,6 +35,12 @@ export const zh = {
     tagline: "一起完成屬於你的一碗豆花。",
     location: "Tofu Run · 高雄中央公園",
     taglineEn: "When the Tofu Pudding is Running ...",
+    closedBeta: "{ ~ 封測 05/28/2026 星期四 7:30 - 8:30 三五好友試跑 ~ }",
+    closedBetaMeetupPrefix: "集合地: ",
+    closedBetaMeetupPlaceBefore: "中央公園",
+    closedBetaMeetupPlaceExitNo: "1",
+    closedBetaMeetupPlaceAfter: "號出口",
+    closedBetaMeetupSuffix: " 旁",
     whatIsTitle: "這是什麼？",
     whatIsBody:
       "城市裡的團體加油慢跑遊戲。\n掃描 QR 加入、選擇一碗豆花配料、到公園各區探尋美味 Token，\n收集你的豆花護照 — 跑.. 跑.. 跑... 享用你們拾取的豆花。",
@@ -122,8 +128,8 @@ export const zh = {
     unassigned: "尚未分配",
   },
   gathering: {
-    slot1: { time: "週一 7:00 PM", mood: "夏夜晚風" },
-    slot2: { time: "週四 6:00 PM", mood: "璀璨夕陽" },
+    slot1: { time: "週一 7:30 PM", mood: "夏夜晚風" },
+    slot2: { time: "週四 7:30 PM", mood: "璀璨夕陽" },
   },
   parkMap: {
     title: "高雄中央公園 · 豆花地圖",
@@ -152,7 +158,8 @@ export const zh = {
     listTitle: "想參加的人",
     listCount: "共 {count} 人",
     empty: "還沒有人報名，成為第一碗豆花吧 🥣",
-    dateTbd: "開跑日期稍候公佈...",
+    dateTbd:
+      "開跑日期稍候公佈...\n{ ~ 封測 05/28/2026 星期四 7:30 - 8:30 三五好友試跑 ~ }",
     logout: "登出護照",
     myPassport: "我的豆花護照",
   },

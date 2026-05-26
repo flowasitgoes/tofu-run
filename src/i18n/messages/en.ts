@@ -37,6 +37,12 @@ export const en: Messages = {
     tagline: "Build your bowl of tofu pudding together.",
     location: "Tofu Run · Kaohsiung Central Park",
     taglineEn: "When the Tofu Pudding is Running ...",
+    closedBeta: "{ ~ 封測 05/28/2026 星期四 7:30 - 8:30 三五好友試跑 ~ }",
+    closedBetaMeetupPrefix: "Meet at: ",
+    closedBetaMeetupPlaceBefore: "Central Park Exit ",
+    closedBetaMeetupPlaceExitNo: "1",
+    closedBetaMeetupPlaceAfter: "",
+    closedBetaMeetupSuffix: " area",
     whatIsTitle: "What is this?",
     whatIsBody:
       "A city group cheer-run game.\nScan a QR to join, pick your tofu toppings, explore park checkpoints for Tokens,\nand fill your tofu passport — run, run, run, then enjoy the bowl you collected.",
@@ -129,8 +135,8 @@ export const en: Messages = {
     unassigned: "Not assigned",
   },
   gathering: {
-    slot1: { time: "Mon 7:00 PM", mood: "Summer night breeze" },
-    slot2: { time: "Thu 6:00 PM", mood: "Golden sunset" },
+    slot1: { time: "Mon 7:30 PM", mood: "Summer night breeze" },
+    slot2: { time: "Thu 7:30 PM", mood: "Golden sunset" },
   },
   parkMap: {
     title: "Kaohsiung Central Park · Tofu map",
@@ -160,7 +166,8 @@ export const en: Messages = {
     listTitle: "Going list",
     listCount: "{count} people",
     empty: "No signups yet — be the first bowl 🥣",
-    dateTbd: "Run date TBA…",
+    dateTbd:
+      "Run date TBA…\n{ ~ Closed beta Thu 5/28/2026 7:30–8:30 — friends trial run ~ }",
     logout: "Sign out",
     myPassport: "My tofu passport",
   },

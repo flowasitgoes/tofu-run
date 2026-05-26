@@ -34,6 +34,16 @@ export function HomePageContent() {
         <p className="mt-1 text-xs italic text-brown-sugar/50">
           {t("home.taglineEn")}
         </p>
+        <p className="home-closed-beta">{t("home.closedBeta")}</p>
+        <p className="mt-1 text-xs text-brown-sugar/75">
+          {t("home.closedBetaMeetupPrefix")}
+          <span className="underline decoration-brown-sugar decoration-1 underline-offset-2">
+            {t("home.closedBetaMeetupPlaceBefore")}
+            <span className="font-bold">{t("home.closedBetaMeetupPlaceExitNo")}</span>
+            {t("home.closedBetaMeetupPlaceAfter")}
+          </span>
+          {t("home.closedBetaMeetupSuffix")}
+        </p>
       </header>
 
       <InterestSignup />

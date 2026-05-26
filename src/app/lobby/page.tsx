@@ -153,7 +153,9 @@ export default function LobbyPage() {
         )}
       </Card>
       <div className="mt-4 flex items-center justify-between gap-3">
-        <p className="text-xs font-bold text-brown-sugar/60">{t("lobby.dateTbd")}</p>
+        <p className="min-w-0 text-xs font-bold leading-relaxed text-brown-sugar/60 whitespace-pre-line">
+          {t("lobby.dateTbd")}
+        </p>
         {me && (
           <button
             type="button"
