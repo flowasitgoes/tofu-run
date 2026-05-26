@@ -138,11 +138,6 @@ export function LiveTofuProgressRow({
       className={`flex min-w-0 items-center gap-1.5 overflow-visible ${className}`.trim()}
       aria-label="豆花進度"
     >
-      <TokenIconCell
-        id={BASE_TOFU_TOKEN_ID}
-        variant="live"
-        count={completedTofu > 0 ? completedTofu : undefined}
-      />
       <div className="grid w-22 shrink-0 grid-cols-6 gap-px">
         {Array.from({ length: TOFU_PROGRESS_COUNT }, (_, i) => (
           <span
@@ -156,6 +151,11 @@ export function LiveTofuProgressRow({
           />
         ))}
       </div>
+      <TokenIconCell
+        id={BASE_TOFU_TOKEN_ID}
+        variant="live"
+        count={completedTofu > 0 ? completedTofu : undefined}
+      />
     </div>
   );
 }

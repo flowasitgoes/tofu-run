@@ -47,7 +47,10 @@ export function countTofuProgressScans(
   return counts;
 }
 
-/** 已完成的「整顆豆花」碗數：六站各掃 N 次 → 取最小 N */
+/**
+ * 已換得的豆花 Token 顆數：tofu-01…06 各至少掃 N 次 → 取最小 N。
+ * 舊版單一 `tofu` QR 不計入，須改掃六站。
+ */
 export function countCompletedTofuSets(earnedTokenIds: string[]): number {
   const perStep = countTofuProgressScans(earnedTokenIds);
   let min = Infinity;
@@ -55,6 +58,13 @@ export function countCompletedTofuSets(earnedTokenIds: string[]): number {
     min = Math.min(min, perStep.get(id) ?? 0);
   }
   return min === Infinity ? 0 : min;
+}
+
+/** 本輪（下一顆豆花 Token）已掃過幾站 */
+export function countTofuStationsFilledInCurrentRound(
+  earnedTokenIds: string[]
+): number {
+  return tofuProgressFilledSlots(earnedTokenIds).filter(Boolean).length;
 }
 
 export function tofuProgressFilledSlots(earnedTokenIds: string[]): boolean[] {

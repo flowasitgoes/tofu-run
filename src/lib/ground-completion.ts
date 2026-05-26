@@ -60,12 +60,15 @@ export function routeMeetsCompletion(
   return countCompletedBowls(requiredIds, earnedTokenIds) >= 1;
 }
 
-/** 已完成幾碗：豆花 = 六站各滿一輪；配料 = 各掃 N 次取最小 */
+/** 已完成幾碗：須先有一顆豆花 Token（六站一輪），再與各配料次數取最小 */
 export function countCompletedBowls(
   requiredIds: string[],
   earnedTokenIds: string[]
 ): number {
   if (requiredIds.length === 0) return 0;
+
+  const needsTofu = requiredIds.includes(BASE_TOFU_TOKEN_ID);
+  const tofuTokens = needsTofu ? countCompletedTofuSets(earnedTokenIds) : Infinity;
 
   const toppingCounts = countToppingScans(earnedTokenIds);
   let min = Infinity;
@@ -75,7 +78,12 @@ export function countCompletedBowls(
       effectiveCountForRequired(id, toppingCounts, earnedTokenIds)
     );
   }
-  return min === Infinity ? 0 : min;
+  const bowls = min === Infinity ? 0 : min;
+
+  if (needsTofu && tofuTokens < 1) return 0;
+  if (needsTofu && bowls > tofuTokens) return tofuTokens;
+
+  return bowls;
 }
 
 function countToppingScans(earnedTokenIds: string[]): Map<string, number> {
