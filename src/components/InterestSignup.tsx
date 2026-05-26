@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ToppingPicker } from "@/components/ToppingPicker";
 import { formatDouhuaGoal, type TofuTypeId } from "@/lib/constants";
-import { resolveDisplayName } from "@/lib/displayName";
+import { resolveDisplayName, signupDisplayName } from "@/lib/displayName";
 import {
   setPassportPrefill,
   setStoredGoingAccount,
@@ -171,6 +171,7 @@ export function InterestSignup() {
     return data as {
       runnerId: string;
       runnerName: string | null;
+      nickname?: string | null;
       registered: boolean;
     };
   }
@@ -303,7 +304,10 @@ export function InterestSignup() {
     }
   }
 
-  const displayName = resolveDisplayName(customName, runnerName);
+  const displayName =
+    existingMemberView && runnerName
+      ? runnerName
+      : resolveDisplayName(customName, runnerName);
 
   const useWarmupBanner = existingMemberView !== null;
 

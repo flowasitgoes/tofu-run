@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getGoingSignupByRunnerId, getPoolUserByRunnerId } from "@/lib/db";
+import { signupDisplayName } from "@/lib/displayName";
 import { normalizeRunnerId, RUNNER_ID_PATTERN } from "@/lib/runner";
 import {
   isSupabaseConfigured,
@@ -43,10 +44,14 @@ export async function GET(request: Request) {
 
     const signup = await getGoingSignupByRunnerId(runnerId);
     const registered = Boolean(signup?.email?.trim());
+    const nickname = registered && signup
+      ? signupDisplayName(signup)
+      : poolUser.runner_name;
 
     return NextResponse.json({
       runnerId: poolUser.runner_id,
-      runnerName: poolUser.runner_name,
+      runnerName: nickname,
+      nickname,
       registered,
     });
   } catch (e) {

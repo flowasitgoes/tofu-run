@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getGoingSignupByRunnerId, getPoolUserByRunnerId } from "@/lib/db";
+import { signupDisplayName } from "@/lib/displayName";
 import { normalizeRunnerId, RUNNER_ID_PATTERN } from "@/lib/runner";
 import {
   isSupabaseConfigured,
@@ -46,16 +47,23 @@ export async function GET(request: Request) {
     }
 
     let joinStatus: RunnerJoinStatus = "none";
+    let signup = null;
     if (isSupabaseServiceConfigured()) {
-      const signup = await getGoingSignupByRunnerId(trimmedRunnerId);
+      signup = await getGoingSignupByRunnerId(trimmedRunnerId);
       if (signup) {
         joinStatus = signup.email?.trim() ? "complete" : "pending";
       }
     }
 
+    const nickname =
+      signup && joinStatus === "complete"
+        ? signupDisplayName(signup)
+        : poolUser.runner_name;
+
     return NextResponse.json({
       runnerId: poolUser.runner_id,
-      runnerName: poolUser.runner_name,
+      runnerName: nickname,
+      nickname,
       joinStatus,
     });
   } catch (e) {

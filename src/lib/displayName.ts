@@ -10,17 +10,21 @@ export function resolveDisplayName(
 }
 
 type SignupNameFields = {
+  nickname?: string | null;
   custom_name?: string | null;
   runner_name?: string | null;
 };
 
 /**
- * 護照／LIVE 顯示名：有自訂名稱用 custom_name，否則用名額原名 runner_name。
- * （與報名寫入 nickname 的規則一致，不依賴 nickname 欄位讀取。）
+ * 護照／LIVE／首頁顯示名：一律讀 going_signups.nickname。
+ * nickname 於報名時寫入（有 custom_name 用 custom_name，否則用名額 runner_name）。
+ * 舊資料若 nickname 為空，再依 custom_name → runner_name 推算。
  */
 export function signupDisplayName(
   signup: SignupNameFields | null | undefined
 ): string {
+  const nick = signup?.nickname?.trim();
+  if (nick) return nick;
   return resolveDisplayName(signup?.custom_name, signup?.runner_name) ?? "—";
 }
 
