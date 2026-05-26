@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import {
   getLiveRoomData,
-  getOrCreateTodaySession,
   getTodaySessionMembership,
+  requireActiveLiveSession,
   touchLiveSeen,
 } from "@/lib/db";
+import { LiveNotActiveError, LIVE_NOT_ACTIVE_ERROR } from "@/lib/live-gate";
 import { normalizeRunnerId, RUNNER_ID_PATTERN } from "@/lib/runner";
 import { formatDisplayDate } from "@/lib/session";
 import {
@@ -31,7 +32,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const session = await getOrCreateTodaySession();
+    const session = await requireActiveLiveSession();
     const membership = await getTodaySessionMembership(runnerId, session.id);
     if (!membership) {
       return NextResponse.json(
@@ -58,6 +59,9 @@ export async function GET(request: Request) {
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (e) {
+    if (e instanceof LiveNotActiveError) {
+      return NextResponse.json({ error: LIVE_NOT_ACTIVE_ERROR }, { status: 403 });
+    }
     console.error(e);
     return NextResponse.json(
       { error: "讀取 LIVE 失敗" },

@@ -9,10 +9,21 @@ export type User = {
   created_at: string;
 };
 
+export type SessionStatus = "active" | "closed";
+
 export type Session = {
   id: string;
   date: string;
   started_at: string;
+  status?: SessionStatus;
+  ended_at?: string | null;
+};
+
+export type LiveStatusPayload = {
+  phase: "idle" | "active";
+  sessionId: string | null;
+  sessionDate: string | null;
+  sessionDateLabel: string | null;
 };
 
 export type UserSession = {

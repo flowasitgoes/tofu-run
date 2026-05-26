@@ -199,6 +199,9 @@ export const en: Messages = {
     enterTitle: "Enter today's room",
     fromQr: "Scan OK! Enter your Runner ID to join.",
     enterHint: "Runner ID required so we know it's you.",
+    inactiveTitle: "LIVE is closed",
+    inactiveHint:
+      "No event is running. Wait for the host to open LIVE from admin, then come back.",
     enterRunnerId: "Please enter Runner ID",
     entering: "Entering…",
     enter: "Enter LIVE",
@@ -260,17 +263,36 @@ export const en: Messages = {
   },
   admin: {
     loginTitle: "Admin sign-in",
-    loginHint: "Enter ADMIN_SECRET to manage today's session",
+    loginHint: "Enter ADMIN_SECRET to manage events and the LIVE switch",
     secretPlaceholder: "Admin secret",
     enter: "Enter admin",
     title: "Event admin",
     assignTofu: "Assign tofu",
+    sessionRoster: "Session roster (same as LIVE)",
     completed: "Done",
     current: "Current:",
     markComplete: "Mark complete",
     clearTofu: "Clear tofu",
     assignFailed: "Assign failed",
     logout: "Sign out",
+    liveControl: "LIVE session",
+    liveIdleHint:
+      "Players can enter /live only while a session is open. One active session at a time.",
+    liveActiveHint:
+      "Live: {date} · Ending closes /live and archives this day.",
+    pickEventDate: "Event date",
+    startLive: "Start event",
+    endLive: "End event",
+    usedDates: "Dates already used:",
+    assignWhenLiveOpen:
+      "Start an event to view the same roster and Token progress as LIVE.",
+    liveStartFailed: "Could not start event",
+    liveEndFailed: "Could not end event",
+    unauthorized: "Wrong secret or not authorized",
+    serverSecretMissing:
+      "ADMIN_SECRET is not set on the server — add it to .env.local and restart the dev server",
+    schemaSetupRequired:
+      "LIVE session columns missing — set DATABASE_URL or run migration SQL",
   },
   validation: {
     invalidChars:

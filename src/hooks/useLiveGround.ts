@@ -9,6 +9,7 @@ import {
 import { useLiveSessionSync } from "@/hooks/useLiveSessionSync";
 import {
   getLiveGroundCache,
+  getStoredLiveContext,
   setLiveGroundCache,
 } from "@/lib/liveSession";
 import type { LiveGroundPayload } from "@/types/database";
@@ -34,7 +35,9 @@ async function fetchGround(
 
 function hydrateFromCache(runnerId: string | null) {
   if (!runnerId) return null;
-  const cached = getLiveGroundCache(runnerId);
+  const ctx = getStoredLiveContext();
+  if (!ctx || ctx.runnerId !== runnerId) return null;
+  const cached = getLiveGroundCache(runnerId, ctx.sessionId);
   if (!cached) return null;
   const { runnerId: _r, cachedAt: _t, ...payload } = cached;
   return payload as LiveGroundPayload;
@@ -54,7 +57,9 @@ export function useLiveGround(runnerId: string | null) {
 
   const persistCache = useCallback(
     (payload: LiveGroundPayload) => {
-      if (runnerId) setLiveGroundCache(runnerId, payload);
+      if (runnerId && payload.sessionId) {
+        setLiveGroundCache(runnerId, payload.sessionId, payload);
+      }
     },
     [runnerId]
   );

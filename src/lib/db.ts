@@ -1,7 +1,15 @@
 import { TOKEN_TYPES } from "@/lib/constants";
 import { createSupabaseClient, createSupabaseServiceClient } from "@/lib/supabase";
 import { resolveEventSchedule } from "@/lib/event-schedule";
-import { getTodayDateString } from "@/lib/session";
+import { LiveNotActiveError } from "@/lib/live-gate";
+import {
+  isPastSessionDate,
+  isValidSessionDateString,
+  minSelectableSessionDate,
+  parseLivePhase,
+} from "@/lib/live-control";
+import { ensureSessionsLiveSchema } from "@/lib/sessions-schema-setup";
+import { formatDisplayDate, getTodayDateString } from "@/lib/session";
 import {
   activityDurationMinutes,
   lastBowlCompletedAt,
@@ -67,6 +75,143 @@ export async function getOrCreateTodaySession(): Promise<Session> {
   if (error) throw error;
   return data as Session;
 }
+
+function rowToSession(row: Record<string, unknown>): Session {
+  return {
+    id: row.id as string,
+    date: row.date as string,
+    started_at: row.started_at as string,
+    status: (row.status as Session["status"]) ?? "closed",
+    ended_at: (row.ended_at as string | null) ?? null,
+  };
+}
+
+/** 目前進行中的 LIVE 場次（admin 開啟）；無則 null */
+export async function getActiveLiveSession(): Promise<Session | null> {
+  const supabase = createSupabaseClient();
+  const { data, error } = await supabase
+    .from("sessions")
+    .select("*")
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingColumn(error, "status")) return null;
+    throw error;
+  }
+  if (!data) return null;
+  return rowToSession(data as Record<string, unknown>);
+}
+
+export async function requireActiveLiveSession(): Promise<Session> {
+  const session = await getActiveLiveSession();
+  if (!session) throw new LiveNotActiveError();
+  return session;
+}
+
+/** 已使用過的活動日（含進行中／已結束；一天僅能開一次） */
+export async function listUsedSessionDates(): Promise<string[]> {
+  const supabase = createSupabaseClient();
+  const { data, error } = await supabase
+    .from("sessions")
+    .select("date")
+    .order("date", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []).map((r) => r.date as string);
+}
+
+export async function getLiveStatusPayload(): Promise<{
+  phase: "idle" | "active";
+  sessionId: string | null;
+  sessionDate: string | null;
+  sessionDateLabel: string | null;
+}> {
+  const active = await getActiveLiveSession();
+  if (!active) {
+    return {
+      phase: "idle",
+      sessionId: null,
+      sessionDate: null,
+      sessionDateLabel: null,
+    };
+  }
+  return {
+    phase: "active",
+    sessionId: active.id,
+    sessionDate: active.date,
+    sessionDateLabel: formatDisplayDate(active.date),
+  };
+}
+
+export async function startLiveSession(date: string): Promise<Session> {
+  await ensureSessionsLiveSchema();
+
+  if (!isValidSessionDateString(date)) {
+    throw new Error("活動日期格式不正確");
+  }
+  if (isPastSessionDate(date)) {
+    throw new Error("不可選擇過去的日期");
+  }
+
+  const used = await listUsedSessionDates();
+  if (used.includes(date)) {
+    throw new Error("此日期已舉辦過活動，請選擇其他日期");
+  }
+
+  const active = await getActiveLiveSession();
+  if (active) {
+    throw new Error("已有進行中的活動，請先結束後再開啟");
+  }
+
+  const supabase = createSupabaseClient();
+  const { data, error } = await supabase
+    .from("sessions")
+    .insert({ date, status: "active" })
+    .select()
+    .single();
+
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error("此日期已舉辦過活動，請選擇其他日期");
+    }
+    if (isMissingColumn(error, "status")) {
+      await ensureSessionsLiveSchema();
+      const retry = await supabase
+        .from("sessions")
+        .insert({ date, status: "active" })
+        .select()
+        .single();
+      if (retry.error) throw retry.error;
+      return rowToSession(retry.data as Record<string, unknown>);
+    }
+    throw error;
+  }
+
+  return rowToSession(data as Record<string, unknown>);
+}
+
+export async function endActiveLiveSession(): Promise<Session> {
+  await ensureSessionsLiveSchema();
+  const active = await getActiveLiveSession();
+  if (!active) {
+    throw new Error("目前沒有進行中的活動");
+  }
+
+  const supabase = createSupabaseClient();
+  const endedAt = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("sessions")
+    .update({ status: "closed", ended_at: endedAt })
+    .eq("id", active.id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return rowToSession(data as Record<string, unknown>);
+}
+
+export { minSelectableSessionDate, parseLivePhase };
 
 /** 從 300 名額池領取下一個未使用的跑者（現場掃碼） */
 export async function claimNextPoolUser(
@@ -256,29 +401,31 @@ export async function getPassportAccount(
     signup.topping3
   );
 
+  const active = await getActiveLiveSession();
+
   if (!user) {
-    const session = await getOrCreateTodaySession();
     return {
       signup,
       collectTargets,
       user: null,
       runs: [],
-      todaySessionId: session.id,
+      todaySessionId: active?.id ?? null,
       joinedToday: false,
     };
   }
 
   const { runs } = await getPassportData(user.id, signup);
-  const session = await getOrCreateTodaySession();
-  const todayMembership = await getUserSessionForToday(user.id, session.id);
+  const activeMembership = active
+    ? await getUserSessionForToday(user.id, active.id)
+    : null;
 
   return {
     signup,
     collectTargets,
     user,
     runs,
-    todaySessionId: session.id,
-    joinedToday: todayMembership !== null,
+    todaySessionId: active?.id ?? null,
+    joinedToday: activeMembership !== null,
   };
 }
 
@@ -1044,7 +1191,8 @@ export async function getTodaySessionMembership(
   userSessionId: string;
 } | null> {
   const resolvedSessionId =
-    sessionId ?? (await getOrCreateTodaySession()).id;
+    sessionId ?? (await getActiveLiveSession())?.id ?? null;
+  if (!resolvedSessionId) return null;
   const user = await getUserByRunnerId(runnerId);
   if (!user) return null;
 

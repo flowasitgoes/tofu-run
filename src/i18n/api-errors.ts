@@ -27,6 +27,17 @@ const API_ERROR_KEYS: Record<string, string> = {
   "請勿重複選擇配料": "api.toppingsDuplicate",
   "請提供 Runner ID": "api.runnerIdRequired",
   "查詢失敗": "api.lookupFailed",
+  "活動尚未開始或已結束，請等候主辦開放 LIVE": "api.liveNotActive",
+  "請先開啟活動後再分配豆花": "api.adminLiveRequired",
+  "未授權": "admin.unauthorized",
+  "伺服器未設定 ADMIN_SECRET，請在 .env.local 設定後重啟 npm run dev":
+    "admin.serverSecretMissing",
+  "資料庫尚未建立 LIVE 場次欄位。請在 .env.local 加上 DATABASE_URL（Supabase → Project Settings → Database → Connection string），重啟 dev server 後再按「開啟活動」；或於 SQL Editor 執行 supabase/sessions_live_status.sql":
+    "admin.schemaSetupRequired",
+  "此日期已舉辦過活動，請選擇其他日期": "api.sessionDateUsed",
+  "不可選擇過去的日期": "api.sessionDatePast",
+  "已有進行中的活動，請先結束後再開啟": "api.sessionAlreadyActive",
+  "目前沒有進行中的活動": "api.noActiveSession",
   "請先輸入 Runner ID 進入 LIVE": "api.liveEnterFirst",
   "讀取 LIVE 失敗": "api.liveReadFailed",
   "請輸入有效的 Runner ID": "api.invalidRunnerId",
@@ -68,6 +79,13 @@ const enApiExtras: Record<string, string> = {
   "api.toppingsInvalid": "Invalid topping selection",
   "api.toppingsDuplicate": "Do not pick the same topping twice",
   "api.lookupFailed": "Lookup failed",
+  "api.liveNotActive":
+    "LIVE is closed — wait for the host to open the event",
+  "api.adminLiveRequired": "Start an event before assigning tofu",
+  "api.sessionDateUsed": "This date was already used — pick another",
+  "api.sessionDatePast": "Cannot pick a past date",
+  "api.sessionAlreadyActive": "An event is already running — end it first",
+  "api.noActiveSession": "No event is currently running",
   "api.liveEnterFirst": "Enter LIVE with your Runner ID first",
   "api.liveReadFailed": "Could not load LIVE",
   "api.passportReadFailed": "Could not load passport",
@@ -85,6 +103,11 @@ const enApiExtras: Record<string, string> = {
   "api.pureRouteNoScan": "Plain tofu route — no topping Tokens to scan",
   "api.userNotFound": "User not found",
   "api.groundReadFailed": "Could not load Ground board",
+  "admin.unauthorized": "Wrong secret or not authorized",
+  "admin.serverSecretMissing":
+    "ADMIN_SECRET is not set on the server — add it to .env.local and restart the dev server",
+  "admin.schemaSetupRequired":
+    "LIVE session columns missing — set DATABASE_URL or run sessions_live_status.sql",
 };
 
 export function localizeErrorMessage(

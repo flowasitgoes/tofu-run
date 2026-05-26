@@ -7,6 +7,7 @@ export const SCAN_API_TIMEOUT_MS = 12_000;
 export type PerformTokenScanResult = {
   scannedAt: string;
   sessionId: string;
+  sessionDate: string;
   tokenType: string;
   broadcast: TokenEarnedBroadcast | null;
 };
@@ -60,6 +61,7 @@ export async function performTokenScan(params: {
     new Date().toISOString();
 
   const sessionId = data.sessionId as string | undefined;
+  const sessionDate = data.sessionDate as string | undefined;
   const token = data.token as
     | { id: string; token_type: string; scanned_at: string }
     | undefined;
@@ -84,6 +86,7 @@ export async function performTokenScan(params: {
   return {
     scannedAt,
     sessionId: sessionId ?? "",
+    sessionDate: sessionDate ?? "",
     tokenType: params.tokenType,
     broadcast,
   };

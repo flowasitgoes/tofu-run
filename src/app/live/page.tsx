@@ -17,10 +17,13 @@ import { Button } from "@/components/ui/Button";
 import { TokenEarnedToast } from "@/components/TokenEarnedToast";
 import { useLiveRoom } from "@/hooks/useLiveRoom";
 import { useTokenRealtime } from "@/hooks/useTokenRealtime";
+import { useLiveStatus } from "@/hooks/useLiveStatus";
 import {
+  clearStoredLiveSession,
   consumePendingTokenEarn,
-  getStoredLiveRunnerId,
+  getStoredLiveContext,
   setStoredLiveRunnerId,
+  syncStoredLiveWithActive,
 } from "@/lib/liveSession";
 import { useStoredGoingAccount } from "@/hooks/useStoredGoingAccount";
 import { useStoredPlayerSnapshot } from "@/hooks/useStoredPlayer";
@@ -93,6 +96,13 @@ function LivePageContent() {
   const hydratePlayerTriedRef = useRef(false);
   const mounted = goingMounted && playerMounted;
   const {
+    status: liveStatus,
+    loading: liveStatusLoading,
+    refresh: refreshLiveStatus,
+  } = useLiveStatus();
+  const activeSessionId = liveStatus.sessionId;
+
+  const {
     participants,
     feed,
     sessionDateLabel,
@@ -105,7 +115,7 @@ function LivePageContent() {
     hasCachedData,
     reload,
     applyTokenEarned,
-  } = useLiveRoom(enteredRunnerId);
+  } = useLiveRoom(enteredRunnerId, activeSessionId);
 
   const completionRanks = useMemo(
     () => buildCompletionRanks(participants),
@@ -152,7 +162,12 @@ function LivePageContent() {
       setStoredGoingAccount({ runnerId: data.runnerId });
       setStoredPlayer({ userId: data.userId, runnerId: data.runnerId, runnerName: data.runnerName });
       setEnteredRunnerId(data.runnerId);
-      setStoredLiveRunnerId(data.runnerId);
+      setStoredLiveRunnerId(
+        data.runnerId,
+        data.sessionId as string,
+        data.sessionDate as string
+      );
+      void refreshLiveStatus();
     } catch (e) {
       setEnterError(
         e instanceof Error ? localizeError(e.message) : t("common.enterFailed")
@@ -160,7 +175,14 @@ function LivePageContent() {
     } finally {
       setEntering(false);
     }
-  }, [player, localizeError, t]);
+  }, [player, localizeError, t, refreshLiveStatus]);
+
+  useEffect(() => {
+    syncStoredLiveWithActive(activeSessionId);
+    if (liveStatus.phase !== "active" && enteredRunnerId) {
+      setEnteredRunnerId(null);
+    }
+  }, [liveStatus.phase, activeSessionId, enteredRunnerId]);
 
   useEffect(() => {
     if (!mounted || enteredRunnerId) return;
@@ -170,21 +192,32 @@ function LivePageContent() {
 
   useEffect(() => {
     if (!mounted) return;
-    const pending = consumePendingTokenEarn();
+    const pending = consumePendingTokenEarn(activeSessionId);
     if (pending) setEarnedTokenType(pending.tokenType);
-    const restored = getStoredLiveRunnerId();
-    if (restored) {
-      setEnteredRunnerId(restored);
+    const restored = getStoredLiveContext();
+    if (
+      restored &&
+      activeSessionId &&
+      restored.sessionId === activeSessionId
+    ) {
+      setEnteredRunnerId(restored.runnerId);
       const stored = getStoredPlayer();
       if (
         stored?.userId &&
-        normalizeRunnerId(stored.runnerId) === normalizeRunnerId(restored)
+        normalizeRunnerId(stored.runnerId) ===
+          normalizeRunnerId(restored.runnerId)
       ) {
         autoEnterTriedRef.current = true;
       }
+    } else if (
+      restored &&
+      activeSessionId &&
+      restored.sessionId !== activeSessionId
+    ) {
+      clearStoredLiveSession();
     }
     setStorageReady(true);
-  }, [mounted]);
+  }, [mounted, activeSessionId]);
 
   useEffect(() => {
     if (!mounted || enteredRunnerId || entering || autoEnterTriedRef.current) {
@@ -219,12 +252,41 @@ function LivePageContent() {
     enterLive,
   ]);
 
-  if (!mounted || !storageReady) {
+  if (!mounted || !storageReady || liveStatusLoading) {
     return (
       <PageShell>
         <p className="animate-pulse-soft py-16 text-center text-sm text-brown-sugar/60">
           {t("common.loading")}
         </p>
+      </PageShell>
+    );
+  }
+
+  if (liveStatus.phase !== "active") {
+    return (
+      <PageShell>
+        <header className="mb-6 text-center">
+          <p className="text-xs font-medium tracking-wide text-red-bean">LIVE</p>
+          <h1 className="mt-1 text-2xl font-bold text-brown-sugar">
+            {t("live.inactiveTitle")}
+          </h1>
+          <p className="mt-3 text-sm leading-relaxed text-brown-sugar/70">
+            {t("live.inactiveHint")}
+          </p>
+        </header>
+        <Card className="border border-brown-sugar/15 bg-cream">
+          <div className="flex flex-col gap-2">
+            <Button href="/passport" variant="secondary" className="w-full">
+              {t("live.myPassport")}
+            </Button>
+            <Button href="/" variant="secondary" className="w-full">
+              {t("live.backHome")}
+            </Button>
+          </div>
+        </Card>
+        <div className="mt-5">
+          <PageFooterNav />
+        </div>
       </PageShell>
     );
   }
@@ -282,7 +344,9 @@ function LivePageContent() {
               {t("live.todayOnSite")}
             </h1>
             <p className="mt-1 text-sm text-brown-sugar/65">
-              {sessionDateLabel || t("common.today")}
+              {sessionDateLabel ||
+                liveStatus.sessionDateLabel ||
+                t("common.today")}
             </p>
             <p className="mt-2 text-sm text-twilight">
               {t("live.youLabel")}

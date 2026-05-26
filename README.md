@@ -33,6 +33,7 @@ cp .env.local.example .env.local
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`（僅伺服器；報名／護照查詢用，**勿**加 `NEXT_PUBLIC_`）
 - `ADMIN_SECRET`（管理者頁面密鑰）
+- `DATABASE_URL`（可選但建議；Supabase → Database → **Connection string** → URI。供後台「開啟活動」時自動補 `sessions.status` 欄位；未設定時需先在 SQL Editor 執行一次 [`supabase/sessions_live_status.sql`](./supabase/sessions_live_status.sql)）
 - `NEXT_PUBLIC_SITE_URL`（正式網域，須與 og:image 同網域，例：`https://tofu-run.ifunlove.com`）
 - `NEXT_PUBLIC_FB_APP_ID`（可選，Facebook App 數字 ID，輸出 `fb:app_id` meta）
 

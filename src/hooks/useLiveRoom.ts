@@ -14,7 +14,6 @@ import {
   setLiveRoomCache,
 } from "@/lib/liveSession";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
-import { getTodayDateString } from "@/lib/session";
 import type { TokenEarnedBroadcast } from "@/lib/ground-merge";
 import type { GroundFeedItem, LiveParticipant } from "@/types/database";
 
@@ -55,8 +54,9 @@ async function fetchLive(
   };
 }
 
-function hydrateFromCache(runnerId: string) {
-  const cached = getLiveRoomCache(runnerId);
+function hydrateFromCache(runnerId: string, sessionId: string | null) {
+  if (!sessionId) return null;
+  const cached = getLiveRoomCache(runnerId, sessionId);
   if (!cached) return null;
   return {
     participants: cached.participants,
@@ -68,9 +68,15 @@ function hydrateFromCache(runnerId: string) {
   };
 }
 
-export function useLiveRoom(runnerId: string | null) {
+export function useLiveRoom(
+  runnerId: string | null,
+  activeSessionId: string | null
+) {
   const { localizeError, t } = useLocale();
-  const initial = runnerId ? hydrateFromCache(runnerId) : null;
+  const initial =
+    runnerId && activeSessionId
+      ? hydrateFromCache(runnerId, activeSessionId)
+      : null;
 
   const [participants, setParticipants] = useState<LiveParticipant[]>(
     initial?.participants ?? []
@@ -103,12 +109,12 @@ export function useLiveRoom(runnerId: string | null) {
     setOnlineCount(data.onlineCount);
     setSessionDateLabel(data.sessionDateLabel);
     if (data.sessionId) setSessionId(data.sessionId);
-    if (runnerId) {
+    if (runnerId && data.sessionId) {
       setLiveRoomCache({
         runnerId,
-        sessionDate: data.sessionDate ?? getTodayDateString(),
-        sessionDateLabel: data.sessionDateLabel,
         sessionId: data.sessionId,
+        sessionDate: data.sessionDate,
+        sessionDateLabel: data.sessionDateLabel,
         count: data.count,
         onlineCount: data.onlineCount,
         participants: data.participants,
@@ -179,12 +185,16 @@ export function useLiveRoom(runnerId: string | null) {
 
       setParticipants((prev) => {
         const next = mergeTokenIntoLiveParticipants(prev, event);
-        if (runnerId) {
-          const cached = getLiveRoomCache(runnerId);
+        if (runnerId && sessionId) {
+          const cached = getLiveRoomCache(runnerId, sessionId);
           if (cached) {
             setLiveRoomCache({
-              ...cached,
               runnerId,
+              sessionId: cached.sessionId,
+              sessionDate: cached.sessionDate,
+              sessionDateLabel: cached.sessionDateLabel,
+              count: cached.count,
+              onlineCount: cached.onlineCount,
               participants: next,
               feed: prependLiveFeedItem(cached.feed ?? [], event),
             });
@@ -195,7 +205,7 @@ export function useLiveRoom(runnerId: string | null) {
       setFeed((prev) => prependLiveFeedItem(prev, event));
       void load({ silent: true });
     },
-    [runnerId, load]
+    [runnerId, sessionId, load]
   );
 
   useLiveSessionSync({
@@ -264,13 +274,19 @@ export function useLiveRoom(runnerId: string | null) {
       return;
     }
 
-    const fromScan = isReturningFromScan();
+    if (!activeSessionId) {
+      setLoading(false);
+      hasDataRef.current = false;
+      return;
+    }
+
+    const fromScan = isReturningFromScan(activeSessionId);
     if (fromScan) {
       clearReturningFromScan();
       skipNextVisibleReloadRef.current = true;
     }
 
-    const cached = hydrateFromCache(runnerId);
+    const cached = hydrateFromCache(runnerId, activeSessionId);
     if (cached) {
       setParticipants(cached.participants);
       setFeed(cached.feed);
@@ -329,7 +345,7 @@ export function useLiveRoom(runnerId: string | null) {
       document.removeEventListener("visibilitychange", onVisible);
       clearInterval(interval);
     };
-  }, [runnerId, load]);
+  }, [runnerId, activeSessionId, load]);
 
   return {
     participants,

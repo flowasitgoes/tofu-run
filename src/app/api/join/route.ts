@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import {
   claimPoolUserByRunnerId,
   getGoingSignupByRunnerId,
-  getOrCreateTodaySession,
   getUserByRunnerId,
   joinSession,
+  requireActiveLiveSession,
 } from "@/lib/db";
+import { LiveNotActiveError, LIVE_NOT_ACTIVE_ERROR } from "@/lib/live-gate";
 import { normalizeRunnerId, RUNNER_ID_PATTERN } from "@/lib/runner";
 import {
   isSupabaseConfigured,
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const session = await getOrCreateTodaySession();
+    const session = await requireActiveLiveSession();
 
     if (userId) {
       const poolUser = await getUserByRunnerId(runnerId);
@@ -88,6 +89,9 @@ export async function POST(request: Request) {
       userSessionId: userSession.id,
     });
   } catch (e) {
+    if (e instanceof LiveNotActiveError) {
+      return NextResponse.json({ error: LIVE_NOT_ACTIVE_ERROR }, { status: 403 });
+    }
     console.error(e);
     return NextResponse.json(
       { error: "加入失敗" },

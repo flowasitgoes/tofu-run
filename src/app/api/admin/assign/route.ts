@@ -2,21 +2,17 @@ import { NextResponse } from "next/server";
 import {
   assignTofu,
   completeSession,
-  getOrCreateTodaySession,
+  getActiveLiveSession,
   getTakenTofuTypes,
 } from "@/lib/db";
+import { adminAuthErrorResponse, verifyAdminRequest } from "@/lib/admin-auth";
 import { createSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 
-function checkAdmin(request: Request): boolean {
-  const secret = process.env.ADMIN_SECRET;
-  if (!secret) return false;
-  const header = request.headers.get("x-admin-secret");
-  return header === secret;
-}
-
 export async function GET(request: Request) {
-  if (!checkAdmin(request)) {
-    return NextResponse.json({ error: "未授權" }, { status: 401 });
+  const auth = verifyAdminRequest(request);
+  if (!auth.ok) {
+    const { status, body } = adminAuthErrorResponse(auth);
+    return NextResponse.json(body, { status });
   }
 
   if (!isSupabaseConfigured()) {
@@ -27,7 +23,15 @@ export async function GET(request: Request) {
   }
 
   try {
-    const session = await getOrCreateTodaySession();
+    const session = await getActiveLiveSession();
+    if (!session) {
+      return NextResponse.json({
+        sessionDate: null,
+        players: [],
+        taken: [],
+        liveInactive: true,
+      });
+    }
     const supabase = createSupabaseClient();
 
     const { data, error } = await supabase
@@ -78,8 +82,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!checkAdmin(request)) {
-    return NextResponse.json({ error: "未授權" }, { status: 401 });
+  const auth = verifyAdminRequest(request);
+  if (!auth.ok) {
+    const { status, body } = adminAuthErrorResponse(auth);
+    return NextResponse.json(body, { status });
   }
 
   if (!isSupabaseConfigured()) {
@@ -101,7 +107,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "缺少參數" }, { status: 400 });
     }
 
-    const session = await getOrCreateTodaySession();
+    const session = await getActiveLiveSession();
+    if (!session) {
+      return NextResponse.json(
+        { error: "請先開啟活動後再分配豆花" },
+        { status: 403 }
+      );
+    }
     const taken = await getTakenTofuTypes(session.id);
 
     if (action === "complete") {

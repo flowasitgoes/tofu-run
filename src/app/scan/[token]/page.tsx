@@ -23,7 +23,6 @@ import {
   setLiveRoomCache,
   setStoredLiveRunnerId,
 } from "@/lib/liveSession";
-import { getTodayDateString } from "@/lib/session";
 
 const VALID = TOKEN_TYPES.map((t) => t.id);
 const LOADING_MIN_MS = 1000;
@@ -66,15 +65,19 @@ export default function ScanPage({
 
   useEffect(() => {
     if (!player?.runnerId) return;
-    setStoredLiveRunnerId(player.runnerId);
     const rid = player.runnerId;
-    if (getLiveRoomCache(rid)) return;
     void fetch(`/api/live?runnerId=${encodeURIComponent(rid)}`, {
       cache: "no-store",
     })
       .then((res) => res.json())
       .then((data) => {
         if (!data.sessionId) return;
+        setStoredLiveRunnerId(
+          rid,
+          data.sessionId as string,
+          data.sessionDate as string
+        );
+        if (getLiveRoomCache(rid, data.sessionId as string)) return;
         setLiveRoomCache({
           runnerId: rid,
           sessionDate: data.sessionDate,
@@ -104,16 +107,16 @@ export default function ScanPage({
     return () => window.clearTimeout(id);
   }, [status, router]);
 
-  async function persistScan(): Promise<string> {
+  async function persistScan() {
     if (!player || !tokenInfo) throw new Error(t("common.scanFailed"));
 
-    const { scannedAt } = await performTokenScan({
+    const result = await performTokenScan({
       userId: player.userId,
       runnerId: player.runnerId,
       runnerName: player.runnerName,
       tokenType,
     });
-    return scannedAt;
+    return result;
   }
 
   async function handleScan() {
@@ -132,16 +135,23 @@ export default function ScanPage({
     });
 
     try {
-      const at = await persistScan();
+      const scanResult = await persistScan();
       const prefetchPromise = prefetchLiveRoomCache(player.runnerId);
       await waitMs(duration);
       await prefetchPromise.catch(() => {});
-      setScannedAt(at);
-      setStoredLiveRunnerId(player.runnerId);
+      setScannedAt(scanResult.scannedAt);
+      if (scanResult.sessionId && scanResult.sessionDate) {
+        setStoredLiveRunnerId(
+          player.runnerId,
+          scanResult.sessionId,
+          scanResult.sessionDate
+        );
+      }
       markReturningFromScan({
         tokenType,
-        scannedAt: at,
-        sessionDate: getTodayDateString(),
+        scannedAt: scanResult.scannedAt,
+        sessionId: scanResult.sessionId,
+        sessionDate: scanResult.sessionDate,
       });
       setStatus("success");
     } catch (e) {

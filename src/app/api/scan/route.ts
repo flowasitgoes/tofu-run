@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import {
   getGoingSignupByRunnerId,
-  getOrCreateTodaySession,
   getRecentUserSessionTokenScans,
   getUserById,
   getUserSessionForToday,
   recordToken,
+  requireActiveLiveSession,
 } from "@/lib/db";
+import { LiveNotActiveError, LIVE_NOT_ACTIVE_ERROR } from "@/lib/live-gate";
 import { validateScanRules } from "@/lib/scan-rules";
 import { TOKEN_TYPES } from "@/lib/constants";
 import { collectTargetsFromSignup } from "@/lib/toppings";
@@ -39,12 +40,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "無效的 Token" }, { status: 400 });
     }
 
-    const session = await getOrCreateTodaySession();
+    const session = await requireActiveLiveSession();
     const userSession = await getUserSessionForToday(userId, session.id);
 
     if (!userSession) {
       return NextResponse.json(
-        { error: "請先加入今日活動" },
+        { error: "請先進入 LIVE" },
         { status: 403 }
       );
     }
@@ -90,9 +91,13 @@ export async function POST(request: Request) {
       ok: true,
       token,
       sessionId: session.id,
+      sessionDate: session.date,
       scannedAt: token.scanned_at,
     });
   } catch (e) {
+    if (e instanceof LiveNotActiveError) {
+      return NextResponse.json({ error: LIVE_NOT_ACTIVE_ERROR }, { status: 403 });
+    }
     console.error(e);
     const message =
       e instanceof Error && e.message ? e.message : "掃描失敗";
