@@ -6,6 +6,7 @@ import {
 } from "@/lib/constants";
 import {
   countCompletedTofuSets,
+  countTofuStationsFilledInCurrentRound,
   isTofuProgressToken,
   tofuProgressFilledSlots,
   TOFU_PROGRESS_COUNT,
@@ -184,6 +185,8 @@ export function LiveParticipantTokenIcons({
 
   if (showScanCounts && aggregated) {
     const completedTofu = countCompletedTofuSets(tokenIds);
+    const currentRoundStations =
+      countTofuStationsFilledInCurrentRound(tokenIds);
     const toppingEntries = aggregated.slice(0, MAX_TOPPING_SLOTS);
 
     return (
@@ -192,11 +195,27 @@ export function LiveParticipantTokenIcons({
         aria-hidden={false}
       >
         <div className="flex h-11 w-full items-center justify-center">
-          <TokenIconCell
-            id={BASE_TOFU_TOKEN_ID}
-            variant="live"
-            count={completedTofu > 0 ? completedTofu : undefined}
-          />
+          {completedTofu > 0 ? (
+            <TokenIconCell
+              id={BASE_TOFU_TOKEN_ID}
+              variant="live"
+              count={completedTofu}
+            />
+          ) : currentRoundStations > 0 ? (
+            <div className="flex flex-col items-center justify-center gap-0.5">
+              <div className="flex h-8 w-11 items-center justify-center">
+                <TokenIcon
+                  src="/spoon-64px.png"
+                  alt=""
+                  size={LIVE_OTHER_ICON_PX}
+                  className="h-8 w-8 drop-shadow-none"
+                />
+              </div>
+              <CountCircleBadge count={currentRoundStations} placement="below" />
+            </div>
+          ) : (
+            <span className="h-11 w-11 shrink-0" aria-hidden />
+          )}
         </div>
         {Array.from({ length: MAX_TOPPING_SLOTS }, (_, i) => {
           const entry = toppingEntries[i];
