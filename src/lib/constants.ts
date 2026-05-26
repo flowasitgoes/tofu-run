@@ -101,7 +101,7 @@ const TOFU_CHECKPOINT_IMAGE = "/tokens/tofu.png";
 export const TOFU_PROGRESS_CHECKPOINTS = TOFU_PROGRESS_TOKEN_IDS.map(
   (id, index) => ({
     id,
-    label: `豆花 Token ${String(index + 1).padStart(2, "0")}`,
+    label: `白豆花 Token ${String(index + 1).padStart(2, "0")}`,
     zone: TOFU_CHECKPOINT_ZONE,
     image: TOFU_CHECKPOINT_IMAGE,
   })
@@ -144,7 +144,7 @@ const TOPPING_CHECKPOINTS = [
 export const TOKEN_TYPES = [
   {
     id: BASE_TOFU_TOKEN_ID,
-    label: "豆花 Token",
+    label: "白豆花 Token",
     zone: TOFU_CHECKPOINT_ZONE,
     image: TOFU_CHECKPOINT_IMAGE,
   },

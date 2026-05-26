@@ -114,7 +114,13 @@ export const en: Messages = {
     taro: { label: "Taro bowl", short: "Taro" },
   },
   tokens: {
-    tofu: { label: "Tofu Token", zone: "Plain white tofu base" },
+    tofu: { label: "White tofu Token", zone: "Plain white tofu base" },
+    "tofu-01": { label: "White tofu Token 01", zone: "Plain white tofu base" },
+    "tofu-02": { label: "White tofu Token 02", zone: "Plain white tofu base" },
+    "tofu-03": { label: "White tofu Token 03", zone: "Plain white tofu base" },
+    "tofu-04": { label: "White tofu Token 04", zone: "Plain white tofu base" },
+    "tofu-05": { label: "White tofu Token 05", zone: "Plain white tofu base" },
+    "tofu-06": { label: "White tofu Token 06", zone: "Plain white tofu base" },
     redbean: { label: "Red bean Token", zone: "Pond area" },
     mungbean: { label: "Mung bean Token", zone: "Grove area" },
     peanut: { label: "Peanut Token", zone: "City arcade" },
@@ -176,7 +182,7 @@ export const en: Messages = {
     bowlsToday: "{count} bowl(s) completed today",
     tokenScanned: "Scanned {count}×",
     pureRouteHint:
-      "Plain route: still scan tofu Tokens (required for everyone); no topping Tokens.",
+      "Plain route: still scan white tofu Tokens (required for everyone); no topping Tokens.",
     baseTofuRequired: "Tofu required for all",
     enterLive: "Enter LIVE room",
     viewLobby: "See who's going",
@@ -215,7 +221,8 @@ export const en: Messages = {
     participants: "Checked in",
     tokenProgress: "Token progress",
     scanToken: "Scan",
-    scanHint: "Point at a checkpoint QR (tofu-01…06 or topping)",
+    scanHint:
+      "Point at a checkpoint QR (white tofu tofu-01…06 or toppings)",
     scanClose: "Close",
     scanInvalidQr: "Unrecognized QR — use a checkpoint code",
     scanCameraDenied: "Camera blocked — allow camera access and retry",
