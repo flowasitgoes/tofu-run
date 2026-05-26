@@ -15,7 +15,7 @@ export function LiveCompleteBadge({
   if (variant === "earned" && earnedLabel) {
     return (
       <span
-        className="mt-[4px] mb-[2px] shrink-0 whitespace-nowrap rounded bg-sky-500 px-1.5 py-1 text-[10px] font-semibold leading-tight text-white"
+        className="mt-[4px] mb-1.5 shrink-0 whitespace-nowrap rounded bg-sky-500 px-1.5 py-1 text-[10px] font-semibold leading-tight text-white"
         title={label}
         aria-label={label}
       >

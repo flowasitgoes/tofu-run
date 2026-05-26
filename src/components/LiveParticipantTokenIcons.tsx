@@ -143,11 +143,11 @@ export function LiveTofuProgressRow({
         variant="live"
         count={completedTofu > 0 ? completedTofu : undefined}
       />
-      <div className="grid min-w-0 flex-1 grid-cols-6 gap-0.5">
+      <div className="grid w-14 shrink-0 grid-cols-6 gap-px">
         {Array.from({ length: TOFU_PROGRESS_COUNT }, (_, i) => (
           <span
             key={i}
-            className={`h-3.5 rounded-[3px] border ${
+            className={`h-3 min-w-0 rounded-[2px] border ${
               filledSlots[i]
                 ? "border-sky-400 bg-sky-300"
                 : "border-brown-sugar/20 bg-brown-sugar/10"

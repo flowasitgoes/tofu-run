@@ -426,7 +426,7 @@ function LivePageContent() {
               );
               return (
                 <li key={p.user_id} className={`flex items-start gap-2 py-3 ${isMe ? "bg-sunset/10 -mx-1 rounded-xl px-1" : ""}`}>
-                  <div className="w-[10rem] min-w-0 shrink-0">
+                  <div className="w-[9rem] min-w-0 shrink-0">
                     <p className="truncate font-mono text-sm font-semibold text-twilight">{p.runner_id}</p>
                     <p className="truncate text-sm text-brown-sugar">{p.display_name}</p>
                     {p.goal && <p className="mt-0.5 truncate text-xs text-mung-green">{p.goal}</p>}
@@ -436,11 +436,6 @@ function LivePageContent() {
                     />
                   </div>
                   <div className="flex min-w-0 flex-1 flex-col gap-1 overflow-visible">
-                    <LiveParticipantTokenIcons
-                      tokenIds={p.earned_token_ids ?? []}
-                      className="min-w-0 w-full overflow-visible"
-                      showScanCounts
-                    />
                     {bowlsDone > 0 ? (
                       <div className="flex justify-center">
                         <LiveCompleteBadge
@@ -452,6 +447,11 @@ function LivePageContent() {
                         />
                       </div>
                     ) : null}
+                    <LiveParticipantTokenIcons
+                      tokenIds={p.earned_token_ids ?? []}
+                      className="min-w-0 w-full overflow-visible"
+                      showScanCounts
+                    />
                   </div>
                   <div className="flex shrink-0 flex-col items-center gap-0 self-center pl-0.5">
                       {isMe ? (

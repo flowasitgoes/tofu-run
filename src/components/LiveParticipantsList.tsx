@@ -140,7 +140,7 @@ export function LiveParticipantsList({
                   isHighlight ? "bg-sunset/10 -mx-1 rounded-xl px-1" : ""
                 }`}
               >
-                <div className="w-[10rem] min-w-0 shrink-0">
+                <div className="w-[9rem] min-w-0 shrink-0">
                   <p className="truncate font-mono text-sm font-semibold text-twilight">
                     {p.runner_id}
                   </p>
@@ -158,11 +158,6 @@ export function LiveParticipantsList({
                   />
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-1 overflow-visible">
-                  <LiveParticipantTokenIcons
-                    tokenIds={p.earned_token_ids ?? []}
-                    className="min-w-0 w-full overflow-visible"
-                    showScanCounts
-                  />
                   {bowlsDone > 0 ? (
                     <div className="flex justify-center">
                       <LiveCompleteBadge
@@ -172,6 +167,11 @@ export function LiveParticipantsList({
                       />
                     </div>
                   ) : null}
+                  <LiveParticipantTokenIcons
+                    tokenIds={p.earned_token_ids ?? []}
+                    className="min-w-0 w-full overflow-visible"
+                    showScanCounts
+                  />
                 </div>
                 <div className="flex shrink-0 flex-col items-center gap-0 self-center pl-0.5">
                   {isHighlight ? (
