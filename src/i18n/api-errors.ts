@@ -136,9 +136,11 @@ export function localizeErrorMessage(
     });
   }
 
-  const sameTopping = message.match(/^您已經剛領過(.+?)配料了!$/);
-  if (sameTopping) {
-    const zh = sameTopping[1];
+  const toppingCooldown =
+    message.match(/^您剛剛才領過(.+?)配料呢客人!$/) ??
+    message.match(/^您已經剛領過(.+?)配料了!$/);
+  if (toppingCooldown) {
+    const zh = toppingCooldown[1];
     const enName: Record<string, string> = {
       紅豆: "red bean",
       綠豆: "mung bean",
@@ -147,7 +149,7 @@ export function localizeErrorMessage(
       花生: "peanut",
     };
     const label = enName[zh] ?? zh;
-    return `You just picked up ${label} — scan another topping first!`;
+    return `You just picked up ${label} topping — wait a minute before scanning it again!`;
   }
 
   const maxToppings = message.match(/^最多選擇 (\d+) 種配料$/);

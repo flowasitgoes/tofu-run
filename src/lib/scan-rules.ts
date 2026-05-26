@@ -21,8 +21,9 @@ export function toppingZhShortName(tokenType: string): string {
   return TOPPING_ZH_SHORT[tokenType] ?? tokenType;
 }
 
-export function sameToppingConsecutiveMessage(tokenType: string): string {
-  return `您已經剛領過${toppingZhShortName(tokenType)}配料了!`;
+/** 同一種配料 1 分鐘內重掃 */
+export function sameToppingCooldownMessage(tokenType: string): string {
+  return `您剛剛才領過${toppingZhShortName(tokenType)}配料呢客人!`;
 }
 
 export const SCAN_TOFU_COOLDOWN_MS = 40_000;
@@ -43,9 +44,8 @@ function isToppingToken(tokenType: string): boolean {
 
 /**
  * 掃描防刷規則（回傳中文錯誤訊息；通過則回傳 null）
- * 1. 同一配料不可連續掃（上一筆須為其他配料或豆花）
- * 2. 豆花：距上次豆花掃描須滿 40 秒
- * 3. 配料：距上次任一配料掃描須滿 1 分鐘
+ * 1. 豆花：距上次豆花掃描須滿 40 秒
+ * 2. 配料：距上次「同一種」配料掃描須滿 1 分鐘（不同配料可連續掃）
  */
 export function validateScanRules(
   scansNewestFirst: ScanHistoryRow[],
@@ -65,20 +65,14 @@ export function validateScanRules(
   }
 
   if (isToppingToken(nextTokenType)) {
-    const lastScan = scansNewestFirst[0];
-    if (
-      lastScan &&
-      isToppingToken(lastScan.token_type) &&
-      lastScan.token_type === nextTokenType
-    ) {
-      return sameToppingConsecutiveMessage(nextTokenType);
-    }
-
-    const lastTopping = scansNewestFirst.find((s) => isToppingToken(s.token_type));
-    if (lastTopping) {
-      const elapsed = now - new Date(lastTopping.scanned_at).getTime();
+    const lastSameTopping = scansNewestFirst.find(
+      (s) => s.token_type === nextTokenType
+    );
+    if (lastSameTopping) {
+      const elapsed =
+        now - new Date(lastSameTopping.scanned_at).getTime();
       if (elapsed < SCAN_TOPPING_COOLDOWN_MS) {
-        return "配料 Token 需間隔 1 分鐘後才能再掃";
+        return sameToppingCooldownMessage(nextTokenType);
       }
     }
     return null;
