@@ -10,6 +10,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TOKEN_TYPES, resolveTokenIconSize } from "@/lib/constants";
+import { isTofuProgressToken } from "@/lib/tofu-progress";
 import {
   getGatheringSlots,
   getTokenLabelLocalized,
@@ -17,6 +18,10 @@ import {
 } from "@/lib/i18n-labels";
 import { siteConfig } from "@/lib/site";
 import type { TokenTypeId } from "@/lib/constants";
+
+const CHECKPOINT_CATALOG = TOKEN_TYPES.filter(
+  (token) => !isTofuProgressToken(token.id)
+);
 
 export function HomePageContent() {
   const { locale, t } = useLocale();
@@ -101,7 +106,7 @@ export function HomePageContent() {
           {t("home.checkpointsTitle")}
         </h2>
         <ul className="space-y-2">
-          {TOKEN_TYPES.map((token) => (
+          {CHECKPOINT_CATALOG.map((token) => (
             <li
               key={token.id}
               className="flex items-center justify-between rounded-xl bg-cream/60 px-3 py-2 text-sm"
