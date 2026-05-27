@@ -37,7 +37,8 @@ export const en: Messages = {
     tagline: "Build your bowl of tofu pudding together.",
     location: "Tofu Run · Kaohsiung Central Park",
     taglineEn: "When the Tofu Pudding is Running ...",
-    closedBeta: "遊戲封測\n{ ~ 豆友試跑 05/28/2026 星期四 7:30 - 8:30 ~ }",
+    closedBeta:
+      "Closed beta\n{ ~ Tofu friends trial run · Thu 5/28/2026 · 7:30–8:30 PM ~ }",
     closedBetaMeetupPrefix: "Meet at: ",
     closedBetaMeetupPlaceBefore: "Central Park Exit ",
     closedBetaMeetupPlaceExitNo: "1",
@@ -167,7 +168,7 @@ export const en: Messages = {
     listCount: "{count} people",
     empty: "No signups yet — be the first bowl 🥣",
     dateTbd:
-      "Run date TBA…\n{ ~ 豆友試跑 05/28/2026 星期四 7:30 - 8:30 ~ }",
+      "Run date TBA…\n{ ~ Tofu friends trial run · Thu 5/28/2026 · 7:30–8:30 PM ~ }",
     logout: "Sign out",
     myPassport: "My tofu passport",
   },
