@@ -37,7 +37,7 @@ export const en: Messages = {
     tagline: "Build your bowl of tofu pudding together.",
     location: "Tofu Run · Kaohsiung Central Park",
     taglineEn: "When the Tofu Pudding is Running ...",
-    closedBeta: "{ ~ 豆友試跑 05/28/2026 星期四 7:30 - 8:30 ~ }",
+    closedBeta: "遊戲封測\n{ ~ 豆友試跑 05/28/2026 星期四 7:30 - 8:30 ~ }",
     closedBetaMeetupPrefix: "Meet at: ",
     closedBetaMeetupPlaceBefore: "Central Park Exit ",
     closedBetaMeetupPlaceExitNo: "1",

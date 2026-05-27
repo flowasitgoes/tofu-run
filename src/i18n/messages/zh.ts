@@ -35,7 +35,7 @@ export const zh = {
     tagline: "一起完成屬於你的一碗豆花。",
     location: "Tofu Run · 高雄中央公園",
     taglineEn: "When the Tofu Pudding is Running ...",
-    closedBeta: "{ ~ 豆友試跑 05/28/2026 星期四 7:30 - 8:30 ~ }",
+    closedBeta: "遊戲封測\n{ ~ 豆友試跑 05/28/2026 星期四 7:30 - 8:30 ~ }",
     closedBetaMeetupPrefix: "集合地: ",
     closedBetaMeetupPlaceBefore: "中央公園",
     closedBetaMeetupPlaceExitNo: "1",
