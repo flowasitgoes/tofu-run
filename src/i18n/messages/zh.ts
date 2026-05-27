@@ -35,7 +35,7 @@ export const zh = {
     tagline: "一起完成屬於你的一碗豆花。",
     location: "Tofu Run · 高雄中央公園",
     taglineEn: "When the Tofu Pudding is Running ...",
-    closedBeta: "{ ~ 封測 05/28/2026 星期四 7:30 - 8:30 三五好友試跑 ~ }",
+    closedBeta: "{ ~ 豆友試跑 05/28/2026 星期四 7:30 - 8:30 ~ }",
     closedBetaMeetupPrefix: "集合地: ",
     closedBetaMeetupPlaceBefore: "中央公園",
     closedBetaMeetupPlaceExitNo: "1",
@@ -159,7 +159,7 @@ export const zh = {
     listCount: "共 {count} 人",
     empty: "還沒有人報名，成為第一碗豆花吧 🥣",
     dateTbd:
-      "開跑日期稍候公佈...\n{ ~ 封測 05/28/2026 星期四 7:30 - 8:30 三五好友試跑 ~ }",
+      "開跑日期稍候公佈...\n{ ~ 豆友試跑 05/28/2026 星期四 7:30 - 8:30 ~ }",
     logout: "登出護照",
     myPassport: "我的豆花護照",
   },
