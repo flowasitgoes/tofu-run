@@ -12,12 +12,12 @@
   --font-sans: var(--font-noto-sans-tc), system-ui, sans-serif;
 }
 
-/** 首頁封測公告（避免被任意 class 覆蓋成底色塊） */
+/** 首頁封測公告 */
 .home-closed-beta {
-  margin: 0.375rem 0 0;
-  padding: 0;
-  background: none;
-  color: var(--color-run-green);
+  margin: 14px 0;
+  padding: 14px 4px;
+  background: #f38787;
+  color: #fff;
   font-size: 0.9375rem;
   line-height: 1.5;
   font-weight: 700;
