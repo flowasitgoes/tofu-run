@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
-import { siteConfig } from "@/lib/site";
 
 export function Nav() {
   const pathname = usePathname();
@@ -13,9 +12,7 @@ export function Nav() {
     { href: "/", label: t("nav.home") },
     { href: "/lobby", label: t("nav.lobby") },
     { href: "/passport", label: t("nav.passport") },
-    ...(siteConfig.showLiveEntry
-      ? [{ href: "/live", label: t("nav.live") as string }]
-      : []),
+    { href: "/live", label: t("nav.live") },
   ];
 
   return (
