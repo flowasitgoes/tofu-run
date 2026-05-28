@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import { AdminSessionScheduleSummary } from "@/components/AdminSessionScheduleSummary";
 import { LiveParticipantsList } from "@/components/LiveParticipantsList";
 import { PageShell } from "@/components/PageShell";
 import { Card } from "@/components/ui/Card";
@@ -71,6 +72,8 @@ export default function AdminEventDetailPage({
           {session ? `${prettyDate(session.date)} · ${session.status}` : "讀取中…"}
         </p>
       </header>
+
+      {session ? <AdminSessionScheduleSummary session={session} /> : null}
 
       <Card>
         {error ? (

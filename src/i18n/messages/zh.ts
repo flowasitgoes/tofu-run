@@ -198,7 +198,7 @@ export const zh = {
     activityDuration: "採集時長：",
     cumulativeDistance: "累計距離：",
     scheduleTbd: "待公告",
-    eventEndDefault: "（預設為開始後 1 小時）",
+    eventEndDefault: "（預設為開始後 2 小時）",
     completionTimeHint: "你的最後一碗豆花!",
     goLobby: "前往 Lobby",
     logout: "登出護照",

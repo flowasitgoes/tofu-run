@@ -7,6 +7,10 @@ import {
   requiredTokenIdsForGoal,
   activityDurationMinutes,
 } from "@/lib/ground-completion";
+import {
+  hasExplicitEventEnd,
+  resolveEventSchedule,
+} from "@/lib/event-schedule";
 import { createSupabaseClient, createSupabaseServiceClient } from "@/lib/supabase";
 import { LiveNotActiveError } from "@/lib/live-gate";
 import {
@@ -1196,6 +1200,10 @@ export async function getPassportData(
       meta.sessionStartedAt
     );
 
+    const explicitEventEnd = hasExplicitEventEnd(meta.sessionDate)
+      ? resolveEventSchedule(meta.sessionDate)?.endAt ?? null
+      : null;
+
     runs.push({
       session_date: meta.sessionDate,
       tofu_type: meta.tofuType,
@@ -1205,7 +1213,8 @@ export async function getPassportData(
       bowls_completed: bowlsCompleted,
       required_token_ids: requiredIds,
       event_start_at: meta.sessionStartedAt,
-      event_end_at: meta.sessionEndedAt,
+      /** 僅日程表／環境變數明確結束；不含 admin 關閉時間 */
+      event_end_at: explicitEventEnd,
       activity_duration_minutes: durationMinutes,
     });
   }
