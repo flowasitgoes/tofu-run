@@ -249,6 +249,12 @@ export const en: Messages = {
     feedHint: "Updates live when someone scans a Token",
     myPassport: "My tofu passport",
     viewGround: "Ground board (all Tokens)",
+    trailRecording:
+      "Recording your route (keep this page open for best results)",
+    trailPaused: "Route recording paused (returns when you come back)",
+    trailDenied: "Location denied — route not recorded (you can still scan)",
+    trailUnsupported: "Route recording not supported on this device",
+    trailIdle: "Preparing route recording…",
   },
   ground: {
     title: "LIVE Ground",

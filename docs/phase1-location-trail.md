@@ -1,6 +1,6 @@
 # Phase 1：LIVE 前景軌跡錄製（規劃稿）
 
-> 狀態：**已確認決策，待實作**（2026-05-28）  
+> 狀態：**已實作**（2026-05-28）— 請在 Supabase 執行 `supabase/session_location_samples.sql`  
 > 目的：在 Web 可行範圍內，於 LIVE 活動進行中記錄跑者移動軌跡，供管理後台查看與計算總距離。  
 > **不取代** 現有 QR checkpoint 遊戲邏輯，**不修改** passport 顯示與勝負規則。
 

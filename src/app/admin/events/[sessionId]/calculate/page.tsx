@@ -38,6 +38,16 @@ type MovementParticipant = {
   scans: MovementScanRow[];
 };
 
+type TrailParticipant = {
+  user_id: string;
+  runner_id: string;
+  display_name: string;
+  point_count: number;
+  total_distance_m: number;
+  first_recorded_at: string | null;
+  last_recorded_at: string | null;
+};
+
 function prettyDate(date: string): string {
   const m = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!m) return date;
@@ -76,8 +86,13 @@ export default function AdminEventCalculatePage({
   const { sessionId } = use(params);
   const [session, setSession] = useState<Session | null>(null);
   const [participants, setParticipants] = useState<MovementParticipant[]>([]);
+  const [trailParticipants, setTrailParticipants] = useState<TrailParticipant[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
+  const [trailLoading, setTrailLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [trailError, setTrailError] = useState<string | null>(null);
 
   useEffect(() => {
     const secret = getStoredAdminSecret();
@@ -88,19 +103,41 @@ export default function AdminEventCalculatePage({
     }
 
     void (async () => {
-      try {
-        const res = await fetch(`/api/admin/events/${sessionId}/calculate`, {
-          headers: { "x-admin-secret": secret },
+      const headers = { "x-admin-secret": secret };
+      const [movementRes, trailRes] = await Promise.all([
+        fetch(`/api/admin/events/${sessionId}/calculate`, {
+          headers,
           cache: "no-store",
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "讀取移動分析失敗");
-        setSession(data.session ?? null);
-        setParticipants(data.participants ?? []);
+        }),
+        fetch(`/api/admin/events/${sessionId}/trail`, {
+          headers,
+          cache: "no-store",
+        }),
+      ]);
+
+      try {
+        const movementData = await movementRes.json();
+        if (!movementRes.ok) {
+          throw new Error(movementData.error ?? "讀取移動分析失敗");
+        }
+        setSession(movementData.session ?? null);
+        setParticipants(movementData.participants ?? []);
       } catch (e) {
         setError(e instanceof Error ? e.message : "讀取移動分析失敗");
       } finally {
         setLoading(false);
+      }
+
+      try {
+        const trailData = await trailRes.json();
+        if (!trailRes.ok) {
+          throw new Error(trailData.error ?? "讀取 GPS 軌跡失敗");
+        }
+        setTrailParticipants(trailData.participants ?? []);
+      } catch (e) {
+        setTrailError(e instanceof Error ? e.message : "讀取 GPS 軌跡失敗");
+      } finally {
+        setTrailLoading(false);
       }
     })();
   }, [sessionId]);
@@ -191,6 +228,63 @@ export default function AdminEventCalculatePage({
           </div>
         )}
       </Card>
+
+      <section className="mt-8">
+        <h2 className="mb-2 text-lg font-bold text-brown-sugar">GPS 軌跡</h2>
+        <p className="mb-3 text-xs text-brown-sugar/60">
+          依 LIVE 前景連續定位記錄（與上方掃描 Token 距離表分開）。原始點保留 30
+          天。
+        </p>
+        <Card>
+          {trailLoading ? (
+            <p className="py-8 text-center text-sm text-brown-sugar/60">載入中…</p>
+          ) : trailError ? (
+            <p className="py-4 text-center text-sm text-red-bean">{trailError}</p>
+          ) : trailParticipants.length === 0 ? (
+            <p className="py-8 text-center text-sm text-brown-sugar/60">
+              此活動尚無 GPS 軌跡資料
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full table-auto text-left text-xs">
+                <thead>
+                  <tr className="text-brown-sugar/70">
+                    <th className="px-2 py-2">Runner</th>
+                    <th className="px-2 py-2">顯示名稱</th>
+                    <th className="px-2 py-2">軌跡點數</th>
+                    <th className="px-2 py-2">軌跡總距離</th>
+                    <th className="px-2 py-2">首點時間</th>
+                    <th className="px-2 py-2">末點時間</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {trailParticipants.map((p) => (
+                    <tr
+                      key={p.user_id}
+                      className="border-t border-brown-sugar/8"
+                    >
+                      <td className="px-2 py-2 font-mono font-semibold text-twilight">
+                        {p.runner_id}
+                      </td>
+                      <td className="px-2 py-2">{p.display_name}</td>
+                      <td className="px-2 py-2">{p.point_count}</td>
+                      <td className="px-2 py-2 font-medium text-mung-green">
+                        {fmtMeters(p.total_distance_m)}
+                      </td>
+                      <td className="px-2 py-2">
+                        {p.first_recorded_at ? fmtTime(p.first_recorded_at) : "—"}
+                      </td>
+                      <td className="px-2 py-2">
+                        {p.last_recorded_at ? fmtTime(p.last_recorded_at) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      </section>
 
       <div className="mt-4 flex flex-col gap-2">
         <Button href={`/admin/events/${sessionId}`} variant="secondary" className="w-full">

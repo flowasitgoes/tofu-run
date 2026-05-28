@@ -11,6 +11,8 @@ import {
   hasExplicitEventEnd,
   resolveEventSchedule,
 } from "@/lib/event-schedule";
+import type { TrailPointPayload } from "@/lib/location-trail";
+import { TRAIL_UPLOAD_MAX_POINTS } from "@/lib/location-trail";
 import { createSupabaseClient, createSupabaseServiceClient } from "@/lib/supabase";
 import { LiveNotActiveError } from "@/lib/live-gate";
 import {
@@ -1727,4 +1729,150 @@ export async function getAdminSessionMovementData(
       scans: rows,
     };
   });
+}
+
+export type SessionLocationSampleRow = {
+  user_id: string;
+  recorded_at: string;
+  lat: number;
+  lng: number;
+};
+
+export type AdminTrailParticipant = {
+  user_id: string;
+  runner_id: string;
+  display_name: string;
+  point_count: number;
+  total_distance_m: number;
+  first_recorded_at: string | null;
+  last_recorded_at: string | null;
+};
+
+function isMissingTrailTable(
+  error: { code?: string; message?: string } | null
+): boolean {
+  if (!error) return false;
+  if (error.code === "PGRST205" || error.code === "42P01") return true;
+  return /session_location_samples/i.test(error.message ?? "");
+}
+
+function computeTrailDistanceMeters(
+  points: { lat: number; lng: number }[]
+): number {
+  let total = 0;
+  for (let i = 1; i < points.length; i++) {
+    total += haversineMeters(
+      points[i - 1].lat,
+      points[i - 1].lng,
+      points[i].lat,
+      points[i].lng
+    );
+  }
+  return roundMeters(total);
+}
+
+export async function insertTrailPoints(
+  sessionId: string,
+  userId: string,
+  points: TrailPointPayload[]
+): Promise<{ inserted: number; skipped: number }> {
+  if (points.length === 0) return { inserted: 0, skipped: 0 };
+  if (points.length > TRAIL_UPLOAD_MAX_POINTS) {
+    throw new Error(`單次最多上傳 ${TRAIL_UPLOAD_MAX_POINTS} 個軌跡點`);
+  }
+
+  const supabase = createSupabaseServiceClient();
+  const rows = points.map((p) => ({
+    session_id: sessionId,
+    user_id: userId,
+    recorded_at: p.recordedAt,
+    lat: p.lat,
+    lng: p.lng,
+    accuracy_m: p.accuracyM,
+    client_point_id: p.clientPointId,
+  }));
+
+  const { data, error } = await supabase
+    .from("session_location_samples")
+    .upsert(rows, {
+      onConflict: "session_id,user_id,client_point_id",
+      ignoreDuplicates: true,
+    })
+    .select("id");
+
+  if (error) {
+    if (isMissingTrailTable(error)) {
+      throw new Error(
+        "尚未建立 session_location_samples 表，請執行 supabase/session_location_samples.sql"
+      );
+    }
+    throw error;
+  }
+
+  const inserted = data?.length ?? 0;
+  return { inserted, skipped: points.length - inserted };
+}
+
+export async function getAdminSessionTrailData(
+  sessionId: string,
+  sessionDate: string = getTodayDateString()
+): Promise<AdminTrailParticipant[]> {
+  const { participants } = await fetchLiveParticipantRows(sessionId, sessionDate);
+  const supabase = createSupabaseServiceClient();
+
+  const { data, error } = await supabase
+    .from("session_location_samples")
+    .select("user_id, recorded_at, lat, lng")
+    .eq("session_id", sessionId)
+    .order("recorded_at", { ascending: true });
+
+  if (error) {
+    if (isMissingTrailTable(error)) return [];
+    throw error;
+  }
+
+  const byUser = new Map<string, SessionLocationSampleRow[]>();
+  for (const row of data ?? []) {
+    const uid = row.user_id as string;
+    const list = byUser.get(uid) ?? [];
+    list.push({
+      user_id: uid,
+      recorded_at: row.recorded_at as string,
+      lat: row.lat as number,
+      lng: row.lng as number,
+    });
+    byUser.set(uid, list);
+  }
+
+  const participantIds = new Set(participants.map((p) => p.user_id));
+
+  const trailRows: AdminTrailParticipant[] = participants.map((p) => {
+    const samples = byUser.get(p.user_id) ?? [];
+    return {
+      user_id: p.user_id,
+      runner_id: p.runner_id,
+      display_name: p.display_name,
+      point_count: samples.length,
+      total_distance_m: computeTrailDistanceMeters(samples),
+      first_recorded_at: samples[0]?.recorded_at ?? null,
+      last_recorded_at: samples[samples.length - 1]?.recorded_at ?? null,
+    };
+  });
+
+  for (const [userId, samples] of byUser) {
+    if (participantIds.has(userId) || samples.length === 0) continue;
+    const user = await getUserById(userId);
+    if (!user) continue;
+    trailRows.push({
+      user_id: userId,
+      runner_id: user.runner_id,
+      display_name: user.runner_name,
+      point_count: samples.length,
+      total_distance_m: computeTrailDistanceMeters(samples),
+      first_recorded_at: samples[0]?.recorded_at ?? null,
+      last_recorded_at: samples[samples.length - 1]?.recorded_at ?? null,
+    });
+  }
+
+  return trailRows.sort((a, b) => a.runner_id.localeCompare(b.runner_id));
 }

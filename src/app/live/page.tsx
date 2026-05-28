@@ -16,6 +16,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TokenEarnedToast } from "@/components/TokenEarnedToast";
 import { useLiveRoom } from "@/hooks/useLiveRoom";
+import { useLiveLocationTrail } from "@/hooks/useLiveLocationTrail";
 import { useTokenRealtime } from "@/hooks/useTokenRealtime";
 import { useLiveStatus } from "@/hooks/useLiveStatus";
 import {
@@ -147,6 +148,19 @@ function LivePageContent() {
     sessionId: sessionId ?? null,
     onTokenEarned: ({ token }) => setEarnedTokenType(token.token_type),
     enabled: Boolean(enteredRunnerId && sessionId && player?.userId),
+  });
+
+  const trailRecordingEnabled = Boolean(
+    enteredRunnerId &&
+      sessionId &&
+      player?.userId &&
+      liveStatus.phase === "active"
+  );
+  const { status: trailStatus } = useLiveLocationTrail({
+    enabled: trailRecordingEnabled,
+    userId: player?.userId ?? null,
+    sessionId: sessionId ?? null,
+    runnerId: enteredRunnerId,
   });
 
   const enterLive = useCallback(async (rawId: string) => {
@@ -409,6 +423,19 @@ function LivePageContent() {
               {t("live.youLabel")}
               <span className="font-mono font-semibold">{enteredRunnerId}</span>
             </p>
+            {trailRecordingEnabled ? (
+              <p className="mt-1 text-[11px] leading-snug text-brown-sugar/55">
+                {trailStatus === "recording"
+                  ? t("live.trailRecording")
+                  : trailStatus === "paused"
+                    ? t("live.trailPaused")
+                    : trailStatus === "denied"
+                      ? t("live.trailDenied")
+                      : trailStatus === "unsupported"
+                        ? t("live.trailUnsupported")
+                        : t("live.trailIdle")}
+              </p>
+            ) : null}
           </div>
           {player?.userId ? (
             <LiveTokenScanner

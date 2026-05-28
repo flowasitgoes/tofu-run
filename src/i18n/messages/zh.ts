@@ -238,6 +238,11 @@ export const zh = {
     feedHint: "--- 有人獲得了美味的配料 !!! ---",
     myPassport: "我的豆花護照",
     viewGround: "Ground 看板（全员 Token）",
+    trailRecording: "正在記錄活動路徑（請盡量保持此頁開啟）",
+    trailPaused: "路徑記錄已暫停（回到此頁後會繼續）",
+    trailDenied: "未允許定位，路徑不會記錄（仍可掃描 Token）",
+    trailUnsupported: "此裝置無法記錄路徑",
+    trailIdle: "準備記錄路徑…",
   },
   ground: {
     title: "LIVE Ground",
