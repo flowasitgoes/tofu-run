@@ -460,6 +460,18 @@ export default function PassportPage() {
                   </p>
                   <p>
                     <span className="text-brown-sugar/60">
+                      {t("passport.runnerStart")}
+                    </span>
+                    {runnerStartAt ? (
+                      <span className="font-medium text-mung-green">
+                        {formatTaipeiDateTime(runnerStartAt, locale)}
+                      </span>
+                    ) : (
+                      <span className="text-brown-sugar/50">{recordEmpty}</span>
+                    )}
+                  </p>
+                  <p>
+                    <span className="text-brown-sugar/60">
                       {t("passport.bowlCompletedAt")}
                     </span>
                     {lastBowlAt ? (
@@ -474,18 +486,6 @@ export default function PassportPage() {
                         {t("passport.completionTimeHint")}
                       </span>
                     ) : null}
-                  </p>
-                  <p>
-                    <span className="text-brown-sugar/60">
-                      {t("passport.runnerStart")}
-                    </span>
-                    {runnerStartAt ? (
-                      <span className="font-medium text-mung-green">
-                        {formatTaipeiDateTime(runnerStartAt, locale)}
-                      </span>
-                    ) : (
-                      <span className="text-brown-sugar/50">{recordEmpty}</span>
-                    )}
                   </p>
                   <p>
                     <span className="text-brown-sugar/60">
