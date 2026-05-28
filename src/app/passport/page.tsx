@@ -30,11 +30,9 @@ import { clearStoredPlayer } from "@/lib/player";
 import {
   eventEndAtFromStart,
   hasExplicitEventEnd,
-  resolveEventSchedule,
 } from "@/lib/event-schedule";
 import {
   activityDurationMinutes,
-  firstTofuScanAt,
   lastBowlCompletedAt,
   tokenScanCounts,
 } from "@/lib/ground-completion";
@@ -371,19 +369,22 @@ export default function PassportPage() {
               run.required_token_ids.length > 0
                 ? run.required_token_ids
                 : (account?.collectTargets ?? []).map((t) => t.id);
-            const scheduled = resolveEventSchedule(run.session_date);
-            const interimStart = firstTofuScanAt(run.tokens);
-            const eventStartAt =
-              scheduled?.startAt ??
-              run.event_start_at ??
-              interimStart ??
-              null;
+            const eventStartAt = run.event_start_at ?? null;
             const eventEndAt = eventStartAt
               ? eventEndAtFromStart(
                   eventStartAt,
-                  scheduled?.endAt ?? run.event_end_at
+                  run.event_end_at
                 )
               : null;
+            const runnerStartAt =
+              [...run.tokens]
+                .sort(
+                  (a, b) =>
+                    new Date(a.scanned_at).getTime() -
+                    new Date(b.scanned_at).getTime()
+                )
+                .find((token) => token.token_type === "start")?.scanned_at ??
+              null;
             const lastBowlAt =
               run.completed_at ??
               (run.bowls_completed > 0
@@ -476,12 +477,25 @@ export default function PassportPage() {
                   </p>
                   <p>
                     <span className="text-brown-sugar/60">
+                      {t("passport.runnerStart")}
+                    </span>
+                    {runnerStartAt ? (
+                      <span className="font-medium text-mung-green">
+                        {formatTaipeiDateTime(runnerStartAt, locale)}
+                      </span>
+                    ) : (
+                      <span className="text-brown-sugar/50">{recordEmpty}</span>
+                    )}
+                  </p>
+                  <p>
+                    <span className="text-brown-sugar/60">
                       {t("passport.eventEnd")}
                     </span>
                     {eventEndAt ? (
                       <>
                         {formatTaipeiDateTime(eventEndAt, locale)}
                         {eventStartAt &&
+                        !run.event_end_at &&
                         !hasExplicitEventEnd(run.session_date) ? (
                           <span className="ml-1 text-[10px] text-brown-sugar/45">
                             {t("passport.eventEndDefault")}

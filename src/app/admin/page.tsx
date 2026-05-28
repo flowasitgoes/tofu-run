@@ -42,6 +42,7 @@ export default function AdminPage() {
   const [usedDates, setUsedDates] = useState<string[]>([]);
   const [minSelectableDate, setMinSelectableDate] = useState("");
   const [startDateInput, setStartDateInput] = useState("");
+  const [startAtInput, setStartAtInput] = useState("");
   const [liveBusy, setLiveBusy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -142,14 +143,18 @@ export default function AdminPage() {
   }
 
   async function startLive() {
-    if (!startDateInput) return;
+    if (!startDateInput || !startAtInput) return;
     setLiveBusy(true);
     setMessage(null);
     try {
       const res = await fetch("/api/admin/live", {
         method: "POST",
         headers: headers(),
-        body: JSON.stringify({ action: "start", date: startDateInput }),
+        body: JSON.stringify({
+          action: "start",
+          date: startDateInput,
+          startAt: startAtInput,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -264,7 +269,28 @@ export default function AdminPage() {
                 type="date"
                 value={startDateInput}
                 min={minSelectableDate || undefined}
-                onChange={(e) => setStartDateInput(e.target.value)}
+                onChange={(e) => {
+                  const nextDate = e.target.value;
+                  setStartDateInput(nextDate);
+                  if (nextDate && !startAtInput) {
+                    setStartAtInput(`${nextDate}T19:30`);
+                  } else if (nextDate && startAtInput) {
+                    setStartAtInput((prev) =>
+                      `${nextDate}T${(prev.split("T")[1] ?? "19:30").slice(0, 5)}`
+                    );
+                  }
+                }}
+                className="w-full rounded-xl border border-brown-sugar/15 bg-cream px-4 py-3 text-sm text-brown-sugar outline-none focus:border-mung-green/50"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-medium text-brown-sugar/70">
+                {t("admin.pickEventStartAt")}
+              </span>
+              <input
+                type="datetime-local"
+                value={startAtInput}
+                onChange={(e) => setStartAtInput(e.target.value)}
                 className="w-full rounded-xl border border-brown-sugar/15 bg-cream px-4 py-3 text-sm text-brown-sugar outline-none focus:border-mung-green/50"
               />
             </label>
@@ -274,6 +300,7 @@ export default function AdminPage() {
               disabled={
                 liveBusy ||
                 !startDateInput ||
+                !startAtInput ||
                 usedDates.includes(startDateInput) ||
                 Boolean(
                   minSelectableDate && startDateInput < minSelectableDate

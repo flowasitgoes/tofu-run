@@ -8,7 +8,6 @@ import {
   activityDurationMinutes,
 } from "@/lib/ground-completion";
 import { createSupabaseClient, createSupabaseServiceClient } from "@/lib/supabase";
-import { resolveEventSchedule } from "@/lib/event-schedule";
 import { LiveNotActiveError } from "@/lib/live-gate";
 import {
   isPastSessionDate,
@@ -182,7 +181,31 @@ export async function getLiveStatusPayload(): Promise<{
   };
 }
 
-export async function startLiveSession(date: string): Promise<Session> {
+function normalizeAdminStartAt(date: string, rawStartAt: string): string {
+  const input = rawStartAt.trim();
+  if (!input) throw new Error("請提供活動開始時間");
+
+  const datePart = input.slice(0, 10);
+  if (datePart !== date) {
+    throw new Error("活動開始時間需與活動日期相同");
+  }
+
+  const localNoTz = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+  const withTz = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?(Z|[+-]\d{2}:\d{2})$/;
+
+  if (localNoTz.test(input)) {
+    return `${input}:00+08:00`;
+  }
+  if (withTz.test(input)) {
+    return input;
+  }
+  throw new Error("活動開始時間格式不正確");
+}
+
+export async function startLiveSession(
+  date: string,
+  startAt: string
+): Promise<Session> {
   await ensureSessionsLiveSchema();
 
   if (!isValidSessionDateString(date)) {
@@ -202,10 +225,11 @@ export async function startLiveSession(date: string): Promise<Session> {
     throw new Error("已有進行中的活動，請先結束後再開啟");
   }
 
+  const officialStartAt = normalizeAdminStartAt(date, startAt);
   const supabase = createSupabaseClient();
   const { data, error } = await supabase
     .from("sessions")
-    .insert({ date, status: "active" })
+    .insert({ date, status: "active", started_at: officialStartAt })
     .select()
     .single();
 
@@ -217,7 +241,7 @@ export async function startLiveSession(date: string): Promise<Session> {
       await ensureSessionsLiveSchema();
       const retry = await supabase
         .from("sessions")
-        .insert({ date, status: "active" })
+        .insert({ date, status: "active", started_at: officialStartAt })
         .select()
         .single();
       if (retry.error) throw retry.error;
@@ -1053,7 +1077,7 @@ export async function getPassportData(
       tofu_type,
       completed_at,
       joined_at,
-      sessions!inner (date, ended_at)
+      sessions!inner (date, started_at, ended_at)
     `
     )
     .eq("user_id", userId)
@@ -1077,6 +1101,7 @@ export async function getPassportData(
     {
       sessionId: string;
       sessionDate: string;
+      sessionStartedAt: string | null;
       sessionEndedAt: string | null;
       joinedAt: string;
       completedAt: string | null;
@@ -1087,6 +1112,7 @@ export async function getPassportData(
   for (const row of sessionRows ?? []) {
     const session = row.sessions as unknown as {
       date: string;
+      started_at?: string | null;
       ended_at?: string | null;
     };
     const sessionId = row.session_id as string;
@@ -1096,6 +1122,7 @@ export async function getPassportData(
       bySession.set(sessionId, {
         sessionId,
         sessionDate: session.date,
+        sessionStartedAt: session.started_at ?? null,
         sessionEndedAt: session.ended_at ?? null,
         joinedAt,
         completedAt: row.completed_at as string | null,
@@ -1111,6 +1138,9 @@ export async function getPassportData(
         new Date(completedAt) > new Date(existing.completedAt))
     ) {
       existing.completedAt = completedAt;
+    }
+    if (!existing.sessionStartedAt && session.started_at) {
+      existing.sessionStartedAt = session.started_at;
     }
     if (!existing.tofuType && row.tofu_type) {
       existing.tofuType = row.tofu_type as string;
@@ -1152,7 +1182,6 @@ export async function getPassportData(
       .filter((id) => tokenTypeSet.has(id));
 
     const bowlsCompleted = countCompletedBowls(requiredIds, earnedIds);
-    const schedule = resolveEventSchedule(meta.sessionDate);
     const lastBowlAt =
       bowlsCompleted > 0
         ? lastBowlCompletedAt(requiredIds, tokenRows, bowlsCompleted)
@@ -1161,7 +1190,7 @@ export async function getPassportData(
       requiredIds,
       tokenRows,
       bowlsCompleted,
-      schedule?.startAt ?? null
+      meta.sessionStartedAt
     );
 
     runs.push({
@@ -1172,8 +1201,8 @@ export async function getPassportData(
       tokens: tokenRows,
       bowls_completed: bowlsCompleted,
       required_token_ids: requiredIds,
-      event_start_at: schedule?.startAt ?? null,
-      event_end_at: schedule?.endAt ?? null,
+      event_start_at: meta.sessionStartedAt,
+      event_end_at: meta.sessionEndedAt,
       activity_duration_minutes: durationMinutes,
     });
   }

@@ -516,6 +516,7 @@ function LivePageContent() {
                       className="min-w-0 w-full max-w-[128px] overflow-visible"
                       showScanCounts
                     />
+                    {/*
                     <p
                       className={`mt-[7px] text-center text-[11px] text-brown-sugar/60 transition-opacity duration-300 ${
                         distanceVisibleByUser[p.user_id]
@@ -525,6 +526,7 @@ function LivePageContent() {
                     >
                       累計距離：{cumulativeMeters.toFixed(1)} m
                     </p>
+                    */}
                   </div>
                   <div className="flex shrink-0 flex-col items-center gap-0 self-center pl-0.5">
                       {isMe ? (

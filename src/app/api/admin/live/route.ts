@@ -93,7 +93,8 @@ export async function POST(request: Request) {
 
     if (action === "start") {
       const date = String((body as { date?: string }).date ?? "").trim();
-      const session = await startLiveSession(date);
+      const startAt = String((body as { startAt?: string }).startAt ?? "").trim();
+      const session = await startLiveSession(date, startAt);
       return NextResponse.json({
         ok: true,
         sessionId: session.id,

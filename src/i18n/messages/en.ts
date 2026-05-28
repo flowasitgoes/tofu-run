@@ -201,6 +201,7 @@ export const en: Messages = {
     activityDay: "Event day",
     bowlsCompleted: "{count} bowl(s) completed",
     eventStart: "Event start:",
+    runnerStart: "Runner start:",
     eventEnd: "Event end:",
     bowlCompletedAt: "Completed:",
     activityDuration: "Collection time:",
@@ -300,6 +301,7 @@ export const en: Messages = {
     liveActiveHint:
       "Live: {date} · Ending closes /live and archives this day.",
     pickEventDate: "Event date",
+    pickEventStartAt: "Official start time",
     startLive: "Start event",
     endLive: "End event",
     endLiveConfirmTitle: "End this event?",
