@@ -204,6 +204,7 @@ export const en: Messages = {
     eventEnd: "Event end:",
     bowlCompletedAt: "Completed:",
     activityDuration: "Collection time:",
+    cumulativeDistance: "Cumulative distance:",
     scheduleTbd: "TBA",
     eventEndDefault: "(default: 1 hour after start)",
     completionTimeHint: "Your last bowl of tofu!",

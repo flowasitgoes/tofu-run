@@ -38,6 +38,7 @@ import {
   lastBowlCompletedAt,
   tokenScanCounts,
 } from "@/lib/ground-completion";
+import { cumulativeDistanceFromTokenIds } from "@/lib/distance";
 import { signupDisplayName } from "@/lib/displayName";
 import { formatTaipeiDateTime } from "@/lib/session";
 import { siteConfig } from "@/lib/site";
@@ -402,6 +403,9 @@ export default function PassportPage() {
                     eventStartAt
                   ))
                 : null;
+            const cumulativeMeters = cumulativeDistanceFromTokenIds(
+              run.tokens.map((token) => token.token_type)
+            );
             const tokenGroups = tokenGroupsForRun(run);
 
             return (
@@ -500,6 +504,14 @@ export default function PassportPage() {
                       </span>
                     </p>
                   ) : null}
+                  <p>
+                    <span className="text-brown-sugar/60">
+                      {t("passport.cumulativeDistance")}
+                    </span>
+                    <span className="font-medium text-mung-green">
+                      {cumulativeMeters.toFixed(1)} m
+                    </span>
+                  </p>
                 </div>
               </Card>
             );

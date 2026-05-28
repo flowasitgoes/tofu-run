@@ -195,6 +195,7 @@ export const zh = {
     eventEnd: "活動結束：",
     bowlCompletedAt: "完成時間：",
     activityDuration: "採集時長：",
+    cumulativeDistance: "累計距離：",
     scheduleTbd: "待公告",
     eventEndDefault: "（預設為開始後 1 小時）",
     completionTimeHint: "你的最後一碗豆花!",

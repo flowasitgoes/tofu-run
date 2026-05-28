@@ -37,6 +37,7 @@ import { countCompletedBowls } from "@/lib/ground-completion";
 import { normalizeRunnerId } from "@/lib/runner";
 import { LiveActivityFeed } from "@/components/LiveActivityFeed";
 import { LiveCompleteBadge } from "@/components/LiveCompleteBadge";
+import { cumulativeDistanceFromTokenIds } from "@/lib/distance";
 import {
   LiveParticipantTokenIcons,
   LiveTofuProgressRow,
@@ -420,6 +421,8 @@ function LivePageContent() {
             {participants.map((p) => {
               const isMe = enteredRunnerId === p.runner_id;
               const isReady = (p.earned_token_ids ?? []).includes("start");
+              const cumulativeMeters =
+                cumulativeDistanceFromTokenIds(p.earned_token_ids ?? []) * 1.3;
               const completionRank = completionRanks.get(p.user_id);
               const bowlsDone = countCompletedBowls(
                 p.required_token_ids ?? [],
@@ -460,6 +463,9 @@ function LivePageContent() {
                       className="min-w-0 w-full max-w-[128px] overflow-visible"
                       showScanCounts
                     />
+                    <p className="mt-[7px] text-center text-[11px] text-brown-sugar/60">
+                      累計距離：{cumulativeMeters.toFixed(1)} m
+                    </p>
                   </div>
                   <div className="flex shrink-0 flex-col items-center gap-0 self-center pl-0.5">
                       {isMe ? (
