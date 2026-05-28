@@ -96,8 +96,16 @@ function LivePageContent() {
   const [runnerIdInput, setRunnerIdInput] = useState("");
   const [entering, setEntering] = useState(false);
   const [enterError, setEnterError] = useState<string | null>(null);
+  const [distanceVisibleByUser, setDistanceVisibleByUser] = useState<
+    Record<string, boolean>
+  >({});
   const autoEnterTriedRef = useRef(false);
   const hydratePlayerTriedRef = useRef(false);
+  const prevBowlsByUserRef = useRef<Record<string, number>>({});
+  const distanceTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>(
+    {}
+  );
+  const distanceInitDoneRef = useRef(false);
   const mounted = goingMounted && playerMounted;
   const {
     status: liveStatus,
@@ -255,6 +263,51 @@ function LivePageContent() {
     entering,
     enterLive,
   ]);
+
+  useEffect(() => {
+    const nextBowlsByUser: Record<string, number> = {};
+    for (const p of participants) {
+      nextBowlsByUser[p.user_id] = countCompletedBowls(
+        p.required_token_ids ?? [],
+        p.earned_token_ids ?? []
+      );
+    }
+
+    if (!distanceInitDoneRef.current) {
+      prevBowlsByUserRef.current = nextBowlsByUser;
+      distanceInitDoneRef.current = true;
+      return;
+    }
+
+    for (const [userId, bowls] of Object.entries(nextBowlsByUser)) {
+      const prevBowls = prevBowlsByUserRef.current[userId] ?? 0;
+      if (bowls > prevBowls) {
+        setDistanceVisibleByUser((prevState) => ({ ...prevState, [userId]: true }));
+
+        if (distanceTimersRef.current[userId]) {
+          clearTimeout(distanceTimersRef.current[userId]);
+        }
+
+        distanceTimersRef.current[userId] = setTimeout(() => {
+          setDistanceVisibleByUser((prevState) => ({
+            ...prevState,
+            [userId]: false,
+          }));
+          delete distanceTimersRef.current[userId];
+        }, 5000);
+      }
+    }
+
+    prevBowlsByUserRef.current = nextBowlsByUser;
+  }, [participants]);
+
+  useEffect(() => {
+    return () => {
+      for (const timer of Object.values(distanceTimersRef.current)) {
+        clearTimeout(timer);
+      }
+    };
+  }, []);
 
   if (!mounted || !storageReady || liveStatusLoading) {
     return (
@@ -463,9 +516,11 @@ function LivePageContent() {
                       className="min-w-0 w-full max-w-[128px] overflow-visible"
                       showScanCounts
                     />
-                    <p className="mt-[7px] text-center text-[11px] text-brown-sugar/60">
-                      累計距離：{cumulativeMeters.toFixed(1)} m
-                    </p>
+                    {distanceVisibleByUser[p.user_id] ? (
+                      <p className="mt-[7px] text-center text-[11px] text-brown-sugar/60">
+                        累計距離：{cumulativeMeters.toFixed(1)} m
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex shrink-0 flex-col items-center gap-0 self-center pl-0.5">
                       {isMe ? (
