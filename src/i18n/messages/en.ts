@@ -301,7 +301,7 @@ export const en: Messages = {
     liveActiveHint:
       "Live: {date} · Ending closes /live and archives this day.",
     pickEventDate: "Event date",
-    pickEventStartAt: "Official start time",
+    pickEventStartAt: "Official start date and time",
     startLive: "Start event",
     endLive: "End event",
     endLiveConfirmTitle: "End this event?",

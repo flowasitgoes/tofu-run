@@ -181,32 +181,35 @@ export async function getLiveStatusPayload(): Promise<{
   };
 }
 
-function normalizeAdminStartAt(date: string, rawStartAt: string): string {
+function normalizeAdminStartAt(rawStartAt: string): {
+  date: string;
+  startAt: string;
+} {
   const input = rawStartAt.trim();
   if (!input) throw new Error("請提供活動開始時間");
-
   const datePart = input.slice(0, 10);
-  if (datePart !== date) {
-    throw new Error("活動開始時間需與活動日期相同");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+    throw new Error("活動開始時間格式不正確");
   }
 
   const localNoTz = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
   const withTz = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?(Z|[+-]\d{2}:\d{2})$/;
 
   if (localNoTz.test(input)) {
-    return `${input}:00+08:00`;
+    return { date: datePart, startAt: `${input}:00+08:00` };
   }
   if (withTz.test(input)) {
-    return input;
+    return { date: datePart, startAt: input };
   }
   throw new Error("活動開始時間格式不正確");
 }
 
 export async function startLiveSession(
-  date: string,
   startAt: string
 ): Promise<Session> {
   await ensureSessionsLiveSchema();
+  const normalized = normalizeAdminStartAt(startAt);
+  const date = normalized.date;
 
   if (!isValidSessionDateString(date)) {
     throw new Error("活動日期格式不正確");
@@ -225,7 +228,7 @@ export async function startLiveSession(
     throw new Error("已有進行中的活動，請先結束後再開啟");
   }
 
-  const officialStartAt = normalizeAdminStartAt(date, startAt);
+  const officialStartAt = normalized.startAt;
   const supabase = createSupabaseClient();
   const { data, error } = await supabase
     .from("sessions")

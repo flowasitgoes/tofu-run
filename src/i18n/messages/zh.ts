@@ -288,7 +288,7 @@ export const zh = {
     liveIdleHint: "開啟後玩家才能進入 /live；一次僅能有一場進行中。",
     liveActiveHint: "進行中：{date} · 玩家可進 LIVE，結束後將封存並關閉入口。",
     pickEventDate: "活動日期",
-    pickEventStartAt: "官方開始時間",
+    pickEventStartAt: "官方開始日期與時間",
     startLive: "開啟活動",
     endLive: "結束活動",
     endLiveConfirmTitle: "確定要結束活動？",

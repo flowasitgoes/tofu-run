@@ -41,7 +41,6 @@ export default function AdminPage() {
   const [livePhase, setLivePhase] = useState<"idle" | "active">("idle");
   const [usedDates, setUsedDates] = useState<string[]>([]);
   const [minSelectableDate, setMinSelectableDate] = useState("");
-  const [startDateInput, setStartDateInput] = useState("");
   const [startAtInput, setStartAtInput] = useState("");
   const [liveBusy, setLiveBusy] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -108,9 +107,11 @@ export default function AdminPage() {
       setLivePhase(liveData.phase === "active" ? "active" : "idle");
       setUsedDates(liveData.usedDates ?? []);
       setMinSelectableDate(liveData.minSelectableDate ?? "");
-      setStartDateInput((prev) =>
-        prev || liveData.minSelectableDate || prev
-      );
+      setStartAtInput((prev) => {
+        if (prev) return prev;
+        const minDate = liveData.minSelectableDate ?? "";
+        return minDate ? `${minDate}T19:30` : "";
+      });
       setSessionDate(liveData.sessionDate ?? "");
       setParticipants(liveData.participants ?? []);
       setCount(liveData.count ?? 0);
@@ -143,7 +144,7 @@ export default function AdminPage() {
   }
 
   async function startLive() {
-    if (!startDateInput || !startAtInput) return;
+    if (!startAtInput) return;
     setLiveBusy(true);
     setMessage(null);
     try {
@@ -152,7 +153,6 @@ export default function AdminPage() {
         headers: headers(),
         body: JSON.stringify({
           action: "start",
-          date: startDateInput,
           startAt: startAtInput,
         }),
       });
@@ -190,6 +190,12 @@ export default function AdminPage() {
       setLiveBusy(false);
     }
   }
+
+  const startAtDate = startAtInput.slice(0, 10);
+  const startBlockedByDate =
+    !startAtDate ||
+    usedDates.includes(startAtDate) ||
+    Boolean(minSelectableDate && startAtDate < minSelectableDate);
 
   if (!authed) {
     return (
@@ -263,28 +269,6 @@ export default function AdminPage() {
           <div className="mt-4 space-y-3">
             <label className="block">
               <span className="mb-1.5 block text-xs font-medium text-brown-sugar/70">
-                {t("admin.pickEventDate")}
-              </span>
-              <input
-                type="date"
-                value={startDateInput}
-                min={minSelectableDate || undefined}
-                onChange={(e) => {
-                  const nextDate = e.target.value;
-                  setStartDateInput(nextDate);
-                  if (nextDate && !startAtInput) {
-                    setStartAtInput(`${nextDate}T19:30`);
-                  } else if (nextDate && startAtInput) {
-                    setStartAtInput((prev) =>
-                      `${nextDate}T${(prev.split("T")[1] ?? "19:30").slice(0, 5)}`
-                    );
-                  }
-                }}
-                className="w-full rounded-xl border border-brown-sugar/15 bg-cream px-4 py-3 text-sm text-brown-sugar outline-none focus:border-mung-green/50"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-medium text-brown-sugar/70">
                 {t("admin.pickEventStartAt")}
               </span>
               <input
@@ -299,12 +283,8 @@ export default function AdminPage() {
               className="w-full"
               disabled={
                 liveBusy ||
-                !startDateInput ||
                 !startAtInput ||
-                usedDates.includes(startDateInput) ||
-                Boolean(
-                  minSelectableDate && startDateInput < minSelectableDate
-                )
+                startBlockedByDate
               }
               onClick={() => void startLive()}
             >
