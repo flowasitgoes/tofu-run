@@ -39,14 +39,40 @@
       gap: 1.25rem;
     }
     .card {
+      position: relative;
       background: rgba(255, 255, 255, 0.85);
       border: 1px solid rgba(92, 61, 46, 0.12);
       border-radius: 1rem;
       padding: 1rem;
+      padding-top: 0;
       text-align: center;
       break-inside: avoid;
     }
-    .card img {
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      margin: 0 -1rem 0.75rem;
+      background: #d48068;
+      padding: 12px;
+      border-top-left-radius: 1rem;
+      border-top-right-radius: 1rem;
+    }
+    .card-logo {
+      width: 2rem;
+      height: 2rem;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .card-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1.2;
+      color: white;
+    }
+    .card img.qr {
       width: 200px;
       height: 200px;
       display: block;
@@ -61,12 +87,21 @@
       opacity: 0.55;
       margin-top: 0.5rem;
     }
-    .card a.dl {
+    /* .card a.dl {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      z-index: 1;
       display: inline-block;
-      margin-top: 0.5rem;
+      margin: 0;
       font-size: 0.75rem;
       color: #7ba05b;
+      text-decoration: underline;
+      text-underline-offset: 2px;
     }
+    .card a.dl:hover {
+      color: #5c3d2e;
+    } */
     @media print {
       body { padding: 0.5rem; }
       .no-print { display: none !important; }
@@ -126,11 +161,15 @@
         const card = document.createElement("article");
         card.className = "card";
         card.innerHTML =
-          '<img src="' + imgUrl + '" width="200" height="200" alt="QR ' + cp.zone + '" />' +
+          // '<a class="dl no-print" href="' + imgUrl + '" download="qr-' + cp.id + '.png">下載 PNG</a>' +
+          '<header class="card-header">' +
+          '<img class="card-logo" src="/QR-logo-for-title.jpg" width="32" height="32" alt="" />' +
+          '<span class="card-title">豆花慢跑 Tofu Run</span>' +
+          "</header>" +
+          '<img class="qr" src="' + imgUrl + '" width="200" height="200" alt="QR ' + cp.zone + '" />' +
           '<p class="zone">' + cp.zone + "</p>" +
           '<p class="token">' + cp.label + "</p>" +
-          '<p class="url">' + scanUrl + "</p>" +
-          '<a class="dl no-print" href="' + imgUrl + '" download="qr-' + cp.id + '.png">下載 PNG</a>';
+          '<p class="url">' + scanUrl + "</p>";
         grid.appendChild(card);
       });
     }
