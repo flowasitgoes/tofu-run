@@ -576,6 +576,14 @@ function LivePageContent() {
         {t("live.onlineHint")}
       </p>
       {enteredRunnerId ? <LiveActivityFeed feed={feed} /> : null}
+      <div className="mt-4">
+        <img
+          src="/full-stops.jpg"
+          alt="活動地圖與補給點"
+          className="w-full rounded-2xl border border-brown-sugar/10 shadow-sm"
+          loading="lazy"
+        />
+      </div>
       <div className="mt-5 space-y-3">
         <Button href="/passport" variant="secondary" className="w-full">{t("live.myPassport")}</Button>
         <PageFooterNav />
