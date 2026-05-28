@@ -54,16 +54,17 @@
       justify-content: center;
       gap: 0.4rem;
       margin: 0 -1rem 0.75rem;
-      background: #d48068;
+      background: #45a176;
       padding: 12px;
       border-top-left-radius: 1rem;
       border-top-right-radius: 1rem;
     }
     .card-logo {
-      width: 2rem;
-      height: 2rem;
+      width: 2.5rem;
+      height: 2.5rem;
       object-fit: contain;
       flex-shrink: 0;
+      margin-right: 5px;
     }
     .card-title {
       margin: 0;
@@ -111,9 +112,9 @@
 </head>
 <body>
   <div class="no-print">
-    <h1>Checkpoint QR Code（白豆花 6 站 + 5 配料）</h1>
+    <h1>Checkpoint QR Code（起點 + 白豆花 6 站 + 5 配料）</h1>
     <p class="hint">
-      掃碼會開啟 <code>/scan/{token}</code>。白豆花需依序掃 <code>tofu-01</code>…<code>tofu-06</code>（各站本輪僅一次）；集滿 6 站 = 1 顆白豆花 Token。正式活動請用正式網域。
+      掃碼會開啟 <code>/scan/{token}</code>（含起點 <code>/scan/start</code>）。白豆花需依序掃 <code>tofu-01</code>…<code>tofu-06</code>（各站本輪僅一次）；集滿 6 站 = 1 顆白豆花 Token。正式活動請用正式網域。
     </p>
     <div class="base">
       <label>網站根網址
@@ -126,6 +127,12 @@
   <div class="grid" id="grid"></div>
 
   <script>
+    const START_POINT = {
+      id: "start",
+      zone: "活動起點",
+      label: "起點 Token",
+    };
+
     const TOFU_STATIONS = [
       { id: "tofu-01", zone: "純白豆花底", label: "白豆花 Token 01" },
       { id: "tofu-02", zone: "純白豆花底", label: "白豆花 Token 02" },
@@ -143,7 +150,7 @@
       { id: "taro", zone: "捷運出口區", label: "芋圓 Token" },
     ];
 
-    const CHECKPOINTS = TOFU_STATIONS.concat(TOPPINGS);
+    const CHECKPOINTS = [START_POINT].concat(TOFU_STATIONS, TOPPINGS);
 
     function qrImageUrl(scanUrl) {
       const data = encodeURIComponent(scanUrl);
@@ -163,13 +170,13 @@
         card.innerHTML =
           // '<a class="dl no-print" href="' + imgUrl + '" download="qr-' + cp.id + '.png">下載 PNG</a>' +
           '<header class="card-header">' +
-          '<img class="card-logo" src="/QR-logo-for-title.jpg" width="32" height="32" alt="" />' +
+          '<img class="card-logo" src="/QR-logo-for-title.jpg" width="40" height="40" alt="" />' +
           '<span class="card-title">豆花慢跑 Tofu Run</span>' +
           "</header>" +
           '<img class="qr" src="' + imgUrl + '" width="200" height="200" alt="QR ' + cp.zone + '" />' +
           '<p class="zone">' + cp.zone + "</p>" +
-          '<p class="token">' + cp.label + "</p>" +
-          '<p class="url">' + scanUrl + "</p>";
+          '<p class="token">' + cp.label + "</p>";
+          // '<p class="url">' + scanUrl + "</p>";
         grid.appendChild(card);
       });
     }

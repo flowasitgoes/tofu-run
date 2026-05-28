@@ -65,7 +65,8 @@ export async function POST(request: Request) {
     );
 
     const requiredIds = targets.map((t) => t.id);
-    if (!isTokenAllowedOnRoute(tokenType, requiredIds)) {
+    const isStartToken = tokenType === "start";
+    if (!isStartToken && !isTokenAllowedOnRoute(tokenType, requiredIds)) {
       return NextResponse.json(
         { error: "此 Token 不在你的豆花路線" },
         { status: 403 }

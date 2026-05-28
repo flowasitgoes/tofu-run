@@ -146,8 +146,13 @@ export function LiveParticipantsList({
                 }`}
               >
                 <div className="min-w-0 shrink-0">
-                  <p className="truncate font-mono text-sm font-semibold text-twilight">
-                    {p.runner_id}
+                  <p className="flex items-center gap-1 truncate font-mono text-sm font-semibold text-twilight">
+                    <span className="truncate">{p.runner_id}</span>
+                    {(p.earned_token_ids ?? []).includes("start") ? (
+                      <span className="rounded-full bg-mung-green px-1.5 py-0.5 text-[10px] font-semibold leading-none text-cream">
+                        ready
+                      </span>
+                    ) : null}
                   </p>
                   <p className="truncate text-sm text-brown-sugar">
                     {p.display_name}

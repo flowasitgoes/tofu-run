@@ -93,6 +93,13 @@ export default function AdminEventDetailPage({
       </Card>
 
       <div className="mt-4 flex flex-col gap-2">
+        <Button
+          href={`/admin/events/${sessionId}/calculate`}
+          variant="secondary"
+          className="w-full"
+        >
+          查看移動距離計算
+        </Button>
         <Button href="/admin/events" variant="secondary" className="w-full">
           回活動列表
         </Button>

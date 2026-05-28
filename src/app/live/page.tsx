@@ -419,6 +419,7 @@ function LivePageContent() {
           <ul className="divide-y divide-brown-sugar/8">
             {participants.map((p) => {
               const isMe = enteredRunnerId === p.runner_id;
+              const isReady = (p.earned_token_ids ?? []).includes("start");
               const completionRank = completionRanks.get(p.user_id);
               const bowlsDone = countCompletedBowls(
                 p.required_token_ids ?? [],
@@ -427,7 +428,14 @@ function LivePageContent() {
               return (
                 <li key={p.user_id} className={`flex items-start gap-2 py-3 ${isMe ? "bg-sunset/10 -mx-1 rounded-xl px-1" : ""}`}>
                   <div className="min-w-0 shrink-0">
-                    <p className="truncate font-mono text-sm font-semibold text-twilight">{p.runner_id}</p>
+                    <p className="flex items-center gap-1 truncate font-mono text-sm font-semibold text-twilight">
+                      <span className="truncate">{p.runner_id}</span>
+                      {isReady ? (
+                        <span className="rounded-full bg-mung-green px-1.5 py-0.5 text-[10px] font-semibold leading-none text-cream">
+                          ready
+                        </span>
+                      ) : null}
+                    </p>
                     <p className="truncate text-sm text-brown-sugar">{p.display_name}</p>
                     {p.goal && <p className="mt-0.5 truncate text-xs text-mung-green">{p.goal}</p>}
                     <LiveTofuProgressRow

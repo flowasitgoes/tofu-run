@@ -32,6 +32,7 @@ export function sameToppingCooldownMessage(tokenType: string): string {
 }
 
 export const SCAN_TOPPING_COOLDOWN_MS = 60_000;
+const START_TOKEN_ID = "start";
 
 export type ScanHistoryRow = {
   token_type: string;
@@ -66,6 +67,11 @@ export function validateScanRules(
   nextTokenType: string
 ): string | null {
   const now = Date.now();
+
+  if (nextTokenType === START_TOKEN_ID) {
+    const hasStart = scansNewestFirst.some((s) => s.token_type === START_TOKEN_ID);
+    return hasStart ? "活動起點只能記錄一次" : null;
+  }
 
   if (isLegacyTofuScan(nextTokenType)) {
     return "請改掃豆花起點 QR（tofu-01 至 tofu-06）";

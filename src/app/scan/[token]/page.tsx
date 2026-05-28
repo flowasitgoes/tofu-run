@@ -8,7 +8,11 @@ import { PageShell } from "@/components/PageShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { TokenIcon } from "@/components/TokenIcon";
-import { TOKEN_TYPES, resolveTokenIconSize } from "@/lib/constants";
+import {
+  SCANNABLE_TOKEN_IDS,
+  TOKEN_TYPES,
+  resolveTokenIconSize,
+} from "@/lib/constants";
 import {
   getTokenLabelLocalized,
   getTokenZoneLocalized,
@@ -24,7 +28,7 @@ import {
   setStoredLiveRunnerId,
 } from "@/lib/liveSession";
 
-const VALID = TOKEN_TYPES.map((t) => t.id);
+const VALID = SCANNABLE_TOKEN_IDS;
 const LOADING_MIN_MS = 1000;
 const LOADING_MAX_MS = 1500;
 /** 成功畫面停留後自動回 LIVE */
@@ -51,7 +55,16 @@ export default function ScanPage({
   const { locale, t, localizeError } = useLocale();
   const { token } = use(params);
   const tokenType = token.toLowerCase();
-  const tokenInfo = TOKEN_TYPES.find((t) => t.id === tokenType);
+  const tokenInfo =
+    TOKEN_TYPES.find((t) => t.id === tokenType) ??
+    (tokenType === "start"
+      ? {
+          id: "start",
+          label: "起點 Token",
+          zone: "活動起點",
+          image: "/tokens/tofu.png",
+        }
+      : null);
   const { player } = useStoredPlayerSnapshot();
 
   const [status, setStatus] = useState<

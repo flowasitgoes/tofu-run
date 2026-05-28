@@ -113,6 +113,7 @@ export const zh = {
     taro: { label: "芋圓豆花", short: "芋圓" },
   },
   tokens: {
+    start: { label: "起點 Token", zone: "活動起點" },
     tofu: { label: "白豆花 Token", zone: "純白豆花底" },
     "tofu-01": { label: "白豆花 Token 01", zone: "純白豆花底" },
     "tofu-02": { label: "白豆花 Token 02", zone: "純白豆花底" },

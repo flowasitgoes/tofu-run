@@ -121,6 +121,7 @@ export const en: Messages = {
     taro: { label: "Taro bowl", short: "Taro" },
   },
   tokens: {
+    start: { label: "Start Token", zone: "Start point" },
     tofu: { label: "White tofu Token", zone: "Plain white tofu base" },
     "tofu-01": { label: "White tofu Token 01", zone: "Plain white tofu base" },
     "tofu-02": { label: "White tofu Token 02", zone: "Plain white tofu base" },

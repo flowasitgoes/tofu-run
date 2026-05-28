@@ -18,6 +18,7 @@ export async function performTokenScan(params: {
   runnerName: string;
   tokenType: string;
 }): Promise<PerformTokenScanResult> {
+  const geo = await getCurrentPositionForScan();
   const controller = new AbortController();
   const timeoutId = window.setTimeout(
     () => controller.abort(),
@@ -33,8 +34,8 @@ export async function performTokenScan(params: {
       body: JSON.stringify({
         userId: params.userId,
         tokenType: params.tokenType,
-        lat: null,
-        lng: null,
+        lat: geo?.lat ?? null,
+        lng: geo?.lng ?? null,
       }),
     });
   } catch (e) {
@@ -52,8 +53,6 @@ export async function performTokenScan(params: {
       typeof data.error === "string" ? data.error : "SCAN_FAILED"
     );
   }
-
-  void getCurrentPositionForScan();
 
   const scannedAt =
     (data.scannedAt as string | undefined) ??

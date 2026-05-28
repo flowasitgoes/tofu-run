@@ -156,6 +156,7 @@ export type TokenTypeId = (typeof TOKEN_TYPES)[number]["id"];
 
 /** 可掃描的 checkpoint（不含邏輯用 tofu） */
 export const SCANNABLE_TOKEN_IDS: string[] = [
+  "start",
   ...TOFU_PROGRESS_TOKEN_IDS,
   ...TOPPING_CHECKPOINTS.map((t) => t.id),
 ];

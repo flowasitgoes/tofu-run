@@ -1,4 +1,5 @@
 import { BASE_TOFU_TOKEN_ID, SCANNABLE_TOKEN_IDS, TOKEN_TYPES } from "@/lib/constants";
+import { getCheckpointLocation } from "@/lib/checkpoint-locations";
 import {
   computeRouteCompletionFromScans,
   countCompletedBowls,
@@ -750,7 +751,7 @@ export async function recordToken(
   return data as Token;
 }
 
-const TOKEN_SCAN_SELECT = "id, user_id, token_type, scanned_at";
+const TOKEN_SCAN_SELECT = "id, user_id, token_type, scanned_at, lat, lng";
 
 function nextCalendarDate(dateStr: string): string {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -1538,4 +1539,151 @@ export async function getLiveParticipants(
 ): Promise<LiveParticipant[]> {
   const { participants } = await getLiveRoomData(sessionId, sessionDate);
   return participants;
+}
+
+export type AdminMovementScanRow = {
+  token_id: string;
+  token_type: string;
+  scanned_at: string;
+  scan_lat: number | null;
+  scan_lng: number | null;
+  effective_lat: number | null;
+  effective_lng: number | null;
+  location_source: "scan" | "checkpoint" | "none";
+  moved_from_token_type: string | null;
+  moved_from_scanned_at: string | null;
+  segment_distance_m: number | null;
+};
+
+export type AdminMovementParticipant = {
+  user_id: string;
+  runner_id: string;
+  display_name: string;
+  total_distance_m: number;
+  scans: AdminMovementScanRow[];
+};
+
+function toRadians(v: number): number {
+  return (v * Math.PI) / 180;
+}
+
+function haversineMeters(
+  aLat: number,
+  aLng: number,
+  bLat: number,
+  bLng: number
+): number {
+  const earthRadiusM = 6371000;
+  const dLat = toRadians(bLat - aLat);
+  const dLng = toRadians(bLng - aLng);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(aLat)) *
+      Math.cos(toRadians(bLat)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadiusM * c;
+}
+
+function roundMeters(v: number): number {
+  return Math.round(v * 10) / 10;
+}
+
+export async function getAdminSessionMovementData(
+  sessionId: string,
+  sessionDate: string = getTodayDateString()
+): Promise<AdminMovementParticipant[]> {
+  const { participants, tokenRows } = await fetchLiveParticipantRows(
+    sessionId,
+    sessionDate
+  );
+
+  const scansByUser = new Map<string, Token[]>();
+  for (const tok of tokenRows) {
+    const list = scansByUser.get(tok.user_id) ?? [];
+    list.push(tok);
+    scansByUser.set(tok.user_id, list);
+  }
+
+  return participants.map((p) => {
+    const scans = [...(scansByUser.get(p.user_id) ?? [])].sort(
+      (a, b) =>
+        new Date(a.scanned_at).getTime() - new Date(b.scanned_at).getTime()
+    );
+
+    let total = 0;
+    const rows: AdminMovementScanRow[] = [];
+    let prevEffective:
+      | { lat: number; lng: number; token_type: string; scanned_at: string }
+      | null = null;
+
+    for (const scan of scans) {
+      const checkpoint = getCheckpointLocation(scan.token_type);
+      const hasScanPoint =
+        typeof scan.lat === "number" && typeof scan.lng === "number";
+      const effectiveLat = hasScanPoint ? scan.lat : (checkpoint?.lat ?? null);
+      const effectiveLng = hasScanPoint ? scan.lng : (checkpoint?.lng ?? null);
+      const source: AdminMovementScanRow["location_source"] = hasScanPoint
+        ? "scan"
+        : checkpoint
+          ? "checkpoint"
+          : "none";
+
+      let segmentDistance: number | null = null;
+      let movedFromTokenType: string | null = null;
+      let movedFromScannedAt: string | null = null;
+
+      if (
+        prevEffective &&
+        effectiveLat != null &&
+        effectiveLng != null &&
+        prevEffective.lat != null &&
+        prevEffective.lng != null
+      ) {
+        segmentDistance = roundMeters(
+          haversineMeters(
+            prevEffective.lat,
+            prevEffective.lng,
+            effectiveLat,
+            effectiveLng
+          )
+        );
+        total += segmentDistance;
+        movedFromTokenType = prevEffective.token_type;
+        movedFromScannedAt = prevEffective.scanned_at;
+      }
+
+      rows.push({
+        token_id: scan.id,
+        token_type: scan.token_type,
+        scanned_at: scan.scanned_at,
+        scan_lat: scan.lat,
+        scan_lng: scan.lng,
+        effective_lat: effectiveLat,
+        effective_lng: effectiveLng,
+        location_source: source,
+        moved_from_token_type: movedFromTokenType,
+        moved_from_scanned_at: movedFromScannedAt,
+        segment_distance_m: segmentDistance,
+      });
+
+      if (effectiveLat != null && effectiveLng != null) {
+        prevEffective = {
+          lat: effectiveLat,
+          lng: effectiveLng,
+          token_type: scan.token_type,
+          scanned_at: scan.scanned_at,
+        };
+      }
+    }
+
+    return {
+      user_id: p.user_id,
+      runner_id: p.runner_id,
+      display_name: p.display_name,
+      total_distance_m: roundMeters(total),
+      scans: rows,
+    };
+  });
 }
