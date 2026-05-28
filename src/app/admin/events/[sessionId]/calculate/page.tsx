@@ -63,6 +63,10 @@ function fmtCoord(v: number | null): string {
   return typeof v === "number" ? v.toFixed(6) : "—";
 }
 
+function fmtMeters(v: number | null): string {
+  return v != null ? `${v.toFixed(1)} m` : "—";
+}
+
 export default function AdminEventCalculatePage({
   params,
 }: {
@@ -101,7 +105,7 @@ export default function AdminEventCalculatePage({
   }, [sessionId]);
 
   return (
-    <PageShell showNav={false}>
+    <PageShell showNav={false} mainClassName="max-w-none">
       <header className="mb-4">
         <h1 className="text-2xl font-bold text-brown-sugar">移動距離計算</h1>
         <p className="text-sm text-brown-sugar/60">
@@ -133,45 +137,49 @@ export default function AdminEventCalculatePage({
                   總移動距離：{p.total_distance_m.toFixed(1)} m
                 </p>
 
-                <div className="mt-2 overflow-x-auto">
-                  <table className="w-full min-w-[760px] text-left text-xs">
+                <div className="mt-2">
+                  <table className="w-full table-auto text-left text-xs">
                     <thead>
                       <tr className="text-brown-sugar/70">
                         <th className="px-2 py-1">掃描時間</th>
                         <th className="px-2 py-1">Token</th>
                         <th className="px-2 py-1">掃描定位</th>
                         <th className="px-2 py-1">採用定位</th>
-                        <th className="px-2 py-1">來源</th>
                         <th className="px-2 py-1">移動來源</th>
                         <th className="px-2 py-1">本段距離</th>
+                        <th className="px-2 py-1">累計距離</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {p.scans.map((s) => (
-                        <tr key={s.token_id} className="border-t border-brown-sugar/8">
-                          <td className="px-2 py-1.5 whitespace-nowrap">
-                            {fmtTime(s.scanned_at)}
-                          </td>
-                          <td className="px-2 py-1.5 whitespace-nowrap">{s.token_type}</td>
-                          <td className="px-2 py-1.5 whitespace-nowrap">
-                            {fmtCoord(s.scan_lat)}, {fmtCoord(s.scan_lng)}
-                          </td>
-                          <td className="px-2 py-1.5 whitespace-nowrap">
-                            {fmtCoord(s.effective_lat)}, {fmtCoord(s.effective_lng)}
-                          </td>
-                          <td className="px-2 py-1.5 whitespace-nowrap">
-                            {s.location_source}
-                          </td>
-                          <td className="px-2 py-1.5 whitespace-nowrap">
-                            {s.moved_from_token_type ?? "—"}
-                          </td>
-                          <td className="px-2 py-1.5 whitespace-nowrap">
-                            {s.segment_distance_m != null
-                              ? `${s.segment_distance_m.toFixed(1)} m`
-                              : "—"}
-                          </td>
-                        </tr>
-                      ))}
+                      {(() => {
+                        let cumulative = 0;
+                        return p.scans.map((s) => {
+                          if (s.segment_distance_m != null) {
+                            cumulative += s.segment_distance_m;
+                          }
+                          return (
+                            <tr key={s.token_id} className="border-t border-brown-sugar/8">
+                              <td className="px-2 py-1.5">{fmtTime(s.scanned_at)}</td>
+                              <td className="px-2 py-1.5">{s.token_type}</td>
+                              <td className="px-2 py-1.5">
+                                {fmtCoord(s.scan_lat)}, {fmtCoord(s.scan_lng)}
+                              </td>
+                              <td className="px-2 py-1.5">
+                                {fmtCoord(s.effective_lat)}, {fmtCoord(s.effective_lng)}
+                              </td>
+                              <td className="px-2 py-1.5">
+                                {s.moved_from_token_type ?? "—"}
+                              </td>
+                              <td className="px-2 py-1.5">
+                                {fmtMeters(s.segment_distance_m)}
+                              </td>
+                              <td className="px-2 py-1.5 font-medium text-mung-green">
+                                {fmtMeters(cumulative)}
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
                     </tbody>
                   </table>
                 </div>
