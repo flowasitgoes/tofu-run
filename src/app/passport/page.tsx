@@ -405,7 +405,7 @@ export default function PassportPage() {
                 : null;
             const cumulativeMeters = cumulativeDistanceFromTokenIds(
               run.tokens.map((token) => token.token_type)
-            );
+            ) * 1.3;
             const tokenGroups = tokenGroupsForRun(run);
 
             return (
