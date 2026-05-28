@@ -49,6 +49,16 @@ export function HomePageContent() {
           </span>
           {t("home.closedBetaMeetupSuffix")}
         </p>
+        <div className="mt-3 overflow-hidden rounded-2xl border border-brown-sugar/10 bg-cream/40 shadow-sm">
+          <Image
+            src="/full-stops.jpg"
+            alt="活動地圖與補給點"
+            width={1536}
+            height={731}
+            className="h-auto w-full"
+            sizes="(max-width: 448px) 100vw, 400px"
+          />
+        </div>
       </header>
 
       <InterestSignup />
