@@ -20,8 +20,6 @@ const PIN_POSITIONS: Record<TokenTypeId, string> = {
   "tofu-02": TOFU_PIN,
   "tofu-03": TOFU_PIN,
   "tofu-04": TOFU_PIN,
-  "tofu-05": TOFU_PIN,
-  "tofu-06": TOFU_PIN,
   redbean: "left-[12%] top-[11%]",
   mungbean: "right-[4%] top-[7%]",
   peanut: "left-[8%] bottom-[14%]",

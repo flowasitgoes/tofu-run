@@ -19,7 +19,7 @@ export function isTofuProgressToken(
   return TOFU_PROGRESS_SET.has(tokenType);
 }
 
-/** 0 = 最左（tofu-01）… 5 = 最右（tofu-06） */
+/** 0 = 最左（tofu-01）… 3 = 最右（tofu-04） */
 export function tofuProgressSlot(tokenType: string): number | null {
   const idx = TOFU_PROGRESS_TOKEN_IDS.indexOf(tokenType as TofuProgressTokenId);
   return idx >= 0 ? idx : null;
@@ -48,8 +48,9 @@ export function countTofuProgressScans(
 }
 
 /**
- * 已換得的豆花 Token 顆數：tofu-01…06 各至少掃 N 次 → 取最小 N。
- * 舊版單一 `tofu` QR 不計入，須改掃六站。
+ * 已換得的豆花 Token 顆數：每輪須掃滿 {@link TOFU_PROGRESS_COUNT} 站（tofu-01…04 各至少 1 次）→ 取各站次數最小值。
+ * 例：4 站各掃 1 次 = 1 顆豆花；集滿後 LIVE 改顯示豆花圖（不再顯示湯匙），下一輪再從 0 格累積。
+ * 舊版單一 `tofu` QR 不計入。
  */
 export function countCompletedTofuSets(earnedTokenIds: string[]): number {
   const perStep = countTofuProgressScans(earnedTokenIds);

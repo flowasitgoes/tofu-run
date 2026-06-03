@@ -38,7 +38,7 @@ export const en: Messages = {
     location: "Tofu Run · Kaohsiung Central Park",
     taglineEn: "When the Tofu Pudding is Running ...",
     closedBeta:
-      "Closed beta\n{ ~ Tofu friends trial run · Thu 5/28/2026 · 7:30–8:30 PM ~ }",
+      "{ ~ Tofu friends 2nd trial run · Fri 6/5/2026 · 7:00–8:00 PM ~ }",
     closedBetaMeetupPrefix: "Meet at: ",
     closedBetaMeetupPlaceBefore: "Central Park Exit ",
     closedBetaMeetupPlaceExitNo: "1",
@@ -127,8 +127,6 @@ export const en: Messages = {
     "tofu-02": { label: "White tofu Token 02", zone: "Plain white tofu base" },
     "tofu-03": { label: "White tofu Token 03", zone: "Plain white tofu base" },
     "tofu-04": { label: "White tofu Token 04", zone: "Plain white tofu base" },
-    "tofu-05": { label: "White tofu Token 05", zone: "Plain white tofu base" },
-    "tofu-06": { label: "White tofu Token 06", zone: "Plain white tofu base" },
     redbean: { label: "Red bean Token", zone: "Pond area" },
     mungbean: { label: "Mung bean Token", zone: "Grove area" },
     peanut: { label: "Peanut Token", zone: "City arcade" },
@@ -169,7 +167,7 @@ export const en: Messages = {
     listCount: "{count} people",
     empty: "No signups yet — be the first bowl 🥣",
     dateTbd:
-      "Run date TBA…\n{ ~ Tofu friends trial run · Thu 5/28/2026 · 7:30–8:30 PM ~ }",
+      "Run date TBA…\n{ ~ Tofu friends 2nd trial run · Fri 6/5/2026 · 7:00–8:00 PM ~ }",
     logout: "Sign out",
     myPassport: "My tofu passport",
   },
@@ -233,7 +231,7 @@ export const en: Messages = {
     tokenProgress: "Token progress",
     scanToken: "Scan",
     scanHint:
-      "Point at a checkpoint QR (white tofu tofu-01…06 or toppings)",
+      "Point at a checkpoint QR (white tofu tofu-01…04 or toppings)",
     scanClose: "Close",
     scanInvalidQr: "Unrecognized QR — use a checkpoint code",
     scanCameraDenied: "Camera blocked — allow camera access and retry",

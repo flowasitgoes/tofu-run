@@ -29,7 +29,7 @@ function effectiveCountForRequired(
   return toppingCounts.get(requiredId) ?? 0;
 }
 
-/** 集齊豆花（六站一輪）+ 個人配料後視為完成 */
+/** 集齊豆花（四站一輪）+ 個人配料後視為完成 */
 export function computeGroundCompletion(
   requiredIds: string[],
   earned: Record<string, string | null>
@@ -60,7 +60,7 @@ export function routeMeetsCompletion(
   return countCompletedBowls(requiredIds, earnedTokenIds) >= 1;
 }
 
-/** 已完成幾碗：須先有一顆豆花 Token（六站一輪），再與各配料次數取最小 */
+/** 已完成幾碗：須先有一顆豆花 Token（四站一輪），再與各配料次數取最小 */
 export function countCompletedBowls(
   requiredIds: string[],
   earnedTokenIds: string[]

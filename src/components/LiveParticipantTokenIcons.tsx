@@ -123,7 +123,7 @@ function TokenIconCell({
   );
 }
 
-/** LIVE 名單：豆花圖示 + 六格進度（放在 goal 下方） */
+/** LIVE 名單：豆花進度格（站數 = TOFU_PROGRESS_COUNT，集滿一輪換 1 顆豆花） */
 export function LiveTofuProgressRow({
   tokenIds,
   className = "",
@@ -138,7 +138,12 @@ export function LiveTofuProgressRow({
       className={`flex min-w-0 items-center gap-1.5 overflow-visible ${className}`.trim()}
       aria-label="豆花進度"
     >
-      <div className="grid w-full max-w-[5.5rem] shrink-0 grid-cols-6 gap-px">
+      <div
+        className="grid w-full max-w-[4rem] shrink-0 gap-px"
+        style={{
+          gridTemplateColumns: `repeat(${TOFU_PROGRESS_COUNT}, minmax(0, 1fr))`,
+        }}
+      >
         {Array.from({ length: TOFU_PROGRESS_COUNT }, (_, i) => (
           <span
             key={i}
@@ -202,7 +207,10 @@ export function LiveParticipantTokenIcons({
               count={completedTofu}
             />
           ) : currentRoundStations > 0 ? (
-            <div className="flex flex-col items-center justify-center gap-0.5">
+            <div
+              className="flex flex-col items-center justify-center gap-0.5"
+              title={`本輪豆花進度 ${currentRoundStations}/${TOFU_PROGRESS_COUNT}`}
+            >
               <div className="flex h-8 w-11 items-center justify-center">
                 <TokenIcon
                   src="/spoon-64px.png"

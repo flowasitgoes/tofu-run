@@ -59,7 +59,7 @@ function validateTofuProgressScan(
 
 /**
  * 掃描防刷規則（回傳中文錯誤訊息；通過則回傳 null）
- * - 豆花：tofu-01…06 各站本輪僅能掃一次；可連續掃不同站
+ * - 豆花：tofu-01…04 各站本輪僅能掃一次；可連續掃不同站
  * - 配料：同一種 1 分鐘內不可重掃
  */
 export function validateScanRules(
@@ -74,7 +74,7 @@ export function validateScanRules(
   }
 
   if (isLegacyTofuScan(nextTokenType)) {
-    return "請改掃豆花起點 QR（tofu-01 至 tofu-06）";
+    return "請改掃豆花起點 QR（tofu-01 至 tofu-04）";
   }
 
   if (isTofuProgressToken(nextTokenType)) {

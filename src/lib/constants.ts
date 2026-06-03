@@ -78,17 +78,15 @@ export function formatDouhuaGoal(
 
 export type TofuTypeId = (typeof TOFU_TYPES)[number]["id"];
 
-/** 全員必掃的起點 Token（邏輯用；實際掃描為 tofu-01…06） */
+/** 全員必掃的起點 Token（邏輯用；實際掃描為 tofu-01…04） */
 export const BASE_TOFU_TOKEN_ID = "tofu" as const;
 
-/** 豆花起點 6 站 QR，集滿一輪 = 1 顆豆花 Token */
+/** 豆花起點 4 站 QR，集滿一輪 = 1 顆豆花 Token */
 export const TOFU_PROGRESS_TOKEN_IDS = [
   "tofu-01",
   "tofu-02",
   "tofu-03",
   "tofu-04",
-  "tofu-05",
-  "tofu-06",
 ] as const;
 
 export type TofuProgressTokenId = (typeof TOFU_PROGRESS_TOKEN_IDS)[number];
@@ -140,7 +138,7 @@ const TOPPING_CHECKPOINTS = [
   },
 ] as const;
 
-/** 護照／路線顯示 + 掃描站定義（含 6 站豆花 QR） */
+/** 護照／路線顯示 + 掃描站定義（含 4 站豆花 QR） */
 export const TOKEN_TYPES = [
   {
     id: BASE_TOFU_TOKEN_ID,

@@ -141,8 +141,8 @@ export function localizeErrorMessage(
     return `You already scanned tofu station ${tofuStation[1]} this round!`;
   }
 
-  if (message.includes("tofu-01 至 tofu-06")) {
-    return "Please scan the tofu checkpoints (tofu-01 through tofu-06)";
+  if (message.includes("tofu-01 至 tofu-04")) {
+    return "Please scan the tofu checkpoints (tofu-01 through tofu-04)";
   }
 
   const toppingCooldown =
