@@ -253,7 +253,7 @@ export const en: Messages = {
     trailDenied: "Location denied — route not recorded (you can still scan)",
     trailUnsupported: "Route recording not supported on this device",
     trailIdle: "Preparing route recording…",
-    stopMapCarouselHint: "Token stop maps (swipe or use arrows to zoom in)",
+    stopMapCarouselHint: "Token stop maps (test your memory :)",
     stopMapPrev: "Previous map",
     stopMapNext: "Next map",
     stopMapSlideAlt: "{label} · {zone}",
