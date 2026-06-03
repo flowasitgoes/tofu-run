@@ -80,3 +80,13 @@ body {
 .animate-slide-down {
   animation: slide-down 0.35s ease-out;
 }
+
+/** LIVE 補給點輪播：留白區點陣紋 */
+.stop-map-carousel-dots {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    rgb(92 61 46 / 0.12) 1px,
+    transparent 0
+  );
+  background-size: 14px 14px;
+}

@@ -241,6 +241,11 @@ export const zh = {
     trailDenied: "未允許定位，路徑不會記錄（仍可掃描 Token）",
     trailUnsupported: "此裝置無法記錄路徑",
     trailIdle: "準備記錄路徑…",
+    stopMapCarouselHint: "各 Token 補給點地圖（可左右切換放大查看）",
+    stopMapPrev: "上一張地圖",
+    stopMapNext: "下一張地圖",
+    stopMapSlideAlt: "{label} · {zone}",
+    stopMapCounter: "{current} / {total}",
   },
   ground: {
     title: "LIVE Ground",

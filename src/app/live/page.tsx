@@ -44,6 +44,7 @@ import {
   LiveTofuProgressRow,
 } from "@/components/LiveParticipantTokenIcons";
 import { LiveTokenScanner } from "@/components/LiveTokenScanner";
+import { StopMapCarousel } from "@/components/StopMapCarousel";
 
 /** 上線：實心綠點（與 Ground 完成用的 ✓ 區隔） */
 function OnlineBadge({ label }: { label: string }) {
@@ -610,6 +611,7 @@ function LivePageContent() {
           className="w-full rounded-2xl border border-brown-sugar/10 shadow-sm"
           loading="lazy"
         />
+        <StopMapCarousel />
       </div>
       <div className="mt-5 space-y-3">
         <Button href="/passport" variant="secondary" className="w-full">{t("live.myPassport")}</Button>
