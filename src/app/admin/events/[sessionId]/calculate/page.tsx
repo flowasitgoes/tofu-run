@@ -20,6 +20,8 @@ type MovementScanRow = {
   token_id: string;
   token_type: string;
   scanned_at: string;
+  checkpoint_lat: number | null;
+  checkpoint_lng: number | null;
   scan_lat: number | null;
   scan_lng: number | null;
   effective_lat: number | null;
@@ -183,7 +185,8 @@ export default function AdminEventCalculatePage({
                       <tr className="text-brown-sugar/70">
                         <th className="px-2 py-1">掃描時間</th>
                         <th className="px-2 py-1">Token</th>
-                        <th className="px-2 py-1">掃描定位</th>
+                        <th className="px-2 py-1">Token 定位</th>
+                        <th className="px-2 py-1">實際掃描</th>
                         <th className="px-2 py-1">採用定位</th>
                         <th className="px-2 py-1">移動來源</th>
                         <th className="px-2 py-1">本段距離</th>
@@ -201,6 +204,9 @@ export default function AdminEventCalculatePage({
                             <tr key={s.token_id} className="border-t border-brown-sugar/8">
                               <td className="px-2 py-1.5">{fmtTime(s.scanned_at)}</td>
                               <td className="px-2 py-1.5">{s.token_type}</td>
+                              <td className="px-2 py-1.5">
+                                {fmtCoord(s.checkpoint_lat)}, {fmtCoord(s.checkpoint_lng)}
+                              </td>
                               <td className="px-2 py-1.5">
                                 {fmtCoord(s.scan_lat)}, {fmtCoord(s.scan_lng)}
                               </td>

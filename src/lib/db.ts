@@ -1588,6 +1588,8 @@ export type AdminMovementScanRow = {
   token_id: string;
   token_type: string;
   scanned_at: string;
+  checkpoint_lat: number | null;
+  checkpoint_lng: number | null;
   scan_lat: number | null;
   scan_lng: number | null;
   effective_lat: number | null;
@@ -1701,6 +1703,8 @@ export async function getAdminSessionMovementData(
         token_id: scan.id,
         token_type: scan.token_type,
         scanned_at: scan.scanned_at,
+        checkpoint_lat: checkpoint?.lat ?? null,
+        checkpoint_lng: checkpoint?.lng ?? null,
         scan_lat: scan.lat,
         scan_lng: scan.lng,
         effective_lat: effectiveLat,
